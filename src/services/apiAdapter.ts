@@ -20,6 +20,13 @@ const LOCAL_CATALOG_KEY = 'himart_gj_simulator_catalog_v1'
 const ADMIN_TOKEN_SESSION_KEY = 'himart_gj_admin_session_token'
 const ADMIN_SESSION_MODE_KEY = 'himart_gj_admin_session_mode'
 
+const LARGE_APPLIANCE_CATEGORIES = [
+  '대형가전',
+  'TV/영상',
+  '냉장고/김치냉장고',
+  '세탁/건조',
+]
+
 export type GasPostAction =
   | 'submitLead'
   | 'adminLogin'
@@ -178,32 +185,48 @@ async function postGasAction<T = unknown>(
   return data
 }
 
-/* ==================== SANITIZATION & NORMALIZATION ==================== */
+/* ==================== GAS SCHEMA MAPPERS (READ & WRITE) ==================== */
+
+function inferIsLargeAppliance(category: string): boolean {
+  return (
+    LARGE_APPLIANCE_CATEGORIES.includes(category) ||
+    category.includes('에어컨') ||
+    category.includes('냉장') ||
+    category.includes('세탁') ||
+    category.includes('TV')
+  )
+}
 
 export function sanitizeProduct(p: ProductItem, sortOrderFallback = 1): ProductItem {
+  const category = sanitizeForSheet(p.category, 40)
   return {
     ...p,
-    id: sanitizeForSheet(p.id, 80) || `prod-${Date.now().toString(36)}`,
+    id: sanitizeForSheet(p.id, 80) || `prod_${Date.now().toString(36)}`,
     name: sanitizeForSheet(p.name, 120),
     modelCode: sanitizeForSheet(p.modelCode, 80),
     brand: sanitizeForSheet(p.brand, 40),
-    category: sanitizeForSheet(p.category, 40),
+    category,
     imageUrl: sanitizeImageUrl(p.imageUrl),
     careTags: (Array.isArray(p.careTags) ? p.careTags : [])
       .map((t) => sanitizeForSheet(String(t), 40))
       .filter(Boolean),
-    monthly36: p.monthly36 !== null && Number(p.monthly36) > 0 ? Math.round(Number(p.monthly36)) : null,
-    monthly60: p.monthly60 !== null && Number(p.monthly60) > 0 ? Math.round(Number(p.monthly60)) : null,
+    monthly36:
+      p.monthly36 !== null && Number(p.monthly36) > 0 ? Math.round(Number(p.monthly36)) : null,
+    monthly60:
+      p.monthly60 !== null && Number(p.monthly60) > 0 ? Math.round(Number(p.monthly60)) : null,
     isLargeAppliance: Boolean(p.isLargeAppliance),
     visible: Boolean(p.visible),
-    sortOrder: Number.isFinite(p.sortOrder) && p.sortOrder > 0 ? Math.round(p.sortOrder) : sortOrderFallback,
+    sortOrder:
+      Number.isFinite(p.sortOrder) && p.sortOrder > 0
+        ? Math.round(p.sortOrder)
+        : sortOrderFallback,
   }
 }
 
 export function sanitizeBundle(b: RecommendedBundle, sortOrderFallback = 1): RecommendedBundle {
   return {
     ...b,
-    id: sanitizeForSheet(b.id, 80) || `bundle-${Date.now().toString(36)}`,
+    id: sanitizeForSheet(b.id, 80) || `set_${Date.now().toString(36)}`,
     name: sanitizeForSheet(b.name, 100),
     description: sanitizeForSheet(b.description, 220),
     badge: sanitizeForSheet(b.badge, 30) || '추천',
@@ -214,7 +237,10 @@ export function sanitizeBundle(b: RecommendedBundle, sortOrderFallback = 1): Rec
       quantity: Math.max(1, Math.round(Number(item.quantity) || 1)),
     })),
     visible: Boolean(b.visible),
-    sortOrder: Number.isFinite(b.sortOrder) && b.sortOrder > 0 ? Math.round(b.sortOrder) : sortOrderFallback,
+    sortOrder:
+      Number.isFinite(b.sortOrder) && b.sortOrder > 0
+        ? Math.round(b.sortOrder)
+        : sortOrderFallback,
   }
 }
 
@@ -224,6 +250,73 @@ export function sanitizeCatalogSnapshot(snapshot: CatalogSnapshot): CatalogSnaps
     bundles: snapshot.bundles.map((b, idx) => sanitizeBundle(b, idx + 1)),
     policy: normalizePolicy(snapshot.policy),
     updatedAt: new Date().toISOString(),
+  }
+}
+
+/**
+ * Serializes internal ProductItem to the exact Google Apps Script sheet schema:
+ * { id, category, brand, name, modelName, imageUrl, price36, price60, careTags, isVisible }
+ */
+export function toGasProductPayload(p: ProductItem) {
+  return {
+    id: p.id,
+    category: p.category,
+    brand: p.brand,
+    name: p.name,
+    modelName: p.modelCode,
+    imageUrl: p.imageUrl,
+    price36: p.monthly36 ?? 0,
+    price60: p.monthly60 ?? 0,
+    careTags: p.careTags,
+    isVisible: p.visible,
+    sortOrder: p.sortOrder,
+  }
+}
+
+/**
+ * Serializes internal RecommendedBundle to the exact Google Apps Script sheet schema:
+ * { id, setCategory, name, description, badge, defaultTerm, items: [{ productId, term, qty }], sortOrder, isVisible }
+ */
+export function toGasSetPayload(b: RecommendedBundle, products: ProductItem[]) {
+  const productMap = new Map(products.map((p) => [p.id, p]))
+  const hasLarge = b.items.some((item) => {
+    const prod = productMap.get(item.productId)
+    return prod ? prod.isLargeAppliance || inferIsLargeAppliance(prod.category) : false
+  })
+  return {
+    id: b.id,
+    setCategory: hasLarge ? '대형' : '소형',
+    name: b.name,
+    description: b.description,
+    badge: b.badge,
+    defaultTerm: b.defaultTerm,
+    items: b.items.map((item) => ({
+      productId: item.productId,
+      term: item.term,
+      qty: item.quantity,
+    })),
+    sortOrder: b.sortOrder,
+    isVisible: b.visible,
+  }
+}
+
+/**
+ * Serializes internal PolicyConfig to the exact Google Apps Script snake_case policy schema.
+ */
+export function toGasPolicyPayload(policy: PolicyConfig) {
+  return {
+    freed_40k_cashback_36: policy.lifeCareCashback36.u40,
+    freed_50k_cashback_36: policy.lifeCareCashback36.u50,
+    freed_60k_cashback_36: policy.lifeCareCashback36.u60,
+    freed_40k_cashback_60: policy.lifeCareCashback60.u40,
+    freed_50k_cashback_60: policy.lifeCareCashback60.u50,
+    freed_60k_cashback_60: policy.lifeCareCashback60.u60,
+    freed_max_accounts: policy.maxLifeCareUnits,
+    freed_pay_months: policy.lifeCarePayMonths,
+    freed_defer_months: policy.lifeCareDeferMonths,
+    freed_maturity_months: policy.lifeCareMaturityMonths,
+    card_min_spend: policy.cardMinSpend,
+    card_monthly_cashback: policy.cardMonthlyCashback,
   }
 }
 
@@ -252,35 +345,69 @@ function normalizePolicy(raw: unknown): PolicyConfig {
   const cb60 = (obj.lifeCareCashback60 as Record<string, unknown>) || {}
 
   const num = (val: unknown, fb: number) => {
+    if (val === null || val === undefined || val === '') return fb
     const n = Number(val)
     return Number.isFinite(n) && n >= 0 ? Math.round(n) : fb
   }
 
   return {
     lifeCareUnitMonthlyDues: {
-      u40: num(dues.u40 ?? obj.dues40, DEFAULT_POLICY_CONFIG.lifeCareUnitMonthlyDues.u40),
-      u50: num(dues.u50 ?? obj.dues50, DEFAULT_POLICY_CONFIG.lifeCareUnitMonthlyDues.u50),
-      u60: num(dues.u60 ?? obj.dues60, DEFAULT_POLICY_CONFIG.lifeCareUnitMonthlyDues.u60),
+      u40: num(dues.u40 ?? obj.freed_40k_dues ?? obj.dues40, DEFAULT_POLICY_CONFIG.lifeCareUnitMonthlyDues.u40),
+      u50: num(dues.u50 ?? obj.freed_50k_dues ?? obj.dues50, DEFAULT_POLICY_CONFIG.lifeCareUnitMonthlyDues.u50),
+      u60: num(dues.u60 ?? obj.freed_60k_dues ?? obj.dues60, DEFAULT_POLICY_CONFIG.lifeCareUnitMonthlyDues.u60),
     },
     lifeCareCashback36: {
-      u40: num(cb36.u40 ?? obj.cashback36_40, DEFAULT_POLICY_CONFIG.lifeCareCashback36.u40),
-      u50: num(cb36.u50 ?? obj.cashback36_50, DEFAULT_POLICY_CONFIG.lifeCareCashback36.u50),
-      u60: num(cb36.u60 ?? obj.cashback36_60, DEFAULT_POLICY_CONFIG.lifeCareCashback36.u60),
+      u40: num(
+        obj.freed_40k_cashback_36 ?? cb36.u40 ?? obj.cashback36_40,
+        DEFAULT_POLICY_CONFIG.lifeCareCashback36.u40,
+      ),
+      u50: num(
+        obj.freed_50k_cashback_36 ?? cb36.u50 ?? obj.cashback36_50,
+        DEFAULT_POLICY_CONFIG.lifeCareCashback36.u50,
+      ),
+      u60: num(
+        obj.freed_60k_cashback_36 ?? cb36.u60 ?? obj.cashback36_60,
+        DEFAULT_POLICY_CONFIG.lifeCareCashback36.u60,
+      ),
     },
     lifeCareCashback60: {
-      u40: num(cb60.u40 ?? obj.cashback60_40, DEFAULT_POLICY_CONFIG.lifeCareCashback60.u40),
-      u50: num(cb60.u50 ?? obj.cashback60_50, DEFAULT_POLICY_CONFIG.lifeCareCashback60.u50),
-      u60: num(cb60.u60 ?? obj.cashback60_60, DEFAULT_POLICY_CONFIG.lifeCareCashback60.u60),
+      u40: num(
+        obj.freed_40k_cashback_60 ?? cb60.u40 ?? obj.cashback60_40,
+        DEFAULT_POLICY_CONFIG.lifeCareCashback60.u40,
+      ),
+      u50: num(
+        obj.freed_50k_cashback_60 ?? cb60.u50 ?? obj.cashback60_50,
+        DEFAULT_POLICY_CONFIG.lifeCareCashback60.u50,
+      ),
+      u60: num(
+        obj.freed_60k_cashback_60 ?? cb60.u60 ?? obj.cashback60_60,
+        DEFAULT_POLICY_CONFIG.lifeCareCashback60.u60,
+      ),
     },
-    maxLifeCareUnits: num(obj.maxLifeCareUnits, DEFAULT_POLICY_CONFIG.maxLifeCareUnits),
-    lifeCarePayMonths: num(obj.lifeCarePayMonths, DEFAULT_POLICY_CONFIG.lifeCarePayMonths),
-    lifeCareDeferMonths: num(obj.lifeCareDeferMonths, DEFAULT_POLICY_CONFIG.lifeCareDeferMonths),
+    maxLifeCareUnits: num(
+      obj.freed_max_accounts ?? obj.maxLifeCareUnits,
+      DEFAULT_POLICY_CONFIG.maxLifeCareUnits,
+    ),
+    lifeCarePayMonths: num(
+      obj.freed_pay_months ?? obj.lifeCarePayMonths,
+      DEFAULT_POLICY_CONFIG.lifeCarePayMonths,
+    ),
+    lifeCareDeferMonths: num(
+      obj.freed_defer_months ?? obj.lifeCareDeferMonths,
+      DEFAULT_POLICY_CONFIG.lifeCareDeferMonths,
+    ),
     lifeCareMaturityMonths: num(
-      obj.lifeCareMaturityMonths,
+      obj.freed_maturity_months ?? obj.lifeCareMaturityMonths,
       DEFAULT_POLICY_CONFIG.lifeCareMaturityMonths,
     ),
-    cardMinSpend: num(obj.cardMinSpend, DEFAULT_POLICY_CONFIG.cardMinSpend),
-    cardMonthlyCashback: num(obj.cardMonthlyCashback, DEFAULT_POLICY_CONFIG.cardMonthlyCashback),
+    cardMinSpend: num(
+      obj.card_min_spend ?? obj.cardMinSpend,
+      DEFAULT_POLICY_CONFIG.cardMinSpend,
+    ),
+    cardMonthlyCashback: num(
+      obj.card_monthly_cashback ?? obj.cardMonthlyCashback,
+      DEFAULT_POLICY_CONFIG.cardMonthlyCashback,
+    ),
   }
 }
 
@@ -301,18 +428,23 @@ function normalizeRemoteProduct(raw: unknown, idx: number): ProductItem | null {
       .filter(Boolean)
   }
 
+  const category = String(r.category || '').trim() || '대형가전'
+
   return {
     id,
     name,
-    modelCode: String(r.modelCode || r.model || '').trim(),
+    modelCode: String(r.modelName ?? r.modelCode ?? r.model ?? '').trim(),
     brand: String(r.brand || '').trim() || '기타',
-    category: String(r.category || '').trim() || '대형가전',
-    isLargeAppliance: toBool(r.isLargeAppliance, false),
+    category,
+    isLargeAppliance:
+      r.isLargeAppliance !== undefined
+        ? toBool(r.isLargeAppliance, inferIsLargeAppliance(category))
+        : inferIsLargeAppliance(category),
     imageUrl: sanitizeImageUrl(String(r.imageUrl || '')),
-    monthly36: toPositiveNumOrNull(r.monthly36),
-    monthly60: toPositiveNumOrNull(r.monthly60),
+    monthly36: toPositiveNumOrNull(r.price36 ?? r.monthly36),
+    monthly60: toPositiveNumOrNull(r.price60 ?? r.monthly60),
     careTags,
-    visible: toBool(r.visible ?? r.isActive, true),
+    visible: toBool(r.isVisible ?? r.visible ?? r.isActive, true),
     sortOrder: Number(r.sortOrder) || idx + 1,
   }
 }
@@ -341,7 +473,7 @@ function normalizeRemoteBundle(raw: unknown, idx: number): RecommendedBundle | n
           const productId = String(row.productId || row.id || '').trim()
           if (!productId) return null
           const term: SubscriptionTerm = Number(row.term) === 36 ? 36 : 60
-          const quantity = Math.max(1, Math.round(Number(row.quantity) || 1))
+          const quantity = Math.max(1, Math.round(Number(row.qty ?? row.quantity) || 1))
           return { productId, term, quantity }
         })
         .filter((x): x is BundleLineItem => x !== null)
@@ -354,7 +486,7 @@ function normalizeRemoteBundle(raw: unknown, idx: number): RecommendedBundle | n
     badge: String(r.badge || '추천').trim(),
     defaultTerm: Number(r.defaultTerm) === 36 ? 36 : 60,
     items,
-    visible: toBool(r.visible ?? r.isActive, true),
+    visible: toBool(r.isVisible ?? r.visible ?? r.isActive, true),
     sortOrder: Number(r.sortOrder) || idx + 1,
   }
 }
@@ -448,7 +580,6 @@ export async function fetchCatalogSnapshot(): Promise<{
     if (extracted && extracted.products.length > 0) {
       return { snapshot: extracted, source: 'gas' }
     }
-    // If remote sheet is freshly deployed and has 0 products yet, keep seed data visible on storefront
     return {
       snapshot: extracted
         ? {
@@ -494,7 +625,6 @@ export async function submitConsultationWriteOnly(
   const url = getGasApiUrl()
 
   if (!url) {
-    // Local preview mode: intentionally do NOT persist PII to localStorage either
     await new Promise((resolve) => setTimeout(resolve, 350))
     return {
       ok: true,
@@ -505,7 +635,22 @@ export async function submitConsultationWriteOnly(
 
   await postGasAction('submitLead', undefined, {
     referenceCode,
-    ...sanitizedPayload,
+    name: sanitizedPayload.customerName,
+    phone: sanitizedPayload.customerPhone,
+    channel: sanitizedPayload.consultChannel,
+    customerName: sanitizedPayload.customerName,
+    customerPhone: sanitizedPayload.customerPhone,
+    consultChannel: sanitizedPayload.consultChannel,
+    memo: sanitizedPayload.memo,
+    agreed: sanitizedPayload.agreedLegalAndPrivacy,
+    agreedLegalAndPrivacy: sanitizedPayload.agreedLegalAndPrivacy,
+    itemsSummary: sanitizedPayload.summary.itemsText,
+    lifeCareSummary: sanitizedPayload.summary.lifeCareText,
+    cardSummary: sanitizedPayload.summary.cardStatusText,
+    phaseASummary: sanitizedPayload.summary.phaseASummary,
+    phaseBSummary: sanitizedPayload.summary.phaseBSummary || '',
+    maturityRefundTotal: sanitizedPayload.summary.maturityRefundTotal,
+    summary: sanitizedPayload.summary,
   })
 
   return {
@@ -598,7 +743,7 @@ export async function fetchAdminCatalog(
 }
 
 /**
- * Upserts a single product via `saveProduct`.
+ * Upserts a single product via `saveProduct` using the exact GAS product schema.
  */
 export async function saveProductRemote(
   product: ProductItem,
@@ -616,7 +761,7 @@ export async function saveProductRemote(
     return clean
   }
 
-  await postGasAction('saveProduct', session.token, clean)
+  await postGasAction('saveProduct', session.token, toGasProductPayload(clean))
   return clean
 }
 
@@ -642,7 +787,7 @@ export async function deleteProductRemote(
 }
 
 /**
- * Upserts a single recommended bundle via `saveSet`.
+ * Upserts a single recommended bundle via `saveSet` using the exact GAS set schema.
  */
 export async function saveSetRemote(
   bundle: RecommendedBundle,
@@ -660,7 +805,11 @@ export async function saveSetRemote(
     return clean
   }
 
-  await postGasAction('saveSet', session.token, clean)
+  await postGasAction(
+    'saveSet',
+    session.token,
+    toGasSetPayload(clean, currentSnapshot.products),
+  )
   return clean
 }
 
@@ -686,7 +835,7 @@ export async function deleteSetRemote(
 }
 
 /**
- * Saves PolicyConfig via `savePolicy`.
+ * Saves PolicyConfig via `savePolicy` using the exact GAS snake_case policy keys.
  */
 export async function savePolicyRemote(
   policy: PolicyConfig,
@@ -703,12 +852,12 @@ export async function savePolicyRemote(
     return cleanPolicy
   }
 
-  await postGasAction('savePolicy', session.token, cleanPolicy)
+  await postGasAction('savePolicy', session.token, toGasPolicyPayload(cleanPolicy))
   return cleanPolicy
 }
 
 /**
- * Bulk syncs full catalog snapshot (products, sets/bundles, policy) via `bulkSyncCatalog`.
+ * Bulk syncs full catalog snapshot via `bulkSyncCatalog` using the exact GAS schemas.
  */
 export async function bulkSyncCatalogRemote(
   snapshot: CatalogSnapshot,
@@ -722,11 +871,11 @@ export async function bulkSyncCatalogRemote(
   }
 
   await postGasAction('bulkSyncCatalog', session.token, {
-    products: cleanSnapshot.products,
-    sets: cleanSnapshot.bundles,
-    bundles: cleanSnapshot.bundles,
-    policy: cleanSnapshot.policy,
-    updatedAt: cleanSnapshot.updatedAt,
+    products: cleanSnapshot.products.map(toGasProductPayload),
+    sets: cleanSnapshot.bundles.map((b) =>
+      toGasSetPayload(b, cleanSnapshot.products),
+    ),
+    policy: toGasPolicyPayload(cleanSnapshot.policy),
   })
 
   localStorage.setItem(LOCAL_CATALOG_KEY, JSON.stringify(cleanSnapshot))

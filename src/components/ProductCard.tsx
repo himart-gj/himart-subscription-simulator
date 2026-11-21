@@ -151,21 +151,32 @@ export function ProductCard({
           <div className="mt-3 flex items-center justify-between gap-2">
             <div>
               <div className="text-[11px] font-medium text-[#64748B]">
-                선택 기간 ({activeTerm}개월)
+                {supports36 || supports60 ? `선택 기간 (${activeTerm}개월)` : '구독료 미등록'}
               </div>
               <div className="text-[18px] font-extrabold text-[#0F172A] tabular-nums tracking-tight whitespace-nowrap">
-                월 {activePrice.toLocaleString('ko-KR')}
-                <span className="text-[13px] font-semibold text-[#475569] ml-0.5">원</span>
+                {supports36 || supports60 ? (
+                  <>
+                    월 {activePrice.toLocaleString('ko-KR')}
+                    <span className="text-[13px] font-semibold text-[#475569] ml-0.5">원</span>
+                  </>
+                ) : (
+                  <span className="text-[13px] font-bold text-[#D97706]">
+                    CMS 가격 입력 필요
+                  </span>
+                )}
               </div>
             </div>
 
             <button
               type="button"
+              disabled={!supports36 && !supports60}
               onClick={handleAddClick}
-              className={`inline-flex items-center justify-center gap-1.5 h-10 px-4 rounded-xl text-[13px] font-bold transition-all duration-150 active:scale-[0.98] shrink-0 cursor-pointer ${
-                justAdded
-                  ? 'bg-[#059669] text-white'
-                  : 'bg-[#0F172A] hover:bg-[#1E293B] text-white'
+              className={`inline-flex items-center justify-center gap-1.5 h-10 px-4 rounded-xl text-[13px] font-bold transition-all duration-150 active:scale-[0.98] shrink-0 ${
+                !supports36 && !supports60
+                  ? 'bg-[#E2E8F0] text-[#94A3B8] cursor-not-allowed'
+                  : justAdded
+                    ? 'bg-[#059669] text-white cursor-pointer'
+                    : 'bg-[#0F172A] hover:bg-[#1E293B] text-white cursor-pointer'
               }`}
             >
               {justAdded ? (

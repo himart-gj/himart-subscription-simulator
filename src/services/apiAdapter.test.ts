@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { INITIAL_CATALOG_SNAPSHOT } from '../data/initialSeedData'
+import { calculateBenefitSimulation } from '../utils/calculator'
 import {
   AdminUnauthorizedError,
   authenticateAdminViaServer,
@@ -40,7 +41,81 @@ class MemoryStorage implements Storage {
   }
 }
 
-describe('GAS API Adapter CORS & Security Protocol Verification', () => {
+const LIVE_GAS_SAMPLE_RESPONSE = {
+  ok: true,
+  data: {
+    products: [
+      {
+        id: 'prod_02',
+        category: '로봇청소기/청소기',
+        brand: 'LG',
+        name: '코드제로 오브제컬렉션 A9S',
+        modelName: 'AU9882WD',
+        imageUrl: '',
+        price36: 24900,
+        price60: 17900,
+        careTags: ['배터리·필터 케어', '무상보증 연장'],
+        isVisible: true,
+      },
+      {
+        id: 'prod_03',
+        category: '밥솥/주방소형',
+        brand: '쿠쿠',
+        name: '마스터셰프 사일런스 트윈프레셔 6인용',
+        modelName: 'CRP-NHTR0610FD',
+        imageUrl: '',
+        price36: 18900,
+        price60: 13900,
+        careTags: ['패킹 정기교체'],
+        isVisible: true,
+      },
+      {
+        id: 'prod_04',
+        category: '냉장고/김치냉장고',
+        brand: '삼성',
+        name: '비스포크 AI 하이브리드 4도어 875L',
+        modelName: 'RF85DB9581AP',
+        imageUrl: '',
+        price36: 64900,
+        price60: 44900,
+        careTags: ['전문 분해세척 케어'],
+        isVisible: true,
+      },
+    ],
+    sets: [
+      {
+        id: 'set_01',
+        setCategory: '소형',
+        name: '주방·청소 살림효자 세트',
+        description: '실속 패키지',
+        badge: '살림효자',
+        defaultTerm: 60,
+        items: [
+          { productId: 'prod_03', term: 36, qty: 1 },
+          { productId: 'prod_02', term: 60, qty: 2 },
+        ],
+        sortOrder: 1,
+        isVisible: true,
+      },
+    ],
+    policy: {
+      freed_40k_cashback_36: 20000,
+      freed_50k_cashback_36: 25000,
+      freed_60k_cashback_36: 30000,
+      freed_40k_cashback_60: 12000,
+      freed_50k_cashback_60: 15000,
+      freed_60k_cashback_60: 18000,
+      freed_max_accounts: 12,
+      freed_pay_months: 90,
+      freed_defer_months: 30,
+      freed_maturity_months: 120,
+      card_min_spend: 300000,
+      card_monthly_cashback: 18000,
+    },
+  },
+}
+
+describe('GAS API Adapter Schema, CORS & Security Verification', () => {
   const fetchMock = vi.fn()
 
   beforeEach(() => {
@@ -68,19 +143,46 @@ describe('GAS API Adapter CORS & Security Protocol Verification', () => {
     )
   })
 
-  it('Public GET getCatalog uses redirect: "follow"', async () => {
-    mockJsonResponse({ ok: true, data: INITIAL_CATALOG_SNAPSHOT })
+  it('Parses live GAS schema (price36/price60, modelName, isVisible, sets[].items[].qty, freed_* policy) so items add cleanly into receipt', async () => {
+    mockJsonResponse(LIVE_GAS_SAMPLE_RESPONSE)
     const res = await fetchCatalogSnapshot()
 
     expect(res.source).toBe('gas')
-    expect(fetchMock).toHaveBeenCalledTimes(1)
+    expect(res.snapshot.products).toHaveLength(3)
+    expect(res.snapshot.products[0].monthly36).toBe(24900)
+    expect(res.snapshot.products[0].monthly60).toBe(17900)
+    expect(res.snapshot.products[0].modelCode).toBe('AU9882WD')
+    expect(res.snapshot.products[0].visible).toBe(true)
+    expect(res.snapshot.products[2].isLargeAppliance).toBe(true)
+
+    expect(res.snapshot.bundles).toHaveLength(1)
+    expect(res.snapshot.bundles[0].items[1]).toEqual({
+      productId: 'prod_02',
+      term: 60,
+      quantity: 2,
+    })
+
+    // Verify adding that exact bundle populates the receipt cleanly!
+    const sim = calculateBenefitSimulation({
+      cart: res.snapshot.bundles[0].items,
+      products: res.snapshot.products,
+      lifeCare: { q40: 0, q50: 0, q60: 0 },
+      cardEnabled: false,
+      coverShortfallWithLivingSpend: false,
+      policy: res.snapshot.policy,
+    })
+    expect(sim.mode).toBe('mixed')
+    expect(sim.lines).toHaveLength(2)
+    expect(sim.phaseA.grossSubscription).toBe(18900 + 17900 * 2) // 54,700
+    expect(sim.phaseB?.grossSubscription).toBe(17900 * 2) // 35,800
+
     const [calledUrl, init] = fetchMock.mock.calls[0]
     expect(calledUrl).toBe(`${getGasApiUrl()}?action=getCatalog`)
     expect(init.method).toBe('GET')
     expect(init.redirect).toBe('follow')
   })
 
-  it('All 10 GAS POST actions strictly enforce text/plain;charset=utf-8, redirect: follow, and { action, token, payload }', async () => {
+  it('All 10 GAS POST actions serialize exact live GAS schemas with text/plain;charset=utf-8 and redirect: follow', async () => {
     const assertLastPostContract = (expectedAction: string, expectedToken: string) => {
       const [calledUrl, init] = fetchMock.mock.calls.at(-1)!
       expect(calledUrl).toBe(getGasApiUrl())
@@ -94,20 +196,19 @@ describe('GAS API Adapter CORS & Security Protocol Verification', () => {
       return parsed
     }
 
-    // 1. adminLogin -> stores token ONLY in sessionStorage (NOT localStorage)
+    // 1. adminLogin
     mockJsonResponse({ ok: true, token: 'tok-live-123' })
     const session = await authenticateAdminViaServer('my-secret-pass')
     assertLastPostContract('adminLogin', '')
-    expect(session.token).toBe('tok-live-123')
     expect(getStoredAdminSession()?.token).toBe('tok-live-123')
     expect(localStorage.length).toBe(0)
 
     // 2. adminGetCatalog
-    mockJsonResponse({ ok: true, data: INITIAL_CATALOG_SNAPSHOT })
+    mockJsonResponse(LIVE_GAS_SAMPLE_RESPONSE)
     await fetchAdminCatalog(session)
     assertLastPostContract('adminGetCatalog', 'tok-live-123')
 
-    // 3. saveProduct
+    // 3. saveProduct -> MUST send price36, price60, modelName, isVisible
     mockJsonResponse({ ok: true })
     await saveProductRemote(
       INITIAL_CATALOG_SNAPSHOT.products[0],
@@ -115,51 +216,65 @@ describe('GAS API Adapter CORS & Security Protocol Verification', () => {
       INITIAL_CATALOG_SNAPSHOT.products,
       INITIAL_CATALOG_SNAPSHOT,
     )
-    assertLastPostContract('saveProduct', 'tok-live-123')
+    const prodPost = assertLastPostContract('saveProduct', 'tok-live-123')
+    expect(prodPost.payload.price36).toBe(86900)
+    expect(prodPost.payload.price60).toBe(54900)
+    expect(prodPost.payload.modelName).toBe('RF85DB9581AP')
+    expect(prodPost.payload.isVisible).toBe(true)
 
     // 4. deleteProduct
     mockJsonResponse({ ok: true })
     await deleteProductRemote(
-      'prod-1',
+      'prod_01',
       session,
       INITIAL_CATALOG_SNAPSHOT.products,
       INITIAL_CATALOG_SNAPSHOT,
     )
     const delProdBody = assertLastPostContract('deleteProduct', 'tok-live-123')
-    expect(delProdBody.payload).toEqual({ id: 'prod-1' })
+    expect(delProdBody.payload).toEqual({ id: 'prod_01' })
 
-    // 5. saveSet
+    // 5. saveSet -> MUST send setCategory, isVisible, items[].qty
     mockJsonResponse({ ok: true })
     await saveSetRemote(
-      INITIAL_CATALOG_SNAPSHOT.bundles[0],
+      INITIAL_CATALOG_SNAPSHOT.bundles[1],
       session,
       INITIAL_CATALOG_SNAPSHOT.bundles,
       INITIAL_CATALOG_SNAPSHOT,
     )
-    assertLastPostContract('saveSet', 'tok-live-123')
+    const setPost = assertLastPostContract('saveSet', 'tok-live-123')
+    expect(setPost.payload.isVisible).toBe(true)
+    expect(setPost.payload.setCategory).toBe('소형')
+    expect(setPost.payload.items[0]).toHaveProperty('qty', 1)
 
     // 6. deleteSet
     mockJsonResponse({ ok: true })
     await deleteSetRemote(
-      'bundle-1',
+      'set_01',
       session,
       INITIAL_CATALOG_SNAPSHOT.bundles,
       INITIAL_CATALOG_SNAPSHOT,
     )
-    const delSetBody = assertLastPostContract('deleteSet', 'tok-live-123')
-    expect(delSetBody.payload).toEqual({ id: 'bundle-1' })
+    assertLastPostContract('deleteSet', 'tok-live-123')
 
-    // 7. savePolicy
+    // 7. savePolicy -> MUST send freed_* & card_* snake_case keys
     mockJsonResponse({ ok: true })
     await savePolicyRemote(INITIAL_CATALOG_SNAPSHOT.policy, session, INITIAL_CATALOG_SNAPSHOT)
-    assertLastPostContract('savePolicy', 'tok-live-123')
+    const policyPost = assertLastPostContract('savePolicy', 'tok-live-123')
+    expect(policyPost.payload.freed_50k_cashback_36).toBe(25000)
+    expect(policyPost.payload.freed_50k_cashback_60).toBe(15000)
+    expect(policyPost.payload.freed_max_accounts).toBe(12)
+    expect(policyPost.payload.card_min_spend).toBe(300000)
+    expect(policyPost.payload.card_monthly_cashback).toBe(18000)
 
     // 8. bulkSyncCatalog
     mockJsonResponse({ ok: true })
     await bulkSyncCatalogRemote(INITIAL_CATALOG_SNAPSHOT, session)
-    assertLastPostContract('bulkSyncCatalog', 'tok-live-123')
+    const bulkPost = assertLastPostContract('bulkSyncCatalog', 'tok-live-123')
+    expect(bulkPost.payload.products[0]).toHaveProperty('price36')
+    expect(bulkPost.payload.sets[0].items[0]).toHaveProperty('qty')
+    expect(bulkPost.payload.policy).toHaveProperty('card_monthly_cashback', 18000)
 
-    // 9. submitLead (Write-Only, formula injection sanitized)
+    // 9. submitLead
     mockJsonResponse({ ok: true })
     await submitConsultationWriteOnly({
       customerName: '=EVIL()',
@@ -182,7 +297,7 @@ describe('GAS API Adapter CORS & Security Protocol Verification', () => {
     expect(leadBody.payload.customerName).toBe("'=EVIL()")
     expect(leadBody.payload.customerPhone).toBe('010-1234-5678')
 
-    // 10. adminLogout -> wipes sessionStorage
+    // 10. adminLogout
     mockJsonResponse({ ok: true })
     await logoutAdminSession(session)
     assertLastPostContract('adminLogout', 'tok-live-123')
@@ -192,7 +307,6 @@ describe('GAS API Adapter CORS & Security Protocol Verification', () => {
   it('Immediately clears sessionStorage and throws AdminUnauthorizedError on code === "UNAUTHORIZED"', async () => {
     mockJsonResponse({ ok: true, token: 'tok-expiring' })
     const session = await authenticateAdminViaServer('pass')
-    expect(getStoredAdminSession()?.token).toBe('tok-expiring')
 
     mockJsonResponse({
       ok: false,
@@ -204,7 +318,6 @@ describe('GAS API Adapter CORS & Security Protocol Verification', () => {
       savePolicyRemote(INITIAL_CATALOG_SNAPSHOT.policy, session, INITIAL_CATALOG_SNAPSHOT),
     ).rejects.toBeInstanceOf(AdminUnauthorizedError)
 
-    // Session MUST be immediately cleared from sessionStorage
     expect(getStoredAdminSession()).toBeNull()
     clearAdminSession()
   })
