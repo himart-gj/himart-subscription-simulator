@@ -7,7 +7,6 @@ import {
   EyeOff,
   Plus,
   RotateCcw,
-  Sparkles,
   Trash2,
   X,
 } from 'lucide-react'
@@ -185,15 +184,14 @@ export function HeroPresetManagerTab({
 
   return (
     <div className="space-y-4">
-      <div className="rounded-2xl bg-white border border-[#E2E8F0] p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+      <div className="rounded-2xl bg-surface border border-rule p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
           <div className="flex items-center gap-2">
-            <Sparkles size={16} aria-hidden="true" className="text-[#E11D48]" />
-            <h3 className="text-sm font-extrabold text-[#0F172A]">
+            <h3 className="text-sm font-extrabold text-ink">
               첫 메인 화면 원클릭 추천 슬롯 관리 ({heroPresets.filter((h) => h.visible).length}개 노출 중 / 상위 4개 메인 표시)
             </h3>
           </div>
-          <p className="text-xs text-[#64748B] mt-1">
+          <p className="text-xs text-muted mt-1">
             첫 화면 상단에 노출되는 4개 원클릭 추천 구성(단품 1개 또는 다품목 세트)을 자유롭게 추가·수정·순서 변경할 수 있으며, 구글 시트(`HeroPresets` / `Sets`)에 즉시 저장됩니다.
           </p>
         </div>
@@ -204,7 +202,7 @@ export function HeroPresetManagerTab({
               type="button"
               disabled={busy}
               onClick={handleRestoreDefaults}
-              className="inline-flex items-center gap-1.5 h-11 px-3.5 rounded-xl border border-[#CBD5E1] bg-white hover:bg-[#F8FAFC] text-xs font-bold text-[#334155] cursor-pointer"
+              className="inline-flex items-center gap-1.5 h-11 px-3.5 rounded-xl border border-rule-strong bg-surface hover:bg-paper text-xs font-bold text-ink-2 cursor-pointer"
             >
               <RotateCcw size={14} aria-hidden="true" />
               <span>기본 4종 불러오기</span>
@@ -214,7 +212,7 @@ export function HeroPresetManagerTab({
             type="button"
             disabled={busy}
             onClick={openCreate}
-            className="inline-flex items-center justify-center gap-1.5 h-11 px-4 rounded-xl bg-[#E11D48] hover:bg-[#BE123C] text-white text-sm font-extrabold shrink-0 cursor-pointer"
+            className="inline-flex items-center justify-center gap-1.5 h-11 px-4 rounded-xl bg-accent hover:bg-accent-hover text-on-ink text-sm font-extrabold shrink-0 cursor-pointer"
           >
             <Plus size={16} aria-hidden="true" />
             <span>원클릭 추천 슬롯 추가</span>
@@ -242,10 +240,10 @@ export function HeroPresetManagerTab({
           return (
             <div
               key={preset.id}
-              className={`rounded-2xl bg-white border p-4 flex flex-col lg:flex-row lg:items-center justify-between gap-4 ${
+              className={`rounded-2xl bg-surface border p-4 flex flex-col lg:flex-row lg:items-center justify-between gap-4 ${
                 activeMainSlot
-                  ? 'border-[#FECDD3] shadow-[0_1px_4px_rgba(225,29,72,0.06)]'
-                  : 'border-[#E2E8F0] opacity-75 bg-[#F8FAFC]'
+                  ? 'border-accent-rule '
+                  : 'border-rule opacity-75 bg-paper'
               }`}
             >
               <div className="min-w-0 space-y-1">
@@ -253,10 +251,10 @@ export function HeroPresetManagerTab({
                   <span
                     className={`px-2 py-0.5 rounded text-[11px] font-extrabold tabular-nums ${
                       idx === 0 && preset.visible
-                        ? 'bg-[#0F172A] text-white'
+                        ? 'bg-ink text-on-ink'
                         : activeMainSlot
-                          ? 'bg-[#FFF1F2] text-[#E11D48]'
-                          : 'bg-[#E2E8F0] text-[#475569]'
+                          ? 'bg-accent-soft text-accent'
+                          : 'bg-field-hover text-ink-2'
                     }`}
                   >
                     {idx === 0 && preset.visible
@@ -265,27 +263,27 @@ export function HeroPresetManagerTab({
                         ? `슬롯 ${idx + 1} · 메인 노출`
                         : '대기 슬롯'}
                   </span>
-                  <span className="px-2 py-0.5 rounded bg-[#FFF1F2] text-[#BE123C] text-[11px] font-bold">
+                  <span className="px-2 py-0.5 rounded bg-accent-soft text-accent text-[11px] font-bold">
                     {preset.badge}
                   </span>
-                  <span className="px-2 py-0.5 rounded bg-[#F1F5F9] text-[#475569] text-[11px] font-bold tabular-nums">
+                  <span className="px-2 py-0.5 rounded bg-field text-ink-2 text-[11px] font-bold tabular-nums">
                     {preset.items.length === 1 ? '단품 1종' : `${preset.items.length}종 세트`}
                   </span>
                 </div>
 
-                <div className="text-base font-extrabold text-[#0F172A]">{preset.name}</div>
+                <div className="text-base font-extrabold text-ink">{preset.name}</div>
                 {preset.description && (
-                  <p className="text-xs text-[#64748B]">{preset.description}</p>
+                  <p className="text-xs text-muted">{preset.description}</p>
                 )}
 
                 <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs font-bold pt-1 tabular-nums">
-                  <span className="text-[#475569]">
+                  <span className="text-ink-2">
                     기본 월 {formatKRW(sim.phaseA.grossSubscription)}
                   </span>
-                  <span className="text-[#0F172A]">
+                  <span className="text-ink">
                     → 상조 결합 시 월 체감 {formatKRW(sim.phaseA.afterLifeCareEffective)} ({sim.totalLifeCareUnits}구좌 자동맞춤)
                   </span>
-                  <span className="text-[#059669]">
+                  <span className="text-positive">
                     → 카드 실적 충족 시{' '}
                     {sim.phaseA.monthlySurplusCash > 0
                       ? `월 0원 (+${formatKRW(sim.phaseA.monthlySurplusCash)} 캐시백)`
@@ -300,7 +298,7 @@ export function HeroPresetManagerTab({
                   disabled={busy || idx === 0}
                   onClick={() => movePreset(idx, -1)}
                   aria-label="위로 이동"
-                  className="w-9 h-9 rounded-xl border border-[#E2E8F0] flex items-center justify-center text-[#475569] disabled:opacity-30 cursor-pointer"
+                  className="w-9 h-9 rounded-xl border border-rule flex items-center justify-center text-ink-2 disabled:opacity-30 cursor-pointer"
                 >
                   <ArrowUp size={14} aria-hidden="true" />
                 </button>
@@ -309,7 +307,7 @@ export function HeroPresetManagerTab({
                   disabled={busy || idx === heroPresets.length - 1}
                   onClick={() => movePreset(idx, 1)}
                   aria-label="아래로 이동"
-                  className="w-9 h-9 rounded-xl border border-[#E2E8F0] flex items-center justify-center text-[#475569] disabled:opacity-30 cursor-pointer"
+                  className="w-9 h-9 rounded-xl border border-rule flex items-center justify-center text-ink-2 disabled:opacity-30 cursor-pointer"
                 >
                   <ArrowDown size={14} aria-hidden="true" />
                 </button>
@@ -319,8 +317,8 @@ export function HeroPresetManagerTab({
                   onClick={() => toggleVisible(preset)}
                   className={`inline-flex items-center gap-1 h-9 px-3 rounded-xl border text-xs font-bold cursor-pointer disabled:opacity-50 ${
                     preset.visible
-                      ? 'bg-[#ECFDF5] border-[#A7F3D0] text-[#047857]'
-                      : 'bg-[#F1F5F9] border-[#CBD5E1] text-[#64748B]'
+                      ? 'bg-positive-soft border-positive-rule text-positive'
+                      : 'bg-field border-rule-strong text-muted'
                   }`}
                 >
                   {preset.visible ? <Eye size={14} aria-hidden="true" /> : <EyeOff size={14} aria-hidden="true" />}
@@ -330,7 +328,7 @@ export function HeroPresetManagerTab({
                   type="button"
                   disabled={busy}
                   onClick={() => openEdit(preset)}
-                  className="inline-flex items-center gap-1 h-9 px-3 rounded-xl bg-white border border-[#E2E8F0] text-xs font-bold text-[#0F172A] cursor-pointer disabled:opacity-50"
+                  className="inline-flex items-center gap-1 h-9 px-3 rounded-xl bg-surface border border-rule text-xs font-bold text-ink cursor-pointer disabled:opacity-50"
                 >
                   <Edit3 size={14} aria-hidden="true" />
                   <span>수정</span>
@@ -340,7 +338,7 @@ export function HeroPresetManagerTab({
                   disabled={busy}
                   onClick={() => void onDeleteHeroPreset(preset.id)}
                   aria-label={`${preset.name} 삭제`}
-                  className="w-9 h-9 rounded-xl border border-[#E2E8F0] hover:border-[#FECDD3] hover:bg-[#FFF1F2] text-[#64748B] hover:text-[#E11D48] flex items-center justify-center cursor-pointer disabled:opacity-50"
+                  className="w-9 h-9 rounded-xl border border-rule hover:border-accent-rule hover:bg-accent-soft text-muted hover:text-accent flex items-center justify-center cursor-pointer disabled:opacity-50"
                 >
                   <Trash2 size={14} aria-hidden="true" />
                 </button>
@@ -350,21 +348,22 @@ export function HeroPresetManagerTab({
         })}
       </div>
 
+      {/* Modal */}
       {modalOpen && (
         <div
           role="dialog"
           aria-modal="true"
-          className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-[#0F172A]/50 p-0 sm:p-4"
+          className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-ink/55 p-0 sm:p-4"
         >
-          <div className="w-full sm:max-w-2xl max-h-[92vh] overflow-y-auto rounded-t-3xl sm:rounded-2xl bg-white border border-[#E2E8F0] shadow-xl">
-            <div className="sticky top-0 z-10 bg-white px-5 py-4 border-b border-[#E2E8F0] flex items-center justify-between">
-              <h3 className="text-base font-extrabold text-[#0F172A]">
+          <div className="w-full sm:max-w-2xl max-h-[92vh] overflow-y-auto rounded-t-3xl sm:rounded-2xl bg-surface border border-rule ">
+            <div className="sticky top-0 z-10 bg-surface px-5 py-4 border-b border-rule flex items-center justify-between">
+              <h3 className="text-base font-extrabold text-ink">
                 {editingId ? '메인 원클릭 추천 슬롯 수정' : '새 메인 원클릭 추천 슬롯 추가'}
               </h3>
               <button
                 type="button"
                 onClick={() => setModalOpen(false)}
-                className="w-9 h-9 rounded-xl hover:bg-[#F1F5F9] flex items-center justify-center text-[#475569] cursor-pointer"
+                className="w-9 h-9 rounded-xl hover:bg-field flex items-center justify-center text-ink-2 cursor-pointer"
               >
                 <X size={18} aria-hidden="true" />
               </button>
@@ -372,8 +371,8 @@ export function HeroPresetManagerTab({
 
             <form onSubmit={handleSave} className="p-5 space-y-4">
               <div>
-                <label className="block text-xs font-bold text-[#334155] mb-1">
-                  메인 카드 제목 <span className="text-[#E11D48]">*</span>
+                <label className="block text-xs font-bold text-ink-2 mb-1">
+                  메인 카드 제목 <span className="text-accent">*</span>
                 </label>
                 <input
                   type="text"
@@ -381,12 +380,12 @@ export function HeroPresetManagerTab({
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   placeholder="예: 로보락 올인원 로봇청소기 맞춤 설계"
-                  className="w-full h-11 px-3 rounded-xl border border-[#CBD5E1] text-base"
+                  className="w-full h-11 px-3 rounded-xl border border-rule-strong text-base"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-[#334155] mb-1">
+                <label className="block text-xs font-bold text-ink-2 mb-1">
                   보조 설명 (선택)
                 </label>
                 <input
@@ -394,13 +393,13 @@ export function HeroPresetManagerTab({
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
                   placeholder="예: 가장 문의가 많은 60개월 케어 포함 단독 구성"
-                  className="w-full h-11 px-3 rounded-xl border border-[#CBD5E1] text-base"
+                  className="w-full h-11 px-3 rounded-xl border border-rule-strong text-base"
                 />
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-bold text-[#334155] mb-1">
+                  <label className="block text-xs font-bold text-ink-2 mb-1">
                     상단 강조 배지
                   </label>
                   <div className="flex flex-wrap gap-1.5 mb-2">
@@ -411,8 +410,8 @@ export function HeroPresetManagerTab({
                         onClick={() => setBadge(b)}
                         className={`px-2.5 py-1 rounded-lg text-xs font-bold cursor-pointer ${
                           badge === b
-                            ? 'bg-[#E11D48] text-white'
-                            : 'bg-[#F8FAFC] border border-[#E2E8F0] text-[#475569]'
+                            ? 'bg-accent text-on-ink'
+                            : 'bg-paper border border-rule text-ink-2'
                         }`}
                       >
                         {b}
@@ -424,12 +423,12 @@ export function HeroPresetManagerTab({
                     value={badge}
                     onChange={(e) => setBadge(e.target.value)}
                     placeholder="배지 직접 입력"
-                    className="w-full h-10 px-3 rounded-xl border border-[#CBD5E1] text-base"
+                    className="w-full h-10 px-3 rounded-xl border border-rule-strong text-base"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-[#334155] mb-1">
+                  <label className="block text-xs font-bold text-ink-2 mb-1">
                     기본 선택 기간 (품목별 개별 변경 가능)
                   </label>
                   <div className="grid grid-cols-2 gap-2">
@@ -440,8 +439,8 @@ export function HeroPresetManagerTab({
                         onClick={() => setDefaultTerm(t)}
                         className={`h-11 rounded-xl border text-sm font-bold cursor-pointer ${
                           defaultTerm === t
-                            ? 'bg-[#0F172A] border-[#0F172A] text-white'
-                            : 'bg-white border-[#E2E8F0] text-[#475569]'
+                            ? 'bg-ink border-ink text-on-ink'
+                            : 'bg-surface border-rule text-ink-2'
                         }`}
                       >
                         {t}개월
@@ -451,26 +450,27 @@ export function HeroPresetManagerTab({
                 </div>
               </div>
 
+              {/* Product Picker (1 single item or multi-item combo) */}
               <div>
                 <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
-                  <span className="text-xs font-bold text-[#334155]">
+                  <span className="text-xs font-bold text-ink-2">
                     포함할 가전 선택 ({items.length}개 선택됨 — 단품 1개도 등록 가능)
                   </span>
                   {items.length > 0 && (
-                    <span className="text-xs font-bold text-[#059669] tabular-nums">
+                    <span className="text-xs font-bold text-positive tabular-nums">
                       상조 결합 체감: 월 {formatKRW(previewSim.phaseA.afterLifeCareEffective)} ({previewSim.totalLifeCareUnits}구좌 자동맞춤)
                     </span>
                   )}
                 </div>
 
-                <div className="max-h-64 overflow-y-auto rounded-xl border border-[#E2E8F0] divide-y divide-[#F1F5F9]">
+                <div className="max-h-64 overflow-y-auto rounded-xl border border-rule divide-y divide-rule">
                   {products.map((p) => {
                     const selected = items.find((i) => i.productId === p.id)
                     return (
                       <div
                         key={p.id}
                         className={`p-3 flex flex-col sm:flex-row sm:items-center justify-between gap-2 ${
-                          selected ? 'bg-[#FFF1F2]/40' : 'bg-white'
+                          selected ? 'bg-accent-soft/60' : 'bg-surface'
                         }`}
                       >
                         <label className="flex items-center gap-2.5 cursor-pointer flex-1 min-w-0">
@@ -478,13 +478,13 @@ export function HeroPresetManagerTab({
                             type="checkbox"
                             checked={!!selected}
                             onChange={() => toggleProductInPreset(p)}
-                            className="h-4 w-4 accent-[#E11D48] shrink-0"
+                            className="h-4 w-4 accent-accent shrink-0"
                           />
                           <div className="min-w-0">
-                            <div className="text-xs font-bold text-[#0F172A] truncate">
+                            <div className="text-xs font-bold text-ink truncate">
                               [{p.brand}] {p.name}
                             </div>
-                            <div className="text-[11px] text-[#64748B] tabular-nums">
+                            <div className="text-[11px] text-muted tabular-nums">
                               36개월 {p.monthly36 ? formatKRW(p.monthly36) : '미지원'} · 60개월{' '}
                               {p.monthly60 ? formatKRW(p.monthly60) : '미지원'}
                             </div>
@@ -492,17 +492,17 @@ export function HeroPresetManagerTab({
                         </label>
 
                         {selected && (
-                          <div className="inline-flex rounded-lg bg-white border border-[#E2E8F0] p-0.5 self-end sm:self-auto shrink-0">
+                          <div className="inline-flex rounded-lg bg-surface border border-rule p-0.5 self-end sm:self-auto shrink-0">
                             <button
                               type="button"
                               disabled={!p.monthly36}
                               onClick={() => p.monthly36 && setItemTerm(p.id, 36)}
                               className={`px-2 py-1 rounded text-[11px] font-bold ${
                                 !p.monthly36
-                                  ? 'text-[#CBD5E1]'
+                                  ? 'text-subtle'
                                   : selected.term === 36
-                                    ? 'bg-[#0F172A] text-white'
-                                    : 'text-[#64748B] cursor-pointer'
+                                    ? 'bg-ink text-on-ink'
+                                    : 'text-muted cursor-pointer'
                               }`}
                             >
                               36개월
@@ -513,10 +513,10 @@ export function HeroPresetManagerTab({
                               onClick={() => p.monthly60 && setItemTerm(p.id, 60)}
                               className={`px-2 py-1 rounded text-[11px] font-bold ${
                                 !p.monthly60
-                                  ? 'text-[#CBD5E1]'
+                                  ? 'text-subtle'
                                   : selected.term === 60
-                                    ? 'bg-[#0F172A] text-white'
-                                    : 'text-[#64748B] cursor-pointer'
+                                    ? 'bg-ink text-on-ink'
+                                    : 'text-muted cursor-pointer'
                               }`}
                             >
                               60개월
@@ -530,7 +530,7 @@ export function HeroPresetManagerTab({
               </div>
 
               {formError && (
-                <div className="rounded-xl bg-[#FFF1F2] border border-[#FECDD3] px-3 py-2 text-xs font-bold text-[#BE123C]">
+                <div className="rounded-xl bg-accent-soft border border-accent-rule px-3 py-2 text-xs font-bold text-accent">
                   {formError}
                 </div>
               )}
@@ -539,13 +539,13 @@ export function HeroPresetManagerTab({
                 <button
                   type="button"
                   onClick={() => setModalOpen(false)}
-                  className="h-11 px-4 rounded-xl border border-[#E2E8F0] text-sm font-bold text-[#475569] cursor-pointer"
+                  className="h-11 px-4 rounded-xl border border-rule text-sm font-bold text-ink-2 cursor-pointer"
                 >
                   취소
                 </button>
                 <button
                   type="submit"
-                  className="flex-1 h-11 rounded-xl bg-[#0F172A] hover:bg-[#1E293B] text-white text-sm font-extrabold cursor-pointer"
+                  className="flex-1 h-11 rounded-xl bg-ink hover:bg-ink-hover text-on-ink text-sm font-extrabold cursor-pointer"
                 >
                   {editingId ? '슬롯 변경사항 저장' : '메인 원클릭 슬롯 등록'}
                 </button>

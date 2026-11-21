@@ -225,29 +225,31 @@ export function CatalogManagerTab({
 
   return (
     <div className="space-y-4">
-      <div className="rounded-2xl bg-[#F8FAFC] border border-[#E2E8F0] px-4 py-3 text-xs text-[#475569] leading-relaxed">
-        <strong className="font-extrabold text-[#0F172A]">월별 행사 단가 업데이트 안내:</strong> 매월 프로모션·행사 일정에 맞춰 품목별 36·60개월 구독료를 수정 저장하시면 고객 화면(단품·복수·세트·원클릭 4종)의 <strong className="text-[#059669]">천원단위 상조 결합 + 제휴카드 혜택</strong>에 즉시 자동 반영되며, 고객 화면에도 행사일 변동 가능 안내가 함께 표시됩니다.
+      {/* Monthly Promotional Price Update Hint */}
+      <div className="rounded-2xl bg-paper border border-rule px-4 py-3 text-xs text-ink-2 leading-relaxed">
+        <strong className="font-extrabold text-ink">월별 행사 단가 업데이트 안내:</strong> 매월 프로모션·행사 일정에 맞춰 품목별 36·60개월 구독료를 수정 저장하시면 고객 화면(단품·복수·세트·원클릭 4종)의 <strong className="text-positive">천원단위 상조 결합 + 제휴카드 혜택</strong>에 즉시 자동 반영되며, 고객 화면에도 행사일 변동 가능 안내가 함께 표시됩니다.
       </div>
 
-      <div className="rounded-2xl bg-white border border-[#E2E8F0] p-4 flex flex-col lg:flex-row lg:items-center justify-between gap-3">
+      {/* Toolbar */}
+      <div className="rounded-2xl bg-surface border border-rule p-4 flex flex-col lg:flex-row lg:items-center justify-between gap-3">
         <div className="flex flex-col sm:flex-row gap-2 flex-1">
           <div className="relative flex-1">
             <Search
               size={16}
-              className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#94A3B8]"
+              className="absolute left-3.5 top-1/2 -translate-y-1/2 text-subtle"
             />
             <input
               type="search"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               placeholder="상품명, 모델명, 브랜드 검색"
-              className="w-full h-11 pl-10 pr-3 rounded-xl bg-[#F8FAFC] border border-[#E2E8F0] focus:bg-white focus:border-[#0F172A] focus:outline-none text-base"
+              className="w-full h-11 pl-10 pr-3 rounded-xl bg-paper border border-rule focus:bg-surface focus:border-ink focus:outline-none text-base"
             />
           </div>
           <select
             value={filterCat}
             onChange={(e) => setFilterCat(e.target.value)}
-            className="h-11 px-3 rounded-xl bg-[#F8FAFC] border border-[#E2E8F0] text-base font-medium text-[#0F172A]"
+            className="h-11 px-3 rounded-xl bg-paper border border-rule text-base font-medium text-ink"
           >
             <option value="전체">전체 카테고리</option>
             {categoryOptions.map((c) => (
@@ -259,7 +261,7 @@ export function CatalogManagerTab({
           <select
             value={filterBrand}
             onChange={(e) => setFilterBrand(e.target.value)}
-            className="h-11 px-3 rounded-xl bg-[#F8FAFC] border border-[#E2E8F0] text-base font-medium text-[#0F172A]"
+            className="h-11 px-3 rounded-xl bg-paper border border-rule text-base font-medium text-ink"
           >
             <option value="전체">전체 브랜드</option>
             {brandOptions.map((b) => (
@@ -273,19 +275,20 @@ export function CatalogManagerTab({
         <button
           type="button"
           onClick={openCreateModal}
-          className="inline-flex items-center justify-center gap-1.5 h-11 px-4 rounded-xl bg-[#E11D48] hover:bg-[#BE123C] text-white text-sm font-extrabold transition-colors shrink-0 cursor-pointer"
+          className="inline-flex items-center justify-center gap-1.5 h-11 px-4 rounded-xl bg-accent hover:bg-accent-hover text-on-ink text-sm font-extrabold transition-colors shrink-0 cursor-pointer"
         >
           <Plus size={16} />
           <span>새 품목 추가</span>
         </button>
       </div>
 
+      {/* Product List */}
       <div className="space-y-2.5">
         {filtered.map((item) => (
           <div
             key={item.id}
-            className={`rounded-2xl bg-white border p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4 transition-colors ${
-              item.visible ? 'border-[#E2E8F0]' : 'border-[#E2E8F0] bg-[#F8FAFC] opacity-75'
+            className={`rounded-2xl bg-surface border p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4 transition-colors ${
+              item.visible ? 'border-rule' : 'border-rule bg-paper opacity-75'
             }`}
           >
             <div className="flex items-center gap-3.5 min-w-0">
@@ -293,31 +296,30 @@ export function CatalogManagerTab({
                 src={item.imageUrl}
                 alt={item.name}
                 category={item.category}
-                brand={item.brand}
-                className="w-16 h-14 rounded-xl border border-[#E2E8F0] shrink-0"
+                className="w-16 h-14 rounded-xl border border-rule shrink-0"
                 iconSize={22}
               />
               <div className="min-w-0">
                 <div className="flex flex-wrap items-center gap-1.5 text-[11px]">
-                  <span className="font-bold px-2 py-0.5 rounded bg-[#F1F5F9] text-[#0F172A]">
+                  <span className="font-bold px-2 py-0.5 rounded bg-field text-ink">
                     {item.brand}
                   </span>
-                  <span className="font-semibold text-[#64748B]">{item.category}</span>
-                  <span className="font-mono text-[#94A3B8]">{item.modelCode}</span>
+                  <span className="font-semibold text-muted">{item.category}</span>
+                  <span className="font-mono text-subtle">{item.modelCode}</span>
                 </div>
-                <div className="text-sm font-extrabold text-[#0F172A] mt-0.5 truncate">
+                <div className="text-sm font-extrabold text-ink mt-0.5 truncate">
                   {item.name}
                 </div>
                 <div className="mt-1 flex flex-wrap items-center gap-3 text-xs tabular-nums">
-                  <span className="font-semibold text-[#475569]">
+                  <span className="font-semibold text-ink-2">
                     36개월:{' '}
-                    <strong className="text-[#0F172A]">
+                    <strong className="text-ink">
                       {item.monthly36 ? formatKRW(item.monthly36) : '미지원'}
                     </strong>
                   </span>
-                  <span className="font-semibold text-[#475569]">
+                  <span className="font-semibold text-ink-2">
                     60개월:{' '}
-                    <strong className="text-[#0F172A]">
+                    <strong className="text-ink">
                       {item.monthly60 ? formatKRW(item.monthly60) : '미지원'}
                     </strong>
                   </span>
@@ -325,15 +327,16 @@ export function CatalogManagerTab({
               </div>
             </div>
 
-            <div className="flex items-center justify-end gap-2 shrink-0 pt-2 sm:pt-0 border-t sm:border-t-0 border-[#F1F5F9]">
+            {/* Actions */}
+            <div className="flex items-center justify-end gap-2 shrink-0 pt-2 sm:pt-0 border-t sm:border-t-0 border-rule">
               <button
                 type="button"
                 disabled={busy}
                 onClick={() => toggleVisibility(item)}
                 className={`inline-flex items-center gap-1.5 h-9 px-3 rounded-xl border text-xs font-bold cursor-pointer disabled:opacity-50 ${
                   item.visible
-                    ? 'bg-[#ECFDF5] border-[#A7F3D0] text-[#047857]'
-                    : 'bg-[#F1F5F9] border-[#CBD5E1] text-[#64748B]'
+                    ? 'bg-positive-soft border-positive-rule text-positive'
+                    : 'bg-field border-rule-strong text-muted'
                 }`}
               >
                 {item.visible ? <Eye size={14} /> : <EyeOff size={14} />}
@@ -344,7 +347,7 @@ export function CatalogManagerTab({
                 type="button"
                 disabled={busy}
                 onClick={() => openEditModal(item)}
-                className="inline-flex items-center gap-1 h-9 px-3 rounded-xl bg-white hover:bg-[#F8FAFC] border border-[#E2E8F0] text-xs font-bold text-[#0F172A] cursor-pointer disabled:opacity-50"
+                className="inline-flex items-center gap-1 h-9 px-3 rounded-xl bg-surface hover:bg-paper border border-rule text-xs font-bold text-ink cursor-pointer disabled:opacity-50"
               >
                 <Edit3 size={14} />
                 <span>수정</span>
@@ -355,7 +358,7 @@ export function CatalogManagerTab({
                 disabled={busy}
                 onClick={() => deleteProduct(item.id)}
                 aria-label={`${item.name} 삭제`}
-                className="inline-flex items-center justify-center w-9 h-9 rounded-xl bg-white hover:bg-[#FFF1F2] border border-[#E2E8F0] hover:border-[#FECDD3] text-[#64748B] hover:text-[#E11D48] cursor-pointer disabled:opacity-50"
+                className="inline-flex items-center justify-center w-9 h-9 rounded-xl bg-surface hover:bg-accent-soft border border-rule hover:border-accent-rule text-muted hover:text-accent cursor-pointer disabled:opacity-50"
               >
                 <Trash2 size={14} />
               </button>
@@ -364,22 +367,23 @@ export function CatalogManagerTab({
         ))}
       </div>
 
+      {/* Add / Edit Modal with Live ProductCard Preview */}
       {modalOpen && (
         <div
           role="dialog"
           aria-modal="true"
           aria-label={form.id ? '품목 수정' : '새 품목 추가'}
-          className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-[#0F172A]/50 p-0 sm:p-4"
+          className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-ink/55 p-0 sm:p-4"
         >
-          <div className="w-full sm:max-w-4xl max-h-[92vh] overflow-y-auto rounded-t-3xl sm:rounded-2xl bg-white border border-[#E2E8F0] shadow-xl">
-            <div className="sticky top-0 z-10 bg-white px-5 py-4 border-b border-[#E2E8F0] flex items-center justify-between">
-              <h3 className="text-base font-extrabold text-[#0F172A]">
+          <div className="w-full sm:max-w-4xl max-h-[92vh] overflow-y-auto rounded-t-3xl sm:rounded-2xl bg-surface border border-rule ">
+            <div className="sticky top-0 z-10 bg-surface px-5 py-4 border-b border-rule flex items-center justify-between">
+              <h3 className="text-base font-extrabold text-ink">
                 {form.id ? '구독 품목 수정' : '새 구독 품목 추가'}
               </h3>
               <button
                 type="button"
                 onClick={() => setModalOpen(false)}
-                className="w-9 h-9 rounded-xl hover:bg-[#F1F5F9] flex items-center justify-center text-[#475569] cursor-pointer"
+                className="w-9 h-9 rounded-xl hover:bg-field flex items-center justify-center text-ink-2 cursor-pointer"
               >
                 <X size={18} />
               </button>
@@ -389,16 +393,17 @@ export function CatalogManagerTab({
               onSubmit={handleSaveForm}
               className="p-5 grid grid-cols-1 lg:grid-cols-12 gap-6 items-start"
             >
+              {/* Form Fields (7 cols) */}
               <div className="lg:col-span-7 space-y-4">
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
-                    <label className="block text-xs font-bold text-[#334155] mb-1">
+                    <label className="block text-xs font-bold text-ink-2 mb-1">
                       카테고리
                     </label>
                     <select
                       value={form.category}
                       onChange={(e) => setForm({ ...form, category: e.target.value })}
-                      className="w-full h-11 px-3 rounded-xl bg-white border border-[#CBD5E1] text-base"
+                      className="w-full h-11 px-3 rounded-xl bg-surface border border-rule-strong text-base"
                     >
                       {categoryOptions.map((c) => (
                         <option key={c} value={c}>
@@ -415,19 +420,19 @@ export function CatalogManagerTab({
                           setForm({ ...form, customCategory: e.target.value })
                         }
                         placeholder="예: 정수기/생활가전"
-                        className="mt-2 w-full h-11 px-3 rounded-xl border border-[#0F172A] text-base"
+                        className="mt-2 w-full h-11 px-3 rounded-xl border border-ink text-base"
                       />
                     )}
                   </div>
 
                   <div>
-                    <label className="block text-xs font-bold text-[#334155] mb-1">
+                    <label className="block text-xs font-bold text-ink-2 mb-1">
                       브랜드
                     </label>
                     <select
                       value={form.brand}
                       onChange={(e) => setForm({ ...form, brand: e.target.value })}
-                      className="w-full h-11 px-3 rounded-xl bg-white border border-[#CBD5E1] text-base"
+                      className="w-full h-11 px-3 rounded-xl bg-surface border border-rule-strong text-base"
                     >
                       {brandOptions.map((b) => (
                         <option key={b} value={b}>
@@ -444,7 +449,7 @@ export function CatalogManagerTab({
                           setForm({ ...form, customBrand: e.target.value })
                         }
                         placeholder="예: 위니아, 발뮤다"
-                        className="mt-2 w-full h-11 px-3 rounded-xl border border-[#0F172A] text-base"
+                        className="mt-2 w-full h-11 px-3 rounded-xl border border-ink text-base"
                       />
                     )}
                   </div>
@@ -452,8 +457,8 @@ export function CatalogManagerTab({
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
-                    <label className="block text-xs font-bold text-[#334155] mb-1">
-                      상품명 <span className="text-[#E11D48]">*</span>
+                    <label className="block text-xs font-bold text-ink-2 mb-1">
+                      상품명 <span className="text-accent">*</span>
                     </label>
                     <input
                       type="text"
@@ -461,11 +466,11 @@ export function CatalogManagerTab({
                       value={form.name}
                       onChange={(e) => setForm({ ...form, name: e.target.value })}
                       placeholder="예: BESPOKE AI 4도어 냉장고"
-                      className="w-full h-11 px-3 rounded-xl border border-[#CBD5E1] text-base"
+                      className="w-full h-11 px-3 rounded-xl border border-rule-strong text-base"
                     />
                   </div>
                   <div>
-                    <label className="block text-xs font-bold text-[#334155] mb-1">
+                    <label className="block text-xs font-bold text-ink-2 mb-1">
                       모델명
                     </label>
                     <input
@@ -473,27 +478,27 @@ export function CatalogManagerTab({
                       value={form.modelCode}
                       onChange={(e) => setForm({ ...form, modelCode: e.target.value })}
                       placeholder="예: RF85DB9581AP"
-                      className="w-full h-11 px-3 rounded-xl border border-[#CBD5E1] text-base font-mono"
+                      className="w-full h-11 px-3 rounded-xl border border-rule-strong text-base font-mono"
                     />
                   </div>
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-[#334155] mb-1">
-                    제품 이미지 URL (비워두면 가전 종류에 맞는 스튜디오 이미지 자동 매칭)
+                  <label className="block text-xs font-bold text-ink-2 mb-1">
+                    제품 이미지 URL (비워두거나 로드 실패 시 가전 아이콘 자동 표시)
                   </label>
                   <input
                     type="text"
                     value={form.imageUrl}
                     onChange={(e) => setForm({ ...form, imageUrl: e.target.value })}
                     placeholder="./products/fridge.jpg 또는 https://..."
-                    className="w-full h-11 px-3 rounded-xl border border-[#CBD5E1] text-base"
+                    className="w-full h-11 px-3 rounded-xl border border-rule-strong text-base"
                   />
                 </div>
 
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label className="block text-xs font-bold text-[#334155] mb-1">
+                    <label className="block text-xs font-bold text-ink-2 mb-1">
                       36개월 월 구독료 (원 · 미지원 시 공란)
                     </label>
                     <input
@@ -503,11 +508,11 @@ export function CatalogManagerTab({
                       value={form.monthly36}
                       onChange={(e) => setForm({ ...form, monthly36: e.target.value })}
                       placeholder="예: 29800"
-                      className="w-full h-11 px-3 rounded-xl border border-[#CBD5E1] text-base tabular-nums"
+                      className="w-full h-11 px-3 rounded-xl border border-rule-strong text-base tabular-nums"
                     />
                   </div>
                   <div>
-                    <label className="block text-xs font-bold text-[#334155] mb-1">
+                    <label className="block text-xs font-bold text-ink-2 mb-1">
                       60개월 월 구독료 (원 · 미지원 시 공란)
                     </label>
                     <input
@@ -517,13 +522,13 @@ export function CatalogManagerTab({
                       value={form.monthly60}
                       onChange={(e) => setForm({ ...form, monthly60: e.target.value })}
                       placeholder="예: 49900"
-                      className="w-full h-11 px-3 rounded-xl border border-[#CBD5E1] text-base tabular-nums"
+                      className="w-full h-11 px-3 rounded-xl border border-rule-strong text-base tabular-nums"
                     />
                   </div>
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-[#334155] mb-1">
+                  <label className="block text-xs font-bold text-ink-2 mb-1">
                     케어/보증 핵심 포인트 태그 (쉼표로 구분)
                   </label>
                   <input
@@ -531,36 +536,36 @@ export function CatalogManagerTab({
                     value={form.careTagsText}
                     onChange={(e) => setForm({ ...form, careTagsText: e.target.value })}
                     placeholder="정기 살균케어, 5년 무상 A/S, 필터교체"
-                    className="w-full h-11 px-3 rounded-xl border border-[#CBD5E1] text-base"
+                    className="w-full h-11 px-3 rounded-xl border border-rule-strong text-base"
                   />
                 </div>
 
                 <div className="flex flex-wrap gap-4 pt-1">
-                  <label className="inline-flex items-center gap-2 text-xs font-bold text-[#334155] cursor-pointer">
+                  <label className="inline-flex items-center gap-2 text-xs font-bold text-ink-2 cursor-pointer">
                     <input
                       type="checkbox"
                       checked={form.isLargeAppliance}
                       onChange={(e) =>
                         setForm({ ...form, isLargeAppliance: e.target.checked })
                       }
-                      className="h-4 w-4 accent-[#0F172A]"
+                      className="h-4 w-4 accent-ink"
                     />
                     <span>‘대형가전’ 탭에도 함께 노출</span>
                   </label>
 
-                  <label className="inline-flex items-center gap-2 text-xs font-bold text-[#334155] cursor-pointer">
+                  <label className="inline-flex items-center gap-2 text-xs font-bold text-ink-2 cursor-pointer">
                     <input
                       type="checkbox"
                       checked={form.visible}
                       onChange={(e) => setForm({ ...form, visible: e.target.checked })}
-                      className="h-4 w-4 accent-[#059669]"
+                      className="h-4 w-4 accent-positive"
                     />
                     <span>고객 화면에 즉시 노출</span>
                   </label>
                 </div>
 
                 {formError && (
-                  <div className="rounded-xl bg-[#FFF1F2] border border-[#FECDD3] px-3 py-2 text-xs font-bold text-[#BE123C]">
+                  <div className="rounded-xl bg-accent-soft border border-accent-rule px-3 py-2 text-xs font-bold text-accent">
                     {formError}
                   </div>
                 )}
@@ -569,21 +574,22 @@ export function CatalogManagerTab({
                   <button
                     type="button"
                     onClick={() => setModalOpen(false)}
-                    className="h-11 px-4 rounded-xl border border-[#E2E8F0] text-sm font-bold text-[#475569] cursor-pointer"
+                    className="h-11 px-4 rounded-xl border border-rule text-sm font-bold text-ink-2 cursor-pointer"
                   >
                     취소
                   </button>
                   <button
                     type="submit"
-                    className="flex-1 h-11 rounded-xl bg-[#0F172A] hover:bg-[#1E293B] text-white text-sm font-extrabold cursor-pointer"
+                    className="flex-1 h-11 rounded-xl bg-ink hover:bg-ink-hover text-on-ink text-sm font-extrabold cursor-pointer"
                   >
                     {form.id ? '품목 변경사항 반영' : '카탈로그에 품목 추가'}
                   </button>
                 </div>
               </div>
 
-              <div className="lg:col-span-5 rounded-2xl bg-[#F8FAFC] border border-[#E2E8F0] p-4">
-                <div className="text-xs font-extrabold text-[#475569] mb-3">
+              {/* Real-time Live Card Preview (5 cols) */}
+              <div className="lg:col-span-5 rounded-2xl bg-paper border border-rule p-4">
+                <div className="text-xs font-extrabold text-ink-2 mb-3">
                   실시간 고객 화면 카드 미리보기
                 </div>
                 <div className="max-w-[290px] mx-auto pointer-events-none">

@@ -165,12 +165,12 @@ export function BundleManagerTab({
 
   return (
     <div className="space-y-4">
-      <div className="rounded-2xl bg-white border border-[#E2E8F0] p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+      <div className="rounded-2xl bg-surface border border-rule p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
-          <h3 className="text-sm font-extrabold text-[#0F172A]">
+          <h3 className="text-sm font-extrabold text-ink">
             추천 세트 묶음 관리 ({bundles.length}개)
           </h3>
-          <p className="text-xs text-[#64748B] mt-0.5">
+          <p className="text-xs text-muted mt-0.5">
             대형 입주 세트뿐만 아니라 밥솥+청소기+로봇청소기 등 혼합 기간(36+60개월) 소형 세트도
             자유롭게 구성할 수 있습니다.
           </p>
@@ -178,7 +178,7 @@ export function BundleManagerTab({
         <button
           type="button"
           onClick={openCreate}
-          className="inline-flex items-center justify-center gap-1.5 h-11 px-4 rounded-xl bg-[#E11D48] hover:bg-[#BE123C] text-white text-sm font-extrabold shrink-0 cursor-pointer"
+          className="inline-flex items-center justify-center gap-1.5 h-11 px-4 rounded-xl bg-accent hover:bg-accent-hover text-on-ink text-sm font-extrabold shrink-0 cursor-pointer"
         >
           <Plus size={16} />
           <span>새 추천 세트 만들기</span>
@@ -198,25 +198,25 @@ export function BundleManagerTab({
           return (
             <div
               key={bundle.id}
-              className={`rounded-2xl bg-white border border-[#E2E8F0] p-4 flex flex-col lg:flex-row lg:items-center justify-between gap-4 ${
-                bundle.visible ? '' : 'opacity-70 bg-[#F8FAFC]'
+              className={`rounded-2xl bg-surface border border-rule p-4 flex flex-col lg:flex-row lg:items-center justify-between gap-4 ${
+                bundle.visible ? '' : 'opacity-70 bg-paper'
               }`}
             >
               <div className="min-w-0 space-y-1">
                 <div className="flex flex-wrap items-center gap-1.5">
-                  <span className="px-2 py-0.5 rounded bg-[#FFF1F2] text-[#E11D48] text-[11px] font-bold">
+                  <span className="px-2 py-0.5 rounded bg-accent-soft text-accent text-[11px] font-bold">
                     {bundle.badge}
                   </span>
-                  <span className="px-2 py-0.5 rounded bg-[#F1F5F9] text-[#475569] text-[11px] font-bold tabular-nums">
+                  <span className="px-2 py-0.5 rounded bg-field text-ink-2 text-[11px] font-bold tabular-nums">
                     {bundle.items.length}개 품목 ·{' '}
                     {sim.mode === 'mixed'
                       ? '36+60개월 혼합'
                       : `${sim.durationMonths}개월 단일`}
                   </span>
                 </div>
-                <div className="text-base font-extrabold text-[#0F172A]">{bundle.name}</div>
-                <p className="text-xs text-[#64748B]">{bundle.description}</p>
-                <div className="text-xs font-bold text-[#334155] tabular-nums pt-1">
+                <div className="text-base font-extrabold text-ink">{bundle.name}</div>
+                <p className="text-xs text-muted">{bundle.description}</p>
+                <div className="text-xs font-bold text-ink-2 tabular-nums pt-1">
                   {sim.mode === 'mixed' && sim.phaseB
                     ? `1~36개월차 월 ${formatKRW(sim.phaseA.grossSubscription)} → 37~60개월차 월 ${formatKRW(sim.phaseB.grossSubscription)}`
                     : `기본 월 구독료 ${formatKRW(sim.phaseA.grossSubscription)}`}
@@ -229,7 +229,7 @@ export function BundleManagerTab({
                   disabled={busy || idx === 0}
                   onClick={() => moveBundle(idx, -1)}
                   aria-label="위로 이동"
-                  className="w-9 h-9 rounded-xl border border-[#E2E8F0] flex items-center justify-center text-[#475569] disabled:opacity-30 cursor-pointer"
+                  className="w-9 h-9 rounded-xl border border-rule flex items-center justify-center text-ink-2 disabled:opacity-30 cursor-pointer"
                 >
                   <ArrowUp size={14} />
                 </button>
@@ -238,7 +238,7 @@ export function BundleManagerTab({
                   disabled={busy || idx === bundles.length - 1}
                   onClick={() => moveBundle(idx, 1)}
                   aria-label="아래로 이동"
-                  className="w-9 h-9 rounded-xl border border-[#E2E8F0] flex items-center justify-center text-[#475569] disabled:opacity-30 cursor-pointer"
+                  className="w-9 h-9 rounded-xl border border-rule flex items-center justify-center text-ink-2 disabled:opacity-30 cursor-pointer"
                 >
                   <ArrowDown size={14} />
                 </button>
@@ -248,8 +248,8 @@ export function BundleManagerTab({
                   onClick={() => toggleBundleVisible(bundle)}
                   className={`inline-flex items-center gap-1 h-9 px-3 rounded-xl border text-xs font-bold cursor-pointer disabled:opacity-50 ${
                     bundle.visible
-                      ? 'bg-[#ECFDF5] border-[#A7F3D0] text-[#047857]'
-                      : 'bg-[#F1F5F9] border-[#CBD5E1] text-[#64748B]'
+                      ? 'bg-positive-soft border-positive-rule text-positive'
+                      : 'bg-field border-rule-strong text-muted'
                   }`}
                 >
                   {bundle.visible ? <Eye size={14} /> : <EyeOff size={14} />}
@@ -259,7 +259,7 @@ export function BundleManagerTab({
                   type="button"
                   disabled={busy}
                   onClick={() => openEdit(bundle)}
-                  className="inline-flex items-center gap-1 h-9 px-3 rounded-xl bg-white border border-[#E2E8F0] text-xs font-bold text-[#0F172A] cursor-pointer disabled:opacity-50"
+                  className="inline-flex items-center gap-1 h-9 px-3 rounded-xl bg-surface border border-rule text-xs font-bold text-ink cursor-pointer disabled:opacity-50"
                 >
                   <Edit3 size={14} />
                   <span>수정</span>
@@ -269,7 +269,7 @@ export function BundleManagerTab({
                   disabled={busy}
                   onClick={() => deleteBundle(bundle.id)}
                   aria-label={`${bundle.name} 삭제`}
-                  className="w-9 h-9 rounded-xl border border-[#E2E8F0] hover:border-[#FECDD3] hover:bg-[#FFF1F2] text-[#64748B] hover:text-[#E11D48] flex items-center justify-center cursor-pointer disabled:opacity-50"
+                  className="w-9 h-9 rounded-xl border border-rule hover:border-accent-rule hover:bg-accent-soft text-muted hover:text-accent flex items-center justify-center cursor-pointer disabled:opacity-50"
                 >
                   <Trash2 size={14} />
                 </button>
@@ -284,17 +284,17 @@ export function BundleManagerTab({
         <div
           role="dialog"
           aria-modal="true"
-          className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-[#0F172A]/50 p-0 sm:p-4"
+          className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-ink/55 p-0 sm:p-4"
         >
-          <div className="w-full sm:max-w-2xl max-h-[92vh] overflow-y-auto rounded-t-3xl sm:rounded-2xl bg-white border border-[#E2E8F0] shadow-xl">
-            <div className="sticky top-0 z-10 bg-white px-5 py-4 border-b border-[#E2E8F0] flex items-center justify-between">
-              <h3 className="text-base font-extrabold text-[#0F172A]">
+          <div className="w-full sm:max-w-2xl max-h-[92vh] overflow-y-auto rounded-t-3xl sm:rounded-2xl bg-surface border border-rule ">
+            <div className="sticky top-0 z-10 bg-surface px-5 py-4 border-b border-rule flex items-center justify-between">
+              <h3 className="text-base font-extrabold text-ink">
                 {editingId ? '추천 세트 수정' : '새 추천 세트 빌더'}
               </h3>
               <button
                 type="button"
                 onClick={() => setModalOpen(false)}
-                className="w-9 h-9 rounded-xl hover:bg-[#F1F5F9] flex items-center justify-center text-[#475569] cursor-pointer"
+                className="w-9 h-9 rounded-xl hover:bg-field flex items-center justify-center text-ink-2 cursor-pointer"
               >
                 <X size={18} />
               </button>
@@ -302,8 +302,8 @@ export function BundleManagerTab({
 
             <form onSubmit={handleSave} className="p-5 space-y-4">
               <div>
-                <label className="block text-xs font-bold text-[#334155] mb-1">
-                  세트 이름 <span className="text-[#E11D48]">*</span>
+                <label className="block text-xs font-bold text-ink-2 mb-1">
+                  세트 이름 <span className="text-accent">*</span>
                 </label>
                 <input
                   type="text"
@@ -311,12 +311,12 @@ export function BundleManagerTab({
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   placeholder="예: 주방·청소 살림효자 소형 3종 세트"
-                  className="w-full h-11 px-3 rounded-xl border border-[#CBD5E1] text-base"
+                  className="w-full h-11 px-3 rounded-xl border border-rule-strong text-base"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-[#334155] mb-1">
+                <label className="block text-xs font-bold text-ink-2 mb-1">
                   한줄 설명
                 </label>
                 <input
@@ -324,13 +324,13 @@ export function BundleManagerTab({
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
                   placeholder="고객에게 세트의 핵심 장점을 한 문장으로 안내하세요"
-                  className="w-full h-11 px-3 rounded-xl border border-[#CBD5E1] text-base"
+                  className="w-full h-11 px-3 rounded-xl border border-rule-strong text-base"
                 />
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-bold text-[#334155] mb-1">
+                  <label className="block text-xs font-bold text-ink-2 mb-1">
                     강조 배지
                   </label>
                   <div className="flex flex-wrap gap-1.5 mb-2">
@@ -341,8 +341,8 @@ export function BundleManagerTab({
                         onClick={() => setBadge(b)}
                         className={`px-2.5 py-1 rounded-lg text-xs font-bold cursor-pointer ${
                           badge === b
-                            ? 'bg-[#E11D48] text-white'
-                            : 'bg-[#F8FAFC] border border-[#E2E8F0] text-[#475569]'
+                            ? 'bg-accent text-on-ink'
+                            : 'bg-paper border border-rule text-ink-2'
                         }`}
                       >
                         {b}
@@ -354,12 +354,12 @@ export function BundleManagerTab({
                     value={badge}
                     onChange={(e) => setBadge(e.target.value)}
                     placeholder="직접 입력 가능"
-                    className="w-full h-10 px-3 rounded-xl border border-[#CBD5E1] text-base"
+                    className="w-full h-10 px-3 rounded-xl border border-rule-strong text-base"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-[#334155] mb-1">
+                  <label className="block text-xs font-bold text-ink-2 mb-1">
                     기본 선택 기간 (품목별 개별 변경 가능)
                   </label>
                   <div className="grid grid-cols-2 gap-2">
@@ -370,8 +370,8 @@ export function BundleManagerTab({
                         onClick={() => setDefaultTerm(t)}
                         className={`h-11 rounded-xl border text-sm font-bold cursor-pointer ${
                           defaultTerm === t
-                            ? 'bg-[#0F172A] border-[#0F172A] text-white'
-                            : 'bg-white border-[#E2E8F0] text-[#475569]'
+                            ? 'bg-ink border-ink text-on-ink'
+                            : 'bg-surface border-rule text-ink-2'
                         }`}
                       >
                         {t}개월
@@ -384,11 +384,11 @@ export function BundleManagerTab({
               {/* Product Checkbox Picker */}
               <div>
                 <div className="flex items-center justify-between mb-2">
-                  <span className="text-xs font-bold text-[#334155]">
+                  <span className="text-xs font-bold text-ink-2">
                     포함할 품목 선택 ({items.length}개 선택됨)
                   </span>
                   {items.length > 0 && (
-                    <span className="text-xs font-bold text-[#059669] tabular-nums">
+                    <span className="text-xs font-bold text-positive tabular-nums">
                       {previewSim.mode === 'mixed' && previewSim.phaseB
                         ? `1~36m: ${formatKRW(previewSim.phaseA.grossSubscription)} / 37~60m: ${formatKRW(previewSim.phaseB.grossSubscription)}`
                         : `합계: 월 ${previewSim.phaseA.grossSubscription.toLocaleString('ko-KR')}원`}
@@ -396,14 +396,14 @@ export function BundleManagerTab({
                   )}
                 </div>
 
-                <div className="max-h-64 overflow-y-auto rounded-xl border border-[#E2E8F0] divide-y divide-[#F1F5F9]">
+                <div className="max-h-64 overflow-y-auto rounded-xl border border-rule divide-y divide-rule">
                   {products.map((p) => {
                     const selected = items.find((i) => i.productId === p.id)
                     return (
                       <div
                         key={p.id}
                         className={`p-3 flex flex-col sm:flex-row sm:items-center justify-between gap-2 ${
-                          selected ? 'bg-[#FFF1F2]/40' : 'bg-white'
+                          selected ? 'bg-accent-soft/60' : 'bg-surface'
                         }`}
                       >
                         <label className="flex items-center gap-2.5 cursor-pointer flex-1 min-w-0">
@@ -411,13 +411,13 @@ export function BundleManagerTab({
                             type="checkbox"
                             checked={!!selected}
                             onChange={() => toggleProductInBundle(p)}
-                            className="h-4 w-4 accent-[#E11D48] shrink-0"
+                            className="h-4 w-4 accent-accent shrink-0"
                           />
                           <div className="min-w-0">
-                            <div className="text-xs font-bold text-[#0F172A] truncate">
+                            <div className="text-xs font-bold text-ink truncate">
                               [{p.brand}] {p.name}
                             </div>
-                            <div className="text-[11px] text-[#64748B] tabular-nums">
+                            <div className="text-[11px] text-muted tabular-nums">
                               36개월 {p.monthly36 ? formatKRW(p.monthly36) : '미지원'} · 60개월{' '}
                               {p.monthly60 ? formatKRW(p.monthly60) : '미지원'}
                             </div>
@@ -425,17 +425,17 @@ export function BundleManagerTab({
                         </label>
 
                         {selected && (
-                          <div className="inline-flex rounded-lg bg-white border border-[#E2E8F0] p-0.5 self-end sm:self-auto shrink-0">
+                          <div className="inline-flex rounded-lg bg-surface border border-rule p-0.5 self-end sm:self-auto shrink-0">
                             <button
                               type="button"
                               disabled={!p.monthly36}
                               onClick={() => p.monthly36 && setItemTerm(p.id, 36)}
                               className={`px-2 py-1 rounded text-[11px] font-bold ${
                                 !p.monthly36
-                                  ? 'text-[#CBD5E1]'
+                                  ? 'text-subtle'
                                   : selected.term === 36
-                                    ? 'bg-[#0F172A] text-white'
-                                    : 'text-[#64748B] cursor-pointer'
+                                    ? 'bg-ink text-on-ink'
+                                    : 'text-muted cursor-pointer'
                               }`}
                             >
                               36개월
@@ -446,10 +446,10 @@ export function BundleManagerTab({
                               onClick={() => p.monthly60 && setItemTerm(p.id, 60)}
                               className={`px-2 py-1 rounded text-[11px] font-bold ${
                                 !p.monthly60
-                                  ? 'text-[#CBD5E1]'
+                                  ? 'text-subtle'
                                   : selected.term === 60
-                                    ? 'bg-[#0F172A] text-white'
-                                    : 'text-[#64748B] cursor-pointer'
+                                    ? 'bg-ink text-on-ink'
+                                    : 'text-muted cursor-pointer'
                               }`}
                             >
                               60개월
@@ -463,7 +463,7 @@ export function BundleManagerTab({
               </div>
 
               {formError && (
-                <div className="rounded-xl bg-[#FFF1F2] border border-[#FECDD3] px-3 py-2 text-xs font-bold text-[#BE123C]">
+                <div className="rounded-xl bg-accent-soft border border-accent-rule px-3 py-2 text-xs font-bold text-accent">
                   {formError}
                 </div>
               )}
@@ -472,13 +472,13 @@ export function BundleManagerTab({
                 <button
                   type="button"
                   onClick={() => setModalOpen(false)}
-                  className="h-11 px-4 rounded-xl border border-[#E2E8F0] text-sm font-bold text-[#475569] cursor-pointer"
+                  className="h-11 px-4 rounded-xl border border-rule text-sm font-bold text-ink-2 cursor-pointer"
                 >
                   취소
                 </button>
                 <button
                   type="submit"
-                  className="flex-1 h-11 rounded-xl bg-[#0F172A] hover:bg-[#1E293B] text-white text-sm font-extrabold cursor-pointer"
+                  className="flex-1 h-11 rounded-xl bg-ink hover:bg-ink-hover text-on-ink text-sm font-extrabold cursor-pointer"
                 >
                   {editingId ? '세트 변경사항 저장' : '추천 세트 등록'}
                 </button>
