@@ -12,9 +12,11 @@ import {
   Save,
   ShieldAlert,
   Sliders,
+  Sparkles,
 } from 'lucide-react'
 import { BundleManagerTab } from '../components/admin/BundleManagerTab'
 import { CatalogManagerTab } from '../components/admin/CatalogManagerTab'
+import { HeroPresetManagerTab } from '../components/admin/HeroPresetManagerTab'
 import { PolicySyncTab } from '../components/admin/PolicySyncTab'
 import { INITIAL_CATALOG_SNAPSHOT } from '../data/initialSeedData'
 import {
@@ -22,6 +24,7 @@ import {
   authenticateAdminViaServer,
   bulkSyncCatalogRemote,
   clearAdminSession,
+  deleteHeroPresetRemote,
   deleteProductRemote,
   deleteSetRemote,
   enterLocalSandboxAdminSession,
@@ -33,6 +36,7 @@ import {
   isLocalSandboxAllowed,
   logoutAdminSession,
   resetLocalSandboxCatalog,
+  saveHeroPresetRemote,
   savePolicyRemote,
   saveProductRemote,
   saveSetRemote,
@@ -50,7 +54,7 @@ interface AdminPageProps {
   onNavigateCustomer: () => void
 }
 
-type AdminTab = 'catalog' | 'bundles' | 'policy'
+type AdminTab = 'hero' | 'catalog' | 'bundles' | 'policy'
 
 export function AdminPage({
   catalog,
@@ -63,14 +67,12 @@ export function AdminPage({
     getStoredAdminSession(),
   )
 
-  // Initial login gate state
   const [password, setPassword] = useState('')
   const [unlockCode, setUnlockCode] = useState('')
   const [showUnlockField, setShowUnlockField] = useState(false)
   const [authLoading, setAuthLoading] = useState(false)
   const [authError, setAuthError] = useState<string | null>(null)
 
-  // Re-login modal state (triggered immediately on code === "UNAUTHORIZED")
   const [reauthReason, setReauthReason] = useState<string | null>(null)
   const [reauthPassword, setReauthPassword] = useState('')
   const [reauthUnlockCode, setReauthUnlockCode] = useState('')
@@ -78,8 +80,7 @@ export function AdminPage({
   const [reauthLoading, setReauthLoading] = useState(false)
   const [reauthError, setReauthError] = useState<string | null>(null)
 
-  // Dashboard state
-  const [activeTab, setActiveTab] = useState<AdminTab>('catalog')
+  const [activeTab, setActiveTab] = useState<AdminTab>('hero')
   const [draftOverride, setDraftOverride] = useState<CatalogSnapshot | null>(null)
   const [dirty, setDirty] = useState(false)
   const [syncing, setSyncing] = useState(false)
@@ -89,6 +90,8 @@ export function AdminPage({
   const [saveError, setSaveError] = useState<string | null>(null)
 
   const draft = draftOverride ?? catalog
+  const activeHeroPresets =
+    draft.heroPresets ?? INITIAL_CATALOG_SNAPSHOT.heroPresets ?? []
 
   const showToast = useCallback((msg: string) => {
     setSaveToast(msg)
@@ -236,7 +239,93 @@ export function AdminPage({
     return session
   }
 
-  /* ==================== GRANULAR GAS CMS ACTIONS ==================== */
+  const handleSaveHeroPreset = async (preset: RecommendedBundle, isNew: boolean) => {
+    const active = requireActiveSession()
+    if (!active) return
+
+    const nextHeroPresets = isNew
+      ? [...activeHeroPresets, preset]
+      : activeHeroPresets.map((p) => (p.id === preset.id ? preset : p))
+
+    setSyncing(true)
+    setSaveError(null)
+    try {
+      const saved = await saveHeroPresetRemote(preset, active, nextHeroPresets, draft)
+      const reconciled = isNew
+        ? [...activeHeroPresets, saved]
+        : activeHeroPresets.map((p) => (p.id === saved.id ? saved : p))
+      const nextSnap: CatalogSnapshot = {
+        ...draft,
+        heroPresets: reconciled,
+        updatedAt: new Date().toISOString(),
+      }
+      setDraftOverride(nextSnap)
+      onCatalogSaved(nextSnap)
+      setRemoteEmptyHint(false)
+      showToast(
+        active.mode === 'gas'
+          ? `메인 원클릭 슬롯 ‘${saved.name}’이(가) 구글 시트에 저장되었습니다.`
+          : `메인 원클릭 슬롯 ‘${saved.name}’이(가) 저장되었습니다.`,
+      )
+    } catch (err) {
+      handleAdminError(err, '메인 원클릭 슬롯 저장 중 오류가 발생했습니다.')
+    } finally {
+      setSyncing(false)
+    }
+  }
+
+  const handleDeleteHeroPreset = async (presetId: string) => {
+    const active = requireActiveSession()
+    if (!active) return
+
+    const nextHeroPresets = activeHeroPresets.filter((p) => p.id !== presetId)
+    setSyncing(true)
+    setSaveError(null)
+    try {
+      await deleteHeroPresetRemote(presetId, active, nextHeroPresets, draft)
+      const nextSnap: CatalogSnapshot = {
+        ...draft,
+        heroPresets: nextHeroPresets,
+        updatedAt: new Date().toISOString(),
+      }
+      setDraftOverride(nextSnap)
+      onCatalogSaved(nextSnap)
+      showToast(
+        active.mode === 'gas'
+          ? '메인 원클릭 슬롯이 구글 시트에서 삭제되었습니다.'
+          : '메인 원클릭 슬롯이 삭제되었습니다.',
+      )
+    } catch (err) {
+      handleAdminError(err, '메인 원클릭 슬롯 삭제 중 오류가 발생했습니다.')
+    } finally {
+      setSyncing(false)
+    }
+  }
+
+  const handleReorderHeroPresets = async (nextPresets: RecommendedBundle[]) => {
+    const active = requireActiveSession()
+    if (!active) return
+
+    const nextSnap: CatalogSnapshot = {
+      ...draft,
+      heroPresets: nextPresets,
+      updatedAt: new Date().toISOString(),
+    }
+    setDraftOverride(nextSnap)
+    setSyncing(true)
+    setSaveError(null)
+    try {
+      const res = await bulkSyncCatalogRemote(nextSnap, active)
+      setDraftOverride(res.snapshot)
+      onCatalogSaved(res.snapshot)
+      setDirty(false)
+      showToast('메인 원클릭 추천 순서가 구글 시트에 반영되었습니다.')
+    } catch (err) {
+      handleAdminError(err, '순서 변경 저장에 실패했습니다.')
+    } finally {
+      setSyncing(false)
+    }
+  }
 
   const handleSaveProduct = async (product: ProductItem, isNew: boolean) => {
     const active = requireActiveSession()
@@ -263,7 +352,7 @@ export function AdminPage({
       setRemoteEmptyHint(false)
       showToast(
         active.mode === 'gas'
-          ? `품목 ‘${saved.name}’이(가) 구글 시트(saveProduct)에 저장되었습니다.`
+          ? `품목 ‘${saved.name}’이(가) 구글 시트에 저장되었습니다.`
           : `품목 ‘${saved.name}’이(가) 로컬 프리뷰에 저장되었습니다.`,
       )
     } catch (err) {
@@ -291,7 +380,7 @@ export function AdminPage({
       onCatalogSaved(nextSnap)
       showToast(
         active.mode === 'gas'
-          ? '품목이 구글 시트(deleteProduct)에서 삭제되었습니다.'
+          ? '품목이 구글 시트에서 삭제되었습니다.'
           : '품목이 삭제되었습니다.',
       )
     } catch (err) {
@@ -326,7 +415,7 @@ export function AdminPage({
       setRemoteEmptyHint(false)
       showToast(
         active.mode === 'gas'
-          ? `추천 세트 ‘${saved.name}’이(가) 구글 시트(saveSet)에 저장되었습니다.`
+          ? `추천 세트 ‘${saved.name}’이(가) 구글 시트에 저장되었습니다.`
           : `추천 세트 ‘${saved.name}’이(가) 저장되었습니다.`,
       )
     } catch (err) {
@@ -354,7 +443,7 @@ export function AdminPage({
       onCatalogSaved(nextSnap)
       showToast(
         active.mode === 'gas'
-          ? '추천 세트가 구글 시트(deleteSet)에서 삭제되었습니다.'
+          ? '추천 세트가 구글 시트에서 삭제되었습니다.'
           : '추천 세트가 삭제되었습니다.',
       )
     } catch (err) {
@@ -407,7 +496,7 @@ export function AdminPage({
       setDirty(false)
       showToast(
         active.mode === 'gas'
-          ? '혜택 정책 수치가 구글 시트(savePolicy)에 저장되었습니다.'
+          ? '혜택 정책 수치가 구글 시트에 저장되었습니다.'
           : '혜택 정책 수치가 로컬 프리뷰에 저장되었습니다.',
       )
     } catch (err) {
@@ -432,7 +521,7 @@ export function AdminPage({
       showToast(
         label ||
           (res.mode === 'gas'
-            ? '전체 카탈로그·세트·정책이 구글 시트(bulkSyncCatalog)에 일괄 동기화되었습니다.'
+            ? '메인 원클릭 4종·단품·세트·정책이 구글 시트에 일괄 동기화되었습니다.'
             : '[로컬 개발 모드] 브라우저 샌드박스에 일괄 저장되었습니다.'),
       )
     } catch (err) {
@@ -450,7 +539,6 @@ export function AdminPage({
     showToast('로컬 프리뷰 데이터가 초기 시드 상태로 복원되었습니다.')
   }
 
-  /* ==================== RE-AUTH GATE WHEN SESSION EXPIRED (NO DASHBOARD DOM LEAK) ==================== */
   if (!session && reauthReason) {
     return (
       <div className="min-h-screen bg-[#F8FAFC] flex items-center justify-center p-4">
@@ -462,7 +550,7 @@ export function AdminPage({
         >
           <div className="flex items-start gap-3">
             <div className="w-10 h-10 rounded-xl bg-[#FFF1F2] border border-[#FECDD3] text-[#E11D48] flex items-center justify-center shrink-0">
-              <KeyRound size={19} />
+              <KeyRound size={19} aria-hidden="true" />
             </div>
             <div>
               <h2
@@ -545,7 +633,6 @@ export function AdminPage({
     )
   }
 
-  /* ==================== ZERO-SECRET LOGIN GATE ==================== */
   if (!session) {
     return (
       <div className="min-h-screen bg-[#F8FAFC] flex flex-col items-center justify-center px-4 py-10">
@@ -555,21 +642,21 @@ export function AdminPage({
             onClick={onNavigateCustomer}
             className="inline-flex items-center gap-1.5 text-xs font-bold text-[#475569] hover:text-[#0F172A] cursor-pointer"
           >
-            <ArrowLeft size={14} />
+            <ArrowLeft size={14} aria-hidden="true" />
             <span>고객용 시뮬레이터로 돌아가기</span>
           </button>
 
           <div className="rounded-2xl bg-white border border-[#E2E8F0] p-6 sm:p-7 shadow-[0_2px_12px_rgba(15,23,42,0.04)] space-y-5">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-xl bg-[#0F172A] text-white flex items-center justify-center shrink-0">
-                <Lock size={18} />
+                <Lock size={18} aria-hidden="true" />
               </div>
               <div>
                 <h1 className="text-lg font-extrabold text-[#0F172A] tracking-tight">
                   보안 관리자 CMS 로그인
                 </h1>
                 <p className="text-xs text-[#64748B]">
-                  롯데하이마트 경기광주점 카탈로그 · 정책 관리
+                  롯데하이마트 경기광주점 메인 원클릭 · 카탈로그 · 정책 관리
                 </p>
               </div>
             </div>
@@ -655,7 +742,6 @@ export function AdminPage({
               </p>
             </div>
 
-            {/* Sandbox Entry: strictly limited to local DEV mode ONLY (dead-code in PROD builds) */}
             {sandboxAllowed && (
               <div className="pt-4 border-t border-[#E2E8F0] space-y-2.5">
                 <div className="flex items-center justify-between text-xs">
@@ -669,7 +755,7 @@ export function AdminPage({
                   onClick={handleEnterSandbox}
                   className="w-full h-11 rounded-xl bg-[#FFFBEB] hover:bg-[#FEF3C7] border border-[#FDE68A] text-[#92400E] text-xs font-extrabold flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
                 >
-                  <FlaskConical size={15} />
+                  <FlaskConical size={15} aria-hidden="true" />
                   <span>로컬 개발 UI 미리보기 진입</span>
                 </button>
               </div>
@@ -680,10 +766,8 @@ export function AdminPage({
     )
   }
 
-  /* ==================== AUTHENTICATED CMS DASHBOARD ==================== */
   return (
     <div className="min-h-screen bg-[#F8FAFC] text-[#0F172A] pb-16">
-      {/* Top CMS Bar */}
       <header className="sticky top-0 z-30 bg-white border-b border-[#E2E8F0]">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between gap-3">
           <div className="flex items-center gap-2.5 min-w-0">
@@ -692,7 +776,7 @@ export function AdminPage({
               onClick={onNavigateCustomer}
               className="inline-flex items-center gap-1 h-9 px-2.5 rounded-xl bg-[#F8FAFC] hover:bg-[#F1F5F9] border border-[#E2E8F0] text-xs font-bold text-[#475569] cursor-pointer shrink-0"
             >
-              <ArrowLeft size={14} />
+              <ArrowLeft size={14} aria-hidden="true" />
               <span className="hidden sm:inline">고객 화면</span>
             </button>
             <div className="min-w-0">
@@ -722,7 +806,7 @@ export function AdminPage({
                 title="구글 시트에서 최신 목록 다시 불러오기"
                 className="inline-flex items-center gap-1 h-9 px-3 rounded-xl border border-[#E2E8F0] bg-white hover:bg-[#F8FAFC] text-xs font-bold text-[#475569] cursor-pointer disabled:opacity-50"
               >
-                <RefreshCw size={13} className={loadingRemote ? 'animate-spin' : ''} />
+                <RefreshCw size={13} aria-hidden="true" className={loadingRemote ? 'animate-spin' : ''} />
                 <span className="hidden md:inline">새로고침</span>
               </button>
             )}
@@ -731,13 +815,13 @@ export function AdminPage({
               type="button"
               disabled={syncing}
               onClick={() => void handleBulkSync()}
-              className={`inline-flex items-center gap-1.5 h-9 px-3.5 rounded-xl text-xs font-extrabold transition-all cursor-pointer disabled:opacity-50 ${
+              className={`inline-flex items-center gap-1.5 h-9 px-3.5 rounded-xl text-xs font-extrabold transition-colors cursor-pointer disabled:opacity-50 ${
                 dirty
                   ? 'bg-[#E11D48] hover:bg-[#BE123C] text-white'
                   : 'bg-[#0F172A] hover:bg-[#1E293B] text-white'
               }`}
             >
-              <Save size={14} />
+              <Save size={14} aria-hidden="true" />
               <span>{syncing ? '동기화 중...' : dirty ? '변경사항 일괄 동기화' : '전체 일괄 동기화'}</span>
             </button>
 
@@ -746,7 +830,7 @@ export function AdminPage({
               onClick={() => void handleLogout()}
               className="inline-flex items-center gap-1 h-9 px-3 rounded-xl border border-[#E2E8F0] bg-white hover:bg-[#F8FAFC] text-xs font-bold text-[#475569] cursor-pointer"
             >
-              <LogOut size={14} />
+              <LogOut size={14} aria-hidden="true" />
               <span className="hidden sm:inline">로그아웃</span>
             </button>
           </div>
@@ -754,32 +838,28 @@ export function AdminPage({
       </header>
 
       <main className="max-w-6xl mx-auto px-4 sm:px-6 pt-6 space-y-5">
-        {/* Mandatory Write-Only Lead Architecture Security Notice Banner */}
         <div className="rounded-2xl bg-white border border-[#E2E8F0] p-4 flex items-start gap-3">
           <div className="w-9 h-9 rounded-xl bg-[#ECFDF5] border border-[#A7F3D0] text-[#059669] flex items-center justify-center shrink-0">
-            <ShieldAlert size={18} />
+            <ShieldAlert size={18} aria-hidden="true" />
           </div>
           <div className="text-xs text-[#475569] leading-relaxed">
             <div className="font-extrabold text-[#0F172A] mb-0.5">
-              개인정보 유출 0% · Write-Only 보안 정책 적용 중
+              개인정보 유출 0% · Write-Only 보안 정책 &amp; 월별 가격 자동 계산 연동 중
             </div>
             <p>
-              고객 상담 신청 명단(성함·연락처)은 유출 원천 차단을 위해 이 관리자 화면에서 일체
-              불러오거나 조회할 수 없습니다. 고객 상담 신청 건은 비공개 구글 시트로 단방향
-              전송(POST)되며, <strong className="text-[#0F172A]">관리자 본인의 Google Drive 스프레드시트 앱</strong>
-              에서만 열람할 수 있습니다.
+              매월 행사 일정에 맞춰 단품 가격·세트·메인 원클릭 4종을 수정하시면 고객 화면의{' '}
+              <strong className="text-[#0F172A]">천원단위 상조 결합 + 제휴카드 혜택 계산식</strong>에 즉시 자동 반영됩니다. 고객 상담 명단은 비공개 구글 시트에서만 열람 가능합니다.
             </p>
           </div>
         </div>
 
-        {/* Empty Sheet First-Time Seed Helper */}
         {remoteEmptyHint && session.mode === 'gas' && (
           <div className="rounded-2xl bg-[#FFFBEB] border border-[#FDE68A] p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div className="text-xs text-[#92400E]">
               <strong className="font-extrabold block mb-0.5">
                 연결된 구글 시트에 아직 등록된 상품이 없습니다
               </strong>
-              현재 화면의 초기 시드 데이터(가전 10종 + 추천 세트 3종 + 기본 정책)를 구글 시트에
+              현재 화면의 초기 시드 데이터(메인 원클릭 4종 + 가전 10종 + 추천 세트 3종 + 기본 정책)를 구글 시트에
               한 번에 업로드하시겠습니까?
             </div>
             <button
@@ -788,7 +868,7 @@ export function AdminPage({
               onClick={() =>
                 void handleBulkSync(
                   INITIAL_CATALOG_SNAPSHOT,
-                  '초기 시드 데이터(10종 + 3세트 + 정책)가 구글 시트에 일괄 등록되었습니다.',
+                  '초기 시드 데이터(원클릭 4종 + 10종 + 3세트 + 정책)가 구글 시트에 일괄 등록되었습니다.',
                 )
               }
               className="h-10 px-4 rounded-xl bg-[#D97706] hover:bg-[#B45309] text-white text-xs font-extrabold shrink-0 cursor-pointer"
@@ -798,10 +878,9 @@ export function AdminPage({
           </div>
         )}
 
-        {/* Save Feedback */}
         {saveToast && (
           <div className="rounded-xl bg-[#ECFDF5] border border-[#A7F3D0] px-4 py-3 text-xs font-bold text-[#047857] flex items-center gap-2">
-            <CheckCircle2 size={16} />
+            <CheckCircle2 size={16} aria-hidden="true" />
             <span>{saveToast}</span>
           </div>
         )}
@@ -811,25 +890,39 @@ export function AdminPage({
           </div>
         )}
 
-        {/* 3 CMS Feature Tabs (Zero Lead-Viewing Tab!) */}
         <div
           role="tablist"
           aria-label="관리자 기능 탭"
-          className="grid grid-cols-1 sm:grid-cols-3 gap-2 bg-white p-1.5 rounded-2xl border border-[#E2E8F0]"
+          className="grid grid-cols-2 lg:grid-cols-4 gap-2 bg-white p-1.5 rounded-2xl border border-[#E2E8F0]"
         >
+          <button
+            type="button"
+            role="tab"
+            aria-selected={activeTab === 'hero'}
+            onClick={() => setActiveTab('hero')}
+            className={`h-11 px-3 rounded-xl text-xs sm:text-sm font-extrabold flex items-center justify-center gap-1.5 transition-colors cursor-pointer ${
+              activeTab === 'hero'
+                ? 'bg-[#E11D48] text-white'
+                : 'text-[#475569] hover:text-[#0F172A] hover:bg-[#F8FAFC]'
+            }`}
+          >
+            <Sparkles size={15} aria-hidden="true" />
+            <span>메인 원클릭 4종 ({activeHeroPresets.length})</span>
+          </button>
+
           <button
             type="button"
             role="tab"
             aria-selected={activeTab === 'catalog'}
             onClick={() => setActiveTab('catalog')}
-            className={`h-11 px-4 rounded-xl text-xs sm:text-sm font-extrabold flex items-center justify-center gap-2 transition-colors cursor-pointer ${
+            className={`h-11 px-3 rounded-xl text-xs sm:text-sm font-extrabold flex items-center justify-center gap-1.5 transition-colors cursor-pointer ${
               activeTab === 'catalog'
                 ? 'bg-[#0F172A] text-white'
                 : 'text-[#475569] hover:text-[#0F172A] hover:bg-[#F8FAFC]'
             }`}
           >
-            <Package size={16} />
-            <span>단품 카탈로그 관리 ({draft.products.length})</span>
+            <Package size={15} aria-hidden="true" />
+            <span>단품 카탈로그 ({draft.products.length})</span>
           </button>
 
           <button
@@ -837,14 +930,14 @@ export function AdminPage({
             role="tab"
             aria-selected={activeTab === 'bundles'}
             onClick={() => setActiveTab('bundles')}
-            className={`h-11 px-4 rounded-xl text-xs sm:text-sm font-extrabold flex items-center justify-center gap-2 transition-colors cursor-pointer ${
+            className={`h-11 px-3 rounded-xl text-xs sm:text-sm font-extrabold flex items-center justify-center gap-1.5 transition-colors cursor-pointer ${
               activeTab === 'bundles'
                 ? 'bg-[#0F172A] text-white'
                 : 'text-[#475569] hover:text-[#0F172A] hover:bg-[#F8FAFC]'
             }`}
           >
-            <Layers size={16} />
-            <span>추천 세트 묶음 관리 ({draft.bundles.length})</span>
+            <Layers size={15} aria-hidden="true" />
+            <span>추천 세트 묶음 ({draft.bundles.length})</span>
           </button>
 
           <button
@@ -852,18 +945,29 @@ export function AdminPage({
             role="tab"
             aria-selected={activeTab === 'policy'}
             onClick={() => setActiveTab('policy')}
-            className={`h-11 px-4 rounded-xl text-xs sm:text-sm font-extrabold flex items-center justify-center gap-2 transition-colors cursor-pointer ${
+            className={`h-11 px-3 rounded-xl text-xs sm:text-sm font-extrabold flex items-center justify-center gap-1.5 transition-colors cursor-pointer ${
               activeTab === 'policy'
                 ? 'bg-[#0F172A] text-white'
                 : 'text-[#475569] hover:text-[#0F172A] hover:bg-[#F8FAFC]'
             }`}
           >
-            <Sliders size={16} />
-            <span>혜택·정책 설정 &amp; 시트 연동</span>
+            <Sliders size={15} aria-hidden="true" />
+            <span>혜택·정책 &amp; 시트연동</span>
           </button>
         </div>
 
-        {/* Active Tab View */}
+        {activeTab === 'hero' && (
+          <HeroPresetManagerTab
+            heroPresets={activeHeroPresets}
+            products={draft.products}
+            policy={draft.policy}
+            busy={syncing}
+            onSaveHeroPreset={handleSaveHeroPreset}
+            onDeleteHeroPreset={handleDeleteHeroPreset}
+            onReorderHeroPresets={handleReorderHeroPresets}
+          />
+        )}
+
         {activeTab === 'catalog' && (
           <CatalogManagerTab
             products={draft.products}
@@ -903,7 +1007,7 @@ export function AdminPage({
             onSeedToRemote={async () => {
               await handleBulkSync(
                 INITIAL_CATALOG_SNAPSHOT,
-                '초기 시드 10종 + 추천 세트 3종 + 기본 정책이 시트에 일괄 동기화되었습니다.',
+                '초기 시드(메인 원클릭 4종 + 가전 10종 + 추천 세트 3종 + 정책)가 시트에 동기화되었습니다.',
               )
             }}
             onResetLocalSeed={handleResetLocalSeed}

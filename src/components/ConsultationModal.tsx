@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { CheckCircle2, Lock, MessageSquare, Phone, Store, X } from 'lucide-react'
+import { CheckCircle2, Info, Lock, MessageSquare, Phone, ShieldCheck, Store, X } from 'lucide-react'
 import { LEGAL_DISCLOSURES } from '../data/legalNotices'
 import { STORE_INFO } from '../data/storeInfo'
 import { submitConsultationWriteOnly } from '../services/apiAdapter'
@@ -14,15 +14,15 @@ interface ConsultationModalProps {
 }
 
 const CHANNELS: Array<{ value: ConsultChannel; label: string; icon: typeof Store }> = [
-  { value: '매장 방문', label: '매장 방문', icon: Store },
-  { value: '전화 상담', label: '전화 상담', icon: Phone },
-  { value: '카카오톡 상담', label: '카카오톡', icon: MessageSquare },
+  { value: '카카오톡 상담', label: '카톡으로 받기', icon: MessageSquare },
+  { value: '전화 상담', label: '전화 안내', icon: Phone },
+  { value: '매장 방문', label: '매장 방문예약', icon: Store },
 ]
 
 export function ConsultationModal({ open, result, onClose }: ConsultationModalProps) {
   const [name, setName] = useState('')
   const [phone, setPhone] = useState('')
-  const [channel, setChannel] = useState<ConsultChannel>('매장 방문')
+  const [channel, setChannel] = useState<ConsultChannel>('카카오톡 상담')
   const [memo, setMemo] = useState('')
   const [honeypot, setHoneypot] = useState('')
   const [agreed, setAgreed] = useState(false)
@@ -36,36 +36,41 @@ export function ConsultationModal({ open, result, onClose }: ConsultationModalPr
 
   if (!open) return null
 
-  const itemsText = result.lines
-    .map((l) => `${l.product.brand} ${l.product.name} (${l.term}개월 × ${l.quantity})`)
-    .join(', ')
+  const itemsText =
+    result.lines.length > 0
+      ? result.lines
+          .map(
+            (l) =>
+              `${l.product.brand} ${l.product.name} (${l.term}개월 분할결제 × ${l.quantity} / 총 ${formatKRW(l.contractTotal)})`,
+          )
+          .join(', ')
+      : '상담 시 맞춤 품목 추천 희망'
 
   const lifeCareParts = result.lifeCarePerTier
     .filter((t) => t.quantity > 0)
     .map((t) => `${t.label} ${t.quantity}구좌`)
   const lifeCareText =
     lifeCareParts.length > 0
-      ? `${lifeCareParts.join(' + ')} (총 ${result.totalLifeCareUnits}구좌 / 월 납입금 ${formatKRW(result.lifeCareMonthlyDues)} / 월 캐시백 ${formatKRW(result.lifeCareMonthlyCashback)})`
+      ? `${lifeCareParts.join(' + ')} (총 ${result.totalLifeCareUnits}구좌 / 제휴카드 월 납입 ${formatKRW(result.lifeCareMonthlyDues)} / 매월 현금캐시백 ${formatKRW(result.lifeCareMonthlyCashback)})`
       : '미선택 (0구좌)'
 
-  const cardStatusText = !result.cardEnabled
-    ? '제휴카드 미발급'
-    : result.cardAutoMetByLifeCare
-      ? `실적 30만원 자동 충족 (월 ${formatKRW(result.cardMonthlyCashback)} / ${result.cardDurationMonths}개월)`
-      : result.cardBenefitActive
-        ? `생활비 ${formatKRW(result.cardShortfall)} 추가 충족 시 월 ${formatKRW(result.cardMonthlyCashback)} (${result.cardDurationMonths}개월)`
-        : `실적 ${formatKRW(result.cardShortfall)} 미달 (미반영)`
+  const cardStatusText = result.cardAutoMetByLifeCare
+    ? `필수 제휴카드 발급 · 상조회비로 실적 30만원 자동 충족 (월 -${formatKRW(result.cardMonthlyCashback)} / ${result.cardDurationMonths}개월)`
+    : result.cardBenefitActive
+      ? `필수 제휴카드 발급 · 생활비 ${formatKRW(result.cardShortfall)} 추가 충족 시 월 -${formatKRW(result.cardMonthlyCashback)} (${result.cardDurationMonths}개월)`
+      : `필수 제휴카드 발급 · 추가실적 미충족 기준 (상조 1차 체감가 ${formatKRW(result.phaseA.afterLifeCareEffective)})`
 
   const formatPhaseSummary = (p: CalculationResult['phaseA']) =>
     p.monthlySurplusCash > 0
-      ? `${p.label}: 월 체감 구독료 0원 + 매월 ${p.monthlySurplusCash.toLocaleString('ko-KR')}원 더 받음`
-      : `${p.label}: 할인 후 최종 월 체감가 ${formatKRW(p.effectiveMonthlyPay)} (구독료 ${formatKRW(p.grossSubscription)} - 할인 ${formatKRW(p.totalMonthlyBenefit)})`
+      ? `${p.label}: 상조1차 ${formatKRW(p.afterLifeCareEffective)} → 카드포함 월 체감 0원 + 매월 ${p.monthlySurplusCash.toLocaleString('ko-KR')}원 현금캐시백`
+      : `${p.label}: 상조1차 ${formatKRW(p.afterLifeCareEffective)} → 최종 월 체감가 ${formatKRW(p.effectiveMonthlyPay)}`
 
   const phaseASummary = formatPhaseSummary(result.phaseA)
   const phaseBSummary = result.phaseB ? formatPhaseSummary(result.phaseB) : null
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    if (submitting) return
     setErrorMsg(null)
 
     const cleanName = name.trim()
@@ -75,7 +80,7 @@ export function ConsultationModal({ open, result, onClose }: ConsultationModalPr
       return
     }
     if (digits.length < 10) {
-      setErrorMsg('올바른 연락처를 입력해 주세요.')
+      setErrorMsg('올바른 휴대폰 번호를 입력해 주세요.')
       return
     }
     if (!agreed) {
@@ -139,14 +144,13 @@ export function ConsultationModal({ open, result, onClose }: ConsultationModalPr
       className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-[#0F172A]/50 p-0 sm:p-4"
     >
       <div className="w-full sm:max-w-lg max-h-[92vh] overflow-y-auto rounded-t-3xl sm:rounded-2xl bg-white border border-[#E2E8F0] shadow-xl">
-        {/* Modal Header */}
         <div className="sticky top-0 z-10 bg-white px-5 py-4 border-b border-[#E2E8F0] flex items-center justify-between gap-2">
           <div>
             <h2 id="consult-modal-title" className="text-base font-extrabold text-[#0F172A]">
-              맞춤 견적 저장 · 1:1 상담 예약
+              맞춤 상세 견적 · 120회 환급 일정표 받기
             </h2>
             <p className="text-xs text-[#64748B]">
-              롯데하이마트 경기광주점 전담 매니저가 설계 내역 그대로 안내드립니다
+              롯데하이마트 경기광주점 전담 매니저가 당일 행사 최저가 기준으로 안내드립니다
             </p>
           </div>
           <button
@@ -155,7 +159,7 @@ export function ConsultationModal({ open, result, onClose }: ConsultationModalPr
             aria-label="닫기"
             className="w-9 h-9 rounded-xl hover:bg-[#F1F5F9] flex items-center justify-center text-[#475569] cursor-pointer"
           >
-            <X size={18} />
+            <X size={18} aria-hidden="true" />
           </button>
         </div>
 
@@ -163,11 +167,11 @@ export function ConsultationModal({ open, result, onClose }: ConsultationModalPr
           {completed ? (
             <div className="py-6 text-center space-y-4">
               <div className="w-12 h-12 rounded-2xl bg-[#ECFDF5] border border-[#A7F3D0] text-[#059669] flex items-center justify-center mx-auto">
-                <CheckCircle2 size={24} />
+                <CheckCircle2 size={24} aria-hidden="true" />
               </div>
               <div>
                 <h3 className="text-lg font-extrabold text-[#0F172A]">
-                  상담 예약이 안전하게 접수되었습니다
+                  상세 견적 신청이 안전하게 접수되었습니다
                 </h3>
                 <p className="mt-1 text-sm text-[#475569]">
                   접수번호{' '}
@@ -181,9 +185,7 @@ export function ConsultationModal({ open, result, onClose }: ConsultationModalPr
                   {STORE_INFO.name} 전담 상담팀 접수 완료
                 </div>
                 <p>
-                  {completed.deliveryMode === 'local-preview'
-                    ? '현재 [로컬 프리뷰 모드]로 동작 중이며 개인정보는 브라우저에 저장되지 않습니다.'
-                    : '입력하신 연락처와 맞춤 시뮬레이션 내역이 지점 비공개 시스템으로 안전하게 접수되었습니다.'}
+                  선택하신 상담 방식으로 제휴카드 분할결제·현금 캐시백·120회 만기 환급 상세 일정표를 안내드립니다.
                 </p>
                 <p className="pt-1 border-t border-[#E2E8F0] text-[11px] font-semibold text-[#334155] tabular-nums">
                   매장 안내: {STORE_INFO.address} · 대표전화 {STORE_INFO.phone} ({STORE_INFO.hours})
@@ -199,7 +201,6 @@ export function ConsultationModal({ open, result, onClose }: ConsultationModalPr
             </div>
           ) : (
             <form onSubmit={handleSubmit} className="space-y-4">
-              {/* Off-screen Anti-Bot Honeypot Trap */}
               <div
                 aria-hidden="true"
                 className="absolute -left-[9999px] top-auto w-px h-px overflow-hidden opacity-0 pointer-events-none"
@@ -216,10 +217,14 @@ export function ConsultationModal({ open, result, onClose }: ConsultationModalPr
                 />
               </div>
 
-              {/* Auto-attached Simulation Summary */}
+              <div className="rounded-xl bg-[#ECFDF5] border border-[#A7F3D0] px-3.5 py-2.5 flex items-center gap-2 text-xs font-bold text-[#047857]">
+                <ShieldCheck size={15} aria-hidden="true" className="shrink-0 text-[#059669]" />
+                <span>단순 견적·환급표 발송 신청이며, 즉시 가입이나 결제가 진행되지 않습니다.</span>
+              </div>
+
               <div className="rounded-xl bg-[#F8FAFC] border border-[#E2E8F0] p-3.5 space-y-2 text-xs">
                 <div className="font-extrabold text-[#0F172A]">
-                  자동 첨부되는 내 시뮬레이션 내역
+                  자동 첨부되는 내 맞춤 시뮬레이션 내역
                 </div>
                 <div className="space-y-1 text-[#475569]">
                   <div>
@@ -241,9 +246,39 @@ export function ConsultationModal({ open, result, onClose }: ConsultationModalPr
                     )}
                   </div>
                 </div>
+                <p className="pt-1 border-t border-[#E2E8F0] text-[11px] text-[#64748B] flex items-center gap-1">
+                  <Info size={12} aria-hidden="true" className="shrink-0" />
+                  <span>행사 일정에 따른 변동 가능 금액은 상담 시 당일 최적 혜택가로 확정 안내드립니다.</span>
+                </p>
               </div>
 
-              {/* Customer Inputs (min 16px to prevent iOS auto-zoom) */}
+              <div>
+                <span className="block text-xs font-bold text-[#334155] mb-1.5">
+                  상세내역표 받으실 방법
+                </span>
+                <div className="grid grid-cols-3 gap-2">
+                  {CHANNELS.map((ch) => {
+                    const Icon = ch.icon
+                    const active = channel === ch.value
+                    return (
+                      <button
+                        key={ch.value}
+                        type="button"
+                        onClick={() => setChannel(ch.value)}
+                        className={`h-11 rounded-xl border text-xs font-bold flex items-center justify-center gap-1.5 transition-colors cursor-pointer ${
+                          active
+                            ? 'bg-[#0F172A] border-[#0F172A] text-white'
+                            : 'bg-white border-[#E2E8F0] text-[#475569] hover:border-[#CBD5E1]'
+                        }`}
+                      >
+                        <Icon size={14} aria-hidden="true" />
+                        <span>{ch.label}</span>
+                      </button>
+                    )
+                  })}
+                </div>
+              </div>
+
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label
@@ -269,7 +304,7 @@ export function ConsultationModal({ open, result, onClose }: ConsultationModalPr
                     htmlFor="consult-phone"
                     className="block text-xs font-bold text-[#334155] mb-1.5"
                   >
-                    연락처 <span className="text-[#E11D48]">*</span>
+                    휴대폰 번호 <span className="text-[#E11D48]">*</span>
                   </label>
                   <input
                     id="consult-phone"
@@ -285,41 +320,12 @@ export function ConsultationModal({ open, result, onClose }: ConsultationModalPr
                 </div>
               </div>
 
-              {/* Channel Selector */}
-              <div>
-                <span className="block text-xs font-bold text-[#334155] mb-1.5">
-                  희망 상담 방식
-                </span>
-                <div className="grid grid-cols-3 gap-2">
-                  {CHANNELS.map((ch) => {
-                    const Icon = ch.icon
-                    const active = channel === ch.value
-                    return (
-                      <button
-                        key={ch.value}
-                        type="button"
-                        onClick={() => setChannel(ch.value)}
-                        className={`h-11 rounded-xl border text-xs font-bold flex items-center justify-center gap-1.5 transition-colors cursor-pointer ${
-                          active
-                            ? 'bg-[#0F172A] border-[#0F172A] text-white'
-                            : 'bg-white border-[#E2E8F0] text-[#475569] hover:border-[#CBD5E1]'
-                        }`}
-                      >
-                        <Icon size={14} />
-                        <span>{ch.label}</span>
-                      </button>
-                    )
-                  })}
-                </div>
-              </div>
-
-              {/* Optional Memo */}
               <div>
                 <label
                   htmlFor="consult-memo"
                   className="block text-xs font-bold text-[#334155] mb-1.5"
                 >
-                  추가 문의사항 (선택)
+                  변경 희망 모델 · 문의사항 (선택)
                 </label>
                 <textarea
                   id="consult-memo"
@@ -327,12 +333,11 @@ export function ConsultationModal({ open, result, onClose }: ConsultationModalPr
                   maxLength={400}
                   value={memo}
                   onChange={(e) => setMemo(e.target.value)}
-                  placeholder="입주 예정일, 희망 방문 시간, 설치 환경 등을 자유롭게 남겨주세요."
+                  placeholder="다른 모델 변경 희망, 입주 예정일, 편하신 연락 시간 등을 자유롭게 적어주세요."
                   className="w-full px-3.5 py-2.5 rounded-xl bg-white border border-[#CBD5E1] focus:border-[#0F172A] focus:outline-none text-base text-[#0F172A] resize-none"
                 />
               </div>
 
-              {/* Required Legal & Privacy Agreement */}
               <div
                 className={`rounded-xl border p-3.5 space-y-2 transition-colors ${
                   agreed
@@ -352,7 +357,7 @@ export function ConsultationModal({ open, result, onClose }: ConsultationModalPr
                     className="mt-0.5 h-4.5 w-4.5 rounded border-[#94A3B8] accent-[#059669] shrink-0 cursor-pointer"
                   />
                   <span className="text-xs text-[#334155] leading-relaxed">
-                    <strong className="font-bold text-[#0F172A]">[필수 동의]</strong> 가전 구독·선불식
+                    <strong className="font-bold text-[#0F172A]">[필수 동의]</strong> 제휴카드 약정개월 분할결제·선불식
                     할부거래(상조) 별개 계약, 120회 만기 환급 및 중도 해지 위약금(30%·20%·10%),
                     제휴카드 실적 기준을 확인하였으며 상담 목적의 개인정보 수집·이용에 동의합니다.
                   </span>
@@ -392,14 +397,16 @@ export function ConsultationModal({ open, result, onClose }: ConsultationModalPr
 
               <button
                 type="submit"
-                disabled={submitting}
-                className="w-full h-12 rounded-xl bg-[#E11D48] hover:bg-[#BE123C] disabled:bg-[#FDA4AF] text-white text-[15px] font-extrabold transition-all active:scale-[0.98] cursor-pointer"
+                aria-busy={submitting}
+                className={`w-full h-12 rounded-xl text-white text-[15px] font-extrabold transition-colors active:scale-[0.98] cursor-pointer ${
+                  submitting ? 'bg-[#FDA4AF]' : 'bg-[#E11D48] hover:bg-[#BE123C]'
+                }`}
               >
-                {submitting ? '안전하게 전송 중...' : '맞춤 견적 상담 신청하기'}
+                {submitting ? '안전하게 전송 중...' : '내 맞춤 혜택 상세내역표 신청하기'}
               </button>
 
               <p className="text-[11px] text-[#64748B] flex items-center justify-center gap-1">
-                <Lock size={12} />
+                <Lock size={12} aria-hidden="true" />
                 <span>고객 연락처는 단방향 전송되며 웹페이지에 저장·노출되지 않습니다.</span>
               </p>
             </form>

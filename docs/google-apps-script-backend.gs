@@ -1,26 +1,22 @@
 // =========================================================================
-// [롯데하이마트 경기광주점] 구독 × 라이프케어 시뮬레이터 보안 백엔드 (V1.2 하드닝 판)
+// [롯데하이마트 경기광주점] 구독 × 라이프케어 시뮬레이터 보안 백엔드 (V2.0 통합 판)
 // =========================================================================
-// [V1.2 주요 보안 패치 내역]
-// 1. TEMP_PLAIN_PASSWORD 소스 상수 완전 제거 → 스크립트 속성 일회성 주입 후 자동 소각(버전 기록 평문 노출 원천 차단)
-// 2. submitLead 단시간 중복·도배 방지: CacheService 기반 연락처 SHA-256 해시 3분(180초) 쿨다운 + 분당 전역 버스트 상한(15건)
-// 3. 관리자 Lockout DoS 완화: 클라이언트 인스턴스별 실패 버킷 분리 + 점진적 지연(Tarpit) + 비상 잠금해제 PIN(ADMIN_UNLOCK_HASH) 우회 복구
-// 4. 에러 응답 캡슐화: 내부 예외/스택 트레이스/시트 ID 노출 완전 차단(Stackdriver 내부 로깅 + requestId 반환)
-// 5. 수식 인젝션 방어 강화: 전각 기호(＝＋－＠｜), 탭/개행, 다중행 수식 시작 완벽 이스케이프
+// [V2.0 주요 보안 및 기능 업데이트 내역]
+// 1. HeroPresets 시트 탭 자동 생성 및 양방향 동기화 지원 (첫 메인 화면 원클릭 4종 슬롯 관리 + 기존 Sets '메인원클릭' 완벽 호환)
+// 2. TEMP_PLAIN_PASSWORD 소스 상수 완전 제거 → 스크립트 속성 일회성 주입 후 자동 소각(버전 기록 평문 노출 원천 차단)
+// 3. submitLead 단시간 중복·도배 방지: CacheService 기반 연락처 SHA-256 해시 3분(180초) 쿨다운 + 분당 전역 버스트 상한(15건)
+// 4. 관리자 Lockout DoS 완화: 클라이언트 인스턴스별 실패 버킷 분리 + 점진적 지연(Tarpit) + 비상 잠금해제 PIN(ADMIN_UNLOCK_HASH) 우회 복구
+// 5. 에러 응답 캡슐화 및 전각·다중행 수식 인젝션 방어 강화
 // =========================================================================
 
-const SESSION_TTL_SECONDS = 3600;          // 관리자 세션 만료: 1시간 (활동 시 슬라이딩 연장)
-const LOCKOUT_TTL_SECONDS = 600;           // 오입력 잠금 유지: 10분
-const MAX_CLIENT_LOGIN_ATTEMPTS = 5;       // 개별 기기(세션 버킷)당 허용 오입력 횟수
-const MAX_GLOBAL_LOGIN_ATTEMPTS = 20;      // 전역 무차별 대입 방어 임계치 (10분 기준)
-const LEAD_COOLDOWN_SECONDS = 180;         // 동일 연락처 재접수 쿨다운: 3분(180초)
-const LEAD_GLOBAL_BURST_PER_MIN = 15;      // 분당 전체 상담 접수 최대 허용 건수 (스팸 폭탄 방어)
-const NOTIFY_EMAIL = "";                   // 필요 시 알림 수신 이메일 입력 (미사용 시 빈 문자열 유지)
+const SESSION_TTL_SECONDS = 3600;
+const LOCKOUT_TTL_SECONDS = 600;
+const MAX_CLIENT_LOGIN_ATTEMPTS = 5;
+const MAX_GLOBAL_LOGIN_ATTEMPTS = 20;
+const LEAD_COOLDOWN_SECONDS = 180;
+const LEAD_GLOBAL_BURST_PER_MIN = 15;
+const NOTIFY_EMAIL = "";
 
-/**
- * [최초 1회 실행 1] 분리된 2개 구글 시트(마스터 카탈로그 DB / 비공개 고객 상담 DB) 자동 생성
- * 이미 CATALOG_SHEET_ID와 LEADS_SHEET_ID가 스크립트 속성에 존재하면 안전하게 건너뜁니다.
- */
 function initSetupOnce() {
   const props = PropertiesService.getScriptProperties();
   if (props.getProperty("CATALOG_SHEET_ID") && props.getProperty("LEADS_SHEET_ID")) {
@@ -32,6 +28,7 @@ function initSetupOnce() {
   const productsSheet = catalogSs.getSheets()[0];
   productsSheet.setName("Products");
   const setsSheet = catalogSs.insertSheet("Sets");
+  const heroSheet = catalogSs.insertSheet("HeroPresets");
   const policySheet = catalogSs.insertSheet("Policy");
 
   productsSheet.appendRow([
@@ -45,6 +42,12 @@ function initSetupOnce() {
     "defaultTerm", "itemsJson", "sortOrder", "isVisible", "updatedAt"
   ]);
   setsSheet.setFrozenRows(1);
+
+  heroSheet.appendRow([
+    "id", "setCategory", "name", "description", "badge",
+    "defaultTerm", "itemsJson", "sortOrder", "isVisible", "updatedAt"
+  ]);
+  heroSheet.setFrozenRows(1);
 
   policySheet.appendRow(["key", "value", "description"]);
   policySheet.setFrozenRows(1);
@@ -86,16 +89,6 @@ function initSetupOnce() {
   Logger.log("분리형 시트 2종 초기 생성 및 스크립트 속성 저장이 완료되었습니다.");
 }
 
-/**
- * [비밀번호 / 비상 잠금해제 PIN 무흔적 등록 함수]
- * 코드에 평문(TEMP_PLAIN_PASSWORD)을 적지 마세요! (버전 기록 노출 방지)
- * 1. [프로젝트 설정 > 스크립트 속성]에서 아래 일회성 키를 추가 후 저장:
- *    - INIT_ADMIN_PASSWORD_ONCE : 새 관리자 비밀번호 (8자 이상)
- *    - INIT_UNLOCK_PIN_ONCE     : (선택·권장) 외부인 오입력 잠금 시 우회할 관리자 비상 PIN (6자 이상)
- * 2. 편집기에서 registerAdminPassword 함수를 1회 실행하면,
- *    SHA-256 + Salt 해시로 변환 저장한 뒤 평문 속성(INIT_*_ONCE)을 즉시 자동 삭제합니다!
- * (기존에 등록된 ADMIN_SALT / ADMIN_PW_HASH는 그대로 유지·호환됩니다.)
- */
 function registerAdminPassword() {
   const props = PropertiesService.getScriptProperties();
   const plainPw = String(props.getProperty("INIT_ADMIN_PASSWORD_ONCE") || "").trim();
@@ -131,7 +124,6 @@ function registerAdminPassword() {
   }
 
   props.setProperties(updates);
-  // 평문 일회성 속성 즉시 영구 삭제 (Zero Plaintext Retention)
   props.deleteProperty("INIT_ADMIN_PASSWORD_ONCE");
   props.deleteProperty("INIT_UNLOCK_PIN_ONCE");
 
@@ -142,9 +134,6 @@ function registerAdminPassword() {
   Logger.log("관리자 인증 해시 저장 및 일회성 평문 속성 자동 소각이 완료되었습니다.");
 }
 
-/**
- * 공개 카탈로그 조회 전용 (GET) — 고객 상담 시트(LEADS_SHEET_ID) 접근 코드 자체가 없음
- */
 function doGet(e) {
   const requestId = Utilities.getUuid().slice(0, 8);
   try {
@@ -164,9 +153,6 @@ function doGet(e) {
   }
 }
 
-/**
- * 고객 상담 Write-Only 접수 및 관리자 인증·카탈로그 수정 (POST)
- */
 function doPost(e) {
   const requestId = Utilities.getUuid().slice(0, 8);
   try {
@@ -174,7 +160,6 @@ function doPost(e) {
       return jsonResponse_({ ok: false, code: "BAD_REQUEST", error: "잘못된 요청 형식입니다." });
     }
 
-    // 과도한 대용량 페이로드 DoS 방어 (512KB 상한)
     if (e.postData.contents.length > 524288) {
       return jsonResponse_({ ok: false, code: "PAYLOAD_TOO_LARGE", error: "요청 데이터 크기가 허용 범위를 초과했습니다." });
     }
@@ -224,7 +209,13 @@ function doPost(e) {
       return handleSaveSet_(payload);
     }
     if (action === "deleteSet") {
-      return handleDeleteRowById_("Sets", payload.id);
+      return handleDeleteSetOrHero_(payload.id);
+    }
+    if (action === "saveHeroPreset") {
+      return handleSaveSet_(Object.assign({}, payload, { setCategory: "메인원클릭" }));
+    }
+    if (action === "deleteHeroPreset") {
+      return handleDeleteSetOrHero_(payload.id);
     }
     if (action === "savePolicy") {
       return handleSavePolicy_(payload);
@@ -245,11 +236,7 @@ function doPost(e) {
   }
 }
 
-/**
- * 고객 상담 Write-Only 접수 + CacheService 기반 연락처 해시 쿨다운(3분) & 분당 전역 도배 차단
- */
 function handleSubmitLead_(payload) {
-  // 1. 숨김 허니팟 필드 봇 트랩 (성공처럼 응답하고 조용히 폐기)
   if (payload.honeypot && String(payload.honeypot).trim() !== "") {
     return jsonResponse_({ ok: true });
   }
@@ -269,7 +256,6 @@ function handleSubmitLead_(payload) {
     return jsonResponse_({ ok: false, code: "CONSENT_REQUIRED", error: "필수 고지사항 및 개인정보 수집·이용에 동의해 주세요." });
   }
 
-  // 2. CacheService 기반 단시간 도배/중복 접수 차단 (연락처 평문 대신 Salted SHA-256 해시 키 사용)
   const props = PropertiesService.getScriptProperties();
   const salt = props.getProperty("ADMIN_SALT") || "HIMART_GJ_DEFAULT_PEPPER";
   const cache = CacheService.getScriptCache();
@@ -283,7 +269,6 @@ function handleSubmitLead_(payload) {
     });
   }
 
-  // 분당 전역 버스트 제한 (무작위 번호 대량 스팸 공격 및 이메일 쿼터 고갈 방어)
   const minuteBucket = Math.floor(Date.now() / 60000);
   const burstKey = "LEAD_BURST_" + minuteBucket;
   const currentBurst = Number(cache.get(burstKey) || "0");
@@ -298,7 +283,6 @@ function handleSubmitLead_(payload) {
   const lock = LockService.getScriptLock();
   lock.waitLock(10000);
   try {
-    // Lock 획득 후 재검증(Double-checked locking)으로 동시 따닥 요청 완벽 차단
     if (cache.get(phoneCooldownKey)) {
       return jsonResponse_({
         ok: false,
@@ -353,7 +337,6 @@ function handleSubmitLead_(payload) {
     const lastRow = sheet.getLastRow();
     sheet.getRange(lastRow, 1, 1, rowData.length).setNumberFormat("@");
 
-    // 성공 기록 직후 3분 연락처 쿨다운 + 분당 전역 버스트 카운터 갱신
     cache.put(phoneCooldownKey, "1", LEAD_COOLDOWN_SECONDS);
     cache.put(burstKey, String(currentBurst + 1), 90);
 
@@ -376,12 +359,6 @@ function handleSubmitLead_(payload) {
   }
 }
 
-/**
- * 관리자 인증 + 외부인 고의 오입력 Lockout DoS 완화 아키텍처
- * - 1계층: clientInstanceId 해시 버킷별 5회 제한 (외부인 1명의 오입력이 관리자 기기를 잠그지 않음)
- * - 2계층: 오입력 시 점진적 지연(Progressive Tarpit 800ms~2,800ms)으로 고속 대입 공격 억제
- * - 3계층: 전역 폭주(10분 20회 이상) 시에도 진짜 관리자는 ADMIN_UNLOCK_HASH(비상 PIN)로 즉시 우회 로그인 가능
- */
 function handleAdminLogin_(payload) {
   const props = PropertiesService.getScriptProperties();
   const savedSalt = props.getProperty("ADMIN_SALT");
@@ -408,7 +385,6 @@ function handleAdminLogin_(payload) {
   const inputPw = String(payload.password || "");
   const inputUnlock = String(payload.unlockCode || "").trim();
 
-  // 비상 잠금해제 PIN 검증 여부 판별 (스크립트 속성에 ADMIN_UNLOCK_HASH가 등록되어 있을 때 동작)
   const unlockValid =
     Boolean(savedUnlockHash) &&
     Boolean(inputUnlock) &&
@@ -435,7 +411,6 @@ function handleAdminLogin_(payload) {
     cache.put(clientBucketKey, String(nextClientFails), LOCKOUT_TTL_SECONDS);
     cache.put(globalFailKey, String(nextGlobalFails), LOCKOUT_TTL_SECONDS);
 
-    // 점진적 지연(Progressive Tarpit) 부과 및 남은 횟수 오라클 제거
     Utilities.sleep(Math.min(2800, nextClientFails * 700));
 
     if (nextClientFails >= MAX_CLIENT_LOGIN_ATTEMPTS || nextGlobalFails >= MAX_GLOBAL_LOGIN_ATTEMPTS) {
@@ -455,7 +430,6 @@ function handleAdminLogin_(payload) {
     });
   }
 
-  // 정상 인증 성공 시 해당 기기 버킷 및(비상 PIN 동반 시) 전역 잠금 카운터 초기화
   cache.remove(clientBucketKey);
   if (unlockValid) {
     cache.remove(globalFailKey);
@@ -532,7 +506,66 @@ function readCatalogData_(includeHidden) {
     policy[k] = (rawVal !== "" && !isNaN(Number(rawVal))) ? Number(rawVal) : String(rawVal);
   }
 
-  return { products: products, sets: sets, policy: policy };
+  const hSheet = ss.getSheetByName("HeroPresets");
+  const hValues = hSheet ? hSheet.getDataRange().getValues() : [];
+  const heroPresets = [];
+  for (let i = 1; i < hValues.length; i++) {
+    const r = hValues[i];
+    if (!r[0]) continue;
+    const isVisible = r[8] === true || String(r[8]).toUpperCase() === "TRUE";
+    if (!includeHidden && !isVisible) continue;
+    heroPresets.push({
+      id: String(r[0]),
+      setCategory: "메인원클릭",
+      name: String(r[2] || ""),
+      description: String(r[3] || ""),
+      badge: String(r[4] || ""),
+      defaultTerm: Number(r[5]) === 36 ? 36 : 60,
+      items: safeJsonParse_(r[6], []),
+      sortOrder: Number(r[7] || i),
+      isVisible: isVisible,
+      updatedAt: String(r[9] || "")
+    });
+  }
+  heroPresets.sort(function(a, b) { return a.sortOrder - b.sortOrder; });
+
+  return { products: products, sets: sets, heroPresets: heroPresets, policy: policy };
+}
+
+function ensureHeroPresetsSheet_(ss) {
+  let sheet = ss.getSheetByName("HeroPresets");
+  if (!sheet) {
+    sheet = ss.insertSheet("HeroPresets");
+    sheet.appendRow([
+      "id", "setCategory", "name", "description", "badge",
+      "defaultTerm", "itemsJson", "sortOrder", "isVisible", "updatedAt"
+    ]);
+    sheet.setFrozenRows(1);
+  }
+  return sheet;
+}
+
+function handleDeleteSetOrHero_(id) {
+  const cleanId = String(id || "").trim();
+  if (!cleanId) return jsonResponse_({ ok: false, code: "VALIDATION_ERROR", error: "삭제할 항목 ID가 없습니다." });
+  const lock = LockService.getScriptLock();
+  lock.waitLock(10000);
+  try {
+    const ss = SpreadsheetApp.openById(PropertiesService.getScriptProperties().getProperty("CATALOG_SHEET_ID"));
+    ["Sets", "HeroPresets"].forEach(function(sheetName) {
+      const sheet = ss.getSheetByName(sheetName);
+      if (!sheet) return;
+      const values = sheet.getDataRange().getValues();
+      for (let i = values.length - 1; i >= 1; i--) {
+        if (String(values[i][0]) === cleanId) {
+          sheet.deleteRow(i + 1);
+        }
+      }
+    });
+    return jsonResponse_({ ok: true, data: readCatalogData_(true) });
+  } finally {
+    lock.releaseLock();
+  }
 }
 
 function handleSaveProduct_(item) {
@@ -573,7 +606,8 @@ function handleSaveSet_(setObj) {
   lock.waitLock(10000);
   try {
     const ss = SpreadsheetApp.openById(PropertiesService.getScriptProperties().getProperty("CATALOG_SHEET_ID"));
-    const sheet = ss.getSheetByName("Sets");
+    const isHero = String(setObj.setCategory || "") === "메인원클릭" || String(setObj.id || "").indexOf("hero") === 0;
+    const sheet = isHero ? ensureHeroPresetsSheet_(ss) : ss.getSheetByName("Sets");
     const id = sanitizeCell_(setObj.id || ("set_" + new Date().getTime()), 50);
     const nowIso = new Date().toISOString();
     const safeItems = Array.isArray(setObj.items)
@@ -696,7 +730,44 @@ function handleBulkSyncCatalog_(payload) {
       }
     }
 
+    const incomingHero = Array.isArray(payload.heroPresets)
+      ? payload.heroPresets
+      : (Array.isArray(payload.sets) ? payload.sets.filter(function(s) { return String(s.setCategory || "") === "메인원클릭"; }) : []);
+    if (incomingHero.length > 0 || Array.isArray(payload.heroPresets)) {
+      const hSheet = ensureHeroPresetsSheet_(ss);
+      if (hSheet.getLastRow() > 1) {
+        hSheet.getRange(2, 1, hSheet.getLastRow() - 1, 10).clearContent();
+      }
+      if (incomingHero.length > 0) {
+        const hRows = incomingHero.slice(0, 20).map(function(s, idx) {
+          const safeItems = Array.isArray(s.items)
+            ? s.items.slice(0, 20).map(function(it) {
+                return {
+                  productId: sanitizeCell_(it.productId, 60),
+                  term: Number(it.term) === 36 ? 36 : 60,
+                  qty: Math.max(1, Math.min(20, Math.round(Number(it.qty || 1))))
+                };
+              })
+            : [];
+          return [
+            sanitizeCell_(s.id || ("hero_" + idx), 50),
+            "메인원클릭",
+            sanitizeCell_(s.name, 120),
+            sanitizeCell_(s.description, 250),
+            sanitizeCell_(s.badge || "", 40),
+            Number(s.defaultTerm) === 36 ? 36 : 60,
+            JSON.stringify(safeItems),
+            Number(s.sortOrder || (idx + 1)),
+            s.isVisible !== false,
+            nowIso
+          ];
+        });
+        hSheet.getRange(2, 1, hRows.length, 10).setValues(hRows);
+      }
+    }
+
     if (Array.isArray(payload.sets)) {
+      payload.sets = payload.sets.filter(function(s) { return String(s.setCategory || "") !== "메인원클릭"; });
       const sSheet = ss.getSheetByName("Sets");
       if (sSheet.getLastRow() > 1) {
         sSheet.getRange(2, 1, sSheet.getLastRow() - 1, 10).clearContent();
@@ -816,7 +887,6 @@ function sanitizeCell_(val, maxLen) {
     .trim();
   if (maxLen && str.length > maxLen) str = str.slice(0, maxLen);
 
-  // 다중행 메모 내 각 줄 시작 및 전체 문자열 시작의 수식 인젝션(전각 기호 포함) 방어
   str = str
     .split(/\r?\n/)
     .map(function(line) {

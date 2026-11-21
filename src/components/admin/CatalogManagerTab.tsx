@@ -225,7 +225,10 @@ export function CatalogManagerTab({
 
   return (
     <div className="space-y-4">
-      {/* Toolbar */}
+      <div className="rounded-2xl bg-[#F8FAFC] border border-[#E2E8F0] px-4 py-3 text-xs text-[#475569] leading-relaxed">
+        <strong className="font-extrabold text-[#0F172A]">월별 행사 단가 업데이트 안내:</strong> 매월 프로모션·행사 일정에 맞춰 품목별 36·60개월 구독료를 수정 저장하시면 고객 화면(단품·복수·세트·원클릭 4종)의 <strong className="text-[#059669]">천원단위 상조 결합 + 제휴카드 혜택</strong>에 즉시 자동 반영되며, 고객 화면에도 행사일 변동 가능 안내가 함께 표시됩니다.
+      </div>
+
       <div className="rounded-2xl bg-white border border-[#E2E8F0] p-4 flex flex-col lg:flex-row lg:items-center justify-between gap-3">
         <div className="flex flex-col sm:flex-row gap-2 flex-1">
           <div className="relative flex-1">
@@ -277,7 +280,6 @@ export function CatalogManagerTab({
         </button>
       </div>
 
-      {/* Product List */}
       <div className="space-y-2.5">
         {filtered.map((item) => (
           <div
@@ -291,6 +293,7 @@ export function CatalogManagerTab({
                 src={item.imageUrl}
                 alt={item.name}
                 category={item.category}
+                brand={item.brand}
                 className="w-16 h-14 rounded-xl border border-[#E2E8F0] shrink-0"
                 iconSize={22}
               />
@@ -322,7 +325,6 @@ export function CatalogManagerTab({
               </div>
             </div>
 
-            {/* Actions */}
             <div className="flex items-center justify-end gap-2 shrink-0 pt-2 sm:pt-0 border-t sm:border-t-0 border-[#F1F5F9]">
               <button
                 type="button"
@@ -362,7 +364,6 @@ export function CatalogManagerTab({
         ))}
       </div>
 
-      {/* Add / Edit Modal with Live ProductCard Preview */}
       {modalOpen && (
         <div
           role="dialog"
@@ -388,7 +389,6 @@ export function CatalogManagerTab({
               onSubmit={handleSaveForm}
               className="p-5 grid grid-cols-1 lg:grid-cols-12 gap-6 items-start"
             >
-              {/* Form Fields (7 cols) */}
               <div className="lg:col-span-7 space-y-4">
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
@@ -480,7 +480,7 @@ export function CatalogManagerTab({
 
                 <div>
                   <label className="block text-xs font-bold text-[#334155] mb-1">
-                    제품 이미지 URL (비워두거나 로드 실패 시 가전 아이콘 자동 표시)
+                    제품 이미지 URL (비워두면 가전 종류에 맞는 스튜디오 이미지 자동 매칭)
                   </label>
                   <input
                     type="text"
@@ -582,7 +582,6 @@ export function CatalogManagerTab({
                 </div>
               </div>
 
-              {/* Real-time Live Card Preview (5 cols) */}
               <div className="lg:col-span-5 rounded-2xl bg-[#F8FAFC] border border-[#E2E8F0] p-4">
                 <div className="text-xs font-extrabold text-[#475569] mb-3">
                   실시간 고객 화면 카드 미리보기
