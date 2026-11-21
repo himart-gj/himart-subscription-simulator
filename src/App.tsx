@@ -63,7 +63,6 @@ export default function App() {
     <SimulatorPage
       catalog={catalog}
       dataSource={dataSource}
-      onNavigateAdmin={() => navigateTo('admin')}
     />
   )
 }

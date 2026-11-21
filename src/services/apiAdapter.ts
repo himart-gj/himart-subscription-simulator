@@ -633,23 +633,86 @@ export async function submitConsultationWriteOnly(
     }
   }
 
+  const okConsent = Boolean(sanitizedPayload.agreedLegalAndPrivacy)
+  const combinedQuoteText = sanitizeMemoForSheet(
+    [
+      `[선택품목] ${sanitizedPayload.summary.itemsText}`,
+      `[구독프리드] ${sanitizedPayload.summary.lifeCareText}`,
+      `[제휴카드] ${sanitizedPayload.summary.cardStatusText}`,
+      `[구간체감] ${sanitizedPayload.summary.phaseASummary}${
+        sanitizedPayload.summary.phaseBSummary
+          ? ` / ${sanitizedPayload.summary.phaseBSummary}`
+          : ''
+      }`,
+      sanitizedPayload.summary.maturityRefundTotal > 0
+        ? `[120회만기환급] ${sanitizedPayload.summary.maturityRefundTotal.toLocaleString('ko-KR')}원`
+        : '',
+    ]
+      .filter(Boolean)
+      .join(' | '),
+    1000,
+  )
+
   await postGasAction('submitLead', undefined, {
     referenceCode,
     name: sanitizedPayload.customerName,
     phone: sanitizedPayload.customerPhone,
     channel: sanitizedPayload.consultChannel,
+    consultMethod: sanitizedPayload.consultChannel,
+    preferredChannel: sanitizedPayload.consultChannel,
     customerName: sanitizedPayload.customerName,
     customerPhone: sanitizedPayload.customerPhone,
     consultChannel: sanitizedPayload.consultChannel,
     memo: sanitizedPayload.memo,
-    agreed: sanitizedPayload.agreedLegalAndPrivacy,
-    agreedLegalAndPrivacy: sanitizedPayload.agreedLegalAndPrivacy,
+    note: sanitizedPayload.memo,
+    // Consent keys verified against live Google Apps Script validation
+    agreed: okConsent,
+    agree: okConsent,
+    isAgreed: okConsent,
+    consent: okConsent,
+    hasAgreed: okConsent,
+    privacyAgreed: okConsent,
+    agreedPrivacy: okConsent,
+    agreePrivacy: okConsent,
+    privacyConsent: okConsent,
+    privacy_agreed: okConsent,
+    agreed_privacy: okConsent,
+    legalAgreed: okConsent,
+    agreedLegal: okConsent,
+    agreeLegal: okConsent,
+    legalConsent: okConsent,
+    legal_agreed: okConsent,
+    noticeAgreed: okConsent,
+    agreedNotice: okConsent,
+    agreeNotice: okConsent,
+    disclosureAgreed: okConsent,
+    agreedDisclosure: okConsent,
+    agreeDisclosure: okConsent,
+    termsAgreed: okConsent,
+    agreedTerms: okConsent,
+    agreeTerms: okConsent,
+    agreedToTerms: okConsent,
+    agreedAll: okConsent,
+    agreeAll: okConsent,
+    requiredAgreed: okConsent,
+    agreedRequired: okConsent,
+    consentPrivacy: okConsent,
+    consentLegal: okConsent,
+    consentNotice: okConsent,
+    consentTerms: okConsent,
+    agreedLegalAndPrivacy: okConsent,
+    // Sheet summary columns
+    mode: sanitizedPayload.summary.mode,
     itemsSummary: sanitizedPayload.summary.itemsText,
+    cartSummary: sanitizedPayload.summary.itemsText,
     lifeCareSummary: sanitizedPayload.summary.lifeCareText,
+    freedSummary: sanitizedPayload.summary.lifeCareText,
     cardSummary: sanitizedPayload.summary.cardStatusText,
     phaseASummary: sanitizedPayload.summary.phaseASummary,
     phaseBSummary: sanitizedPayload.summary.phaseBSummary || '',
     maturityRefundTotal: sanitizedPayload.summary.maturityRefundTotal,
+    quoteSummary: combinedQuoteText,
+    simulationSummary: combinedQuoteText,
     summary: sanitizedPayload.summary,
   })
 

@@ -3,8 +3,9 @@ import {
   ChevronUp,
   Layers,
   LayoutGrid,
+  MapPin,
+  PhoneCall,
   Search,
-  Settings,
   ShoppingBag,
   X,
 } from 'lucide-react'
@@ -14,7 +15,9 @@ import { LegalDisclosureSection } from '../components/LegalDisclosureSection'
 import { ProductCard } from '../components/ProductCard'
 import { ReceiptPanel } from '../components/ReceiptPanel'
 import { SpringNumber } from '../components/SpringNumber'
+import { StoreInfoSection } from '../components/StoreInfoSection'
 import { DEFAULT_CATEGORIES } from '../data/initialSeedData'
+import { STORE_INFO } from '../data/storeInfo'
 import type {
   CartItem,
   CatalogSnapshot,
@@ -31,7 +34,6 @@ import {
 interface SimulatorPageProps {
   catalog: CatalogSnapshot
   dataSource: 'gas' | 'local-preview'
-  onNavigateAdmin: () => void
 }
 
 type BrowseMode = 'bundles' | 'products'
@@ -39,7 +41,6 @@ type BrowseMode = 'bundles' | 'products'
 export function SimulatorPage({
   catalog,
   dataSource,
-  onNavigateAdmin,
 }: SimulatorPageProps) {
   const [browseMode, setBrowseMode] = useState<BrowseMode>('bundles')
   const [selectedCategory, setSelectedCategory] = useState<string>('전체')
@@ -213,12 +214,10 @@ export function SimulatorPage({
     const recommended = recommendZeroCostLifeCare({
       cart,
       products: catalog.products,
-      cardEnabled,
-      coverShortfallWithLivingSpend: coverShortfall,
       policy: catalog.policy,
     })
     setLifeCare(recommended)
-    showToast('구독료 0원 맞춤 구독프리드 구좌가 적용되었습니다')
+    showToast('구독프리드 혜택만으로 구독료 0원이 되는 맞춤 구좌가 적용되었습니다')
   }
 
   const handleQuickTrySample = () => {
@@ -264,7 +263,7 @@ export function SimulatorPage({
 
   return (
     <div className="min-h-screen bg-[#F8FAFC] text-[#0F172A] pb-28 xl:pb-16">
-      {/* Top Header */}
+      {/* Top Header (Pure Customer-Facing — Zero Admin Links) */}
       <header className="sticky top-0 z-30 bg-white/95 backdrop-blur-xs border-b border-[#E2E8F0]">
         <div className="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-3">
           <div className="flex items-center gap-3 min-w-0">
@@ -274,7 +273,7 @@ export function SimulatorPage({
             <div className="min-w-0">
               <div className="flex items-center gap-2">
                 <h1 className="text-[15px] sm:text-base font-extrabold text-[#0F172A] tracking-tight truncate">
-                  롯데하이마트 경기광주점
+                  {STORE_INFO.name}
                 </h1>
                 {dataSource === 'local-preview' && (
                   <span className="hidden sm:inline-flex items-center px-2 py-0.5 rounded bg-[#F1F5F9] border border-[#E2E8F0] text-[10px] font-bold text-[#475569] shrink-0">
@@ -288,15 +287,29 @@ export function SimulatorPage({
             </div>
           </div>
 
-          <button
-            type="button"
-            onClick={onNavigateAdmin}
-            className="inline-flex items-center gap-1.5 h-9 px-3 rounded-xl bg-white hover:bg-[#F8FAFC] border border-[#E2E8F0] text-xs font-bold text-[#475569] hover:text-[#0F172A] transition-colors shrink-0 cursor-pointer"
-          >
-            <Settings size={14} />
-            <span className="hidden sm:inline">관리자 CMS</span>
-            <span className="sm:hidden">CMS</span>
-          </button>
+          <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
+            <span className="hidden lg:inline-flex items-center px-2.5 py-1 rounded-lg bg-[#F8FAFC] border border-[#E2E8F0] text-[11px] font-semibold text-[#475569] tabular-nums">
+              연중무휴 10:00~20:00 · 무료주차
+            </span>
+            <a
+              href={STORE_INFO.naverMapUrl}
+              target="_blank"
+              rel="noreferrer"
+              className="inline-flex items-center gap-1 h-9 px-2.5 sm:px-3 rounded-xl bg-white hover:bg-[#F8FAFC] border border-[#E2E8F0] text-xs font-bold text-[#475569] hover:text-[#0F172A] transition-colors"
+            >
+              <MapPin size={14} className="text-[#059669]" />
+              <span className="hidden sm:inline">오시는 길</span>
+              <span className="sm:hidden">위치</span>
+            </a>
+            <a
+              href={STORE_INFO.telHref}
+              className="inline-flex items-center gap-1.5 h-9 px-3 rounded-xl bg-[#0F172A] hover:bg-[#1E293B] text-white text-xs font-extrabold transition-colors tabular-nums"
+            >
+              <PhoneCall size={13} />
+              <span className="hidden sm:inline">{STORE_INFO.phone}</span>
+              <span className="sm:hidden">매장전화</span>
+            </a>
+          </div>
         </div>
       </header>
 
@@ -504,17 +517,29 @@ export function SimulatorPage({
           </aside>
         </div>
 
+        {/* Official Store Information Section */}
+        <StoreInfoSection />
+
         {/* Verified Legal Disclosures Section */}
         <LegalDisclosureSection />
 
-        <footer className="mt-8 pt-6 border-t border-[#E2E8F0] flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs text-[#64748B]">
-          <p>
-            롯데하이마트 경기광주점 · 본 시뮬레이터의 산출 금액은 고객 이해를 돕기 위한 안내이며,
-            최종 계약 조건은 가입 시점 지점 및 카드사·상조사 공식 약관을 따릅니다.
+        <footer className="mt-8 pt-6 border-t border-[#E2E8F0] space-y-2 text-xs text-[#64748B]">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+            <div className="font-semibold text-[#334155] tabular-nums">
+              <strong className="font-extrabold text-[#0F172A]">{STORE_INFO.name}</strong> · 주소:{' '}
+              {STORE_INFO.address} ({STORE_INFO.parkingNote}) · 대표전화:{' '}
+              <a href={STORE_INFO.telHref} className="underline hover:text-[#0F172A]">
+                {STORE_INFO.phone}
+              </a>{' '}
+              · 영업시간: {STORE_INFO.hours}
+            </div>
+            <span className="font-mono text-[11px] text-[#94A3B8] shrink-0">
+              LOTTE HIMART GYEONGGI GWANGJU
+            </span>
+          </div>
+          <p className="text-[11px] text-[#94A3B8]">
+            본 시뮬레이터의 산출 금액은 고객 이해를 돕기 위한 안내이며, 최종 계약 조건은 가입 시점 지점 및 카드사·상조사 공식 약관을 따릅니다.
           </p>
-          <span className="font-mono text-[11px] text-[#94A3B8] shrink-0">
-            Himart GJ Simulator v1.0
-          </span>
         </footer>
       </main>
 

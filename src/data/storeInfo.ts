@@ -1,0 +1,13 @@
+export const STORE_INFO = {
+  name: '롯데하이마트 경기광주점',
+  badge: '경기권 최대 규모 A·B동 2개 관 쇼룸',
+  address: '경기도 광주시 이배재로 8',
+  parkingNote: '전면 지상 대형 전용 주차장 완비',
+  phone: '031-767-1044',
+  telHref: 'tel:031-767-1044',
+  hours: '매일 10:00 ~ 20:00 (연중무휴)',
+  naverMapUrl: 'https://naver.me/5Ifcoycf',
+  kakaoChatUrl: 'https://pf.kakao.com/_hnxcxexl/chat',
+  naverTalkUrl: 'https://talk.naver.com/profile/wd21jdv',
+  naverBlogUrl: 'https://m.blog.naver.com/himart411',
+} as const

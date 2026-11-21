@@ -351,21 +351,24 @@ export function calculateBenefitSimulation(input: CalculationInput): Calculation
 }
 
 /**
- * Computes the lowest-monthly-dues LifeCare combination (<= maxLifeCareUnits)
- * that offsets Phase A subscription fee to 0원 (accounting for Class Card cashback if active).
+ * Computes the lowest-monthly-dues LifeCare (구독프리드) combination (<= maxLifeCareUnits)
+ * that offsets Phase A subscription fee to 0원 using ONLY 구독프리드 cashback
+ * (excluding Class Card benefits).
  */
 export function recommendZeroCostLifeCare(params: {
   cart: CartItem[]
   products: ProductItem[]
-  cardEnabled: boolean
-  coverShortfallWithLivingSpend: boolean
   policy: PolicyConfig
 }): LifeCareUnits {
   const baseline = calculateBenefitSimulation({
-    ...params,
+    cart: params.cart,
+    products: params.products,
     lifeCare: { q40: 0, q50: 0, q60: 0 },
+    cardEnabled: false,
+    coverShortfallWithLivingSpend: false,
+    policy: params.policy,
   })
-  if (baseline.mode === 'empty') {
+  if (baseline.mode === 'empty' || baseline.phaseA.grossSubscription <= 0) {
     return { q40: 0, q50: 0, q60: 0 }
   }
 
@@ -385,20 +388,18 @@ export function recommendZeroCostLifeCare(params: {
       for (let q40 = 0; q40 <= maxUnits - q60 - q50; q40++) {
         const monthlyDues = q40 * dues.u40 + q50 * dues.u50 + q60 * dues.u60
         const lifeCareCb = q40 * cb.u40 + q50 * cb.u50 + q60 * cb.u60
-        const autoMet = monthlyDues >= params.policy.cardMinSpend
-        const cardCb =
-          params.cardEnabled && (autoMet || params.coverShortfallWithLivingSpend)
-            ? params.policy.cardMonthlyCashback
-            : 0
 
-        const totalBenefit = lifeCareCb + cardCb
-        if (totalBenefit >= targetGross) {
+        // Must offset subscription fee purely with 구독프리드 cashback alone
+        if (lifeCareCb >= targetGross) {
           const totalUnits = q40 + q50 + q60
-          const surplus = totalBenefit - targetGross
+          const surplus = lifeCareCb - targetGross
           if (
             !best ||
             monthlyDues < best.monthlyDues ||
-            (monthlyDues === best.monthlyDues && totalUnits < best.totalUnits)
+            (monthlyDues === best.monthlyDues && totalUnits < best.totalUnits) ||
+            (monthlyDues === best.monthlyDues &&
+              totalUnits === best.totalUnits &&
+              surplus < best.surplus)
           ) {
             best = {
               units: { q40, q50, q60 },

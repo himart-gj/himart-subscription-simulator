@@ -296,6 +296,10 @@ describe('GAS API Adapter Schema, CORS & Security Verification', () => {
     const leadBody = assertLastPostContract('submitLead', '')
     expect(leadBody.payload.customerName).toBe("'=EVIL()")
     expect(leadBody.payload.customerPhone).toBe('010-1234-5678')
+    expect(leadBody.payload.privacyAgreed).toBe(true)
+    expect(leadBody.payload.legalAgreed).toBe(true)
+    expect(leadBody.payload.noticeAgreed).toBe(true)
+    expect(leadBody.payload.agreeAll).toBe(true)
 
     // 10. adminLogout
     mockJsonResponse({ ok: true })

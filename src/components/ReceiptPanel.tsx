@@ -494,6 +494,7 @@ export function ReceiptPanel({
             <button
               type="button"
               disabled={isEmpty}
+              title="제휴카드 혜택 제외, 구독프리드 지원금만으로 월 구독료 0원이 되는 맞춤 구좌를 추천합니다"
               onClick={onApplyZeroCostPreset}
               className={`px-2.5 py-1.5 rounded-lg border text-[11px] font-bold transition-colors ${
                 isEmpty

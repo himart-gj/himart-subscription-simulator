@@ -183,23 +183,25 @@ describe('Phase 1: Business Math Engine Verification (0% Error)', () => {
     expect(res.cardMonthlyCashback).toBe(0)
   })
 
-  it('Zero-cost recommendation finds minimal LifeCare units to reach 0원 effective monthly fee', () => {
+  it('Zero-cost recommendation finds minimal LifeCare units to reach 0원 purely from 구독프리드 cashback alone (without Card)', () => {
     const rec = recommendZeroCostLifeCare({
-      cart: [{ productId: 'robot-vac', term: 60, quantity: 1 }], // 41,000원
+      cart: [{ productId: 'robot-vac', term: 60, quantity: 1 }], // 41,000원 -> needs >= 41,000원 from 프리드 alone (42,000원)
       products: TEST_PRODUCTS,
-      cardEnabled: true,
-      coverShortfallWithLivingSpend: true, // 18,000 card -> remaining 23,000 -> 2x 4만(24,000) = 80,000 dues
       policy: DEFAULT_POLICY_CONFIG,
     })
-    const sim = calculateBenefitSimulation({
+    const simWithoutCard = calculateBenefitSimulation({
       cart: [{ productId: 'robot-vac', term: 60, quantity: 1 }],
       products: TEST_PRODUCTS,
       lifeCare: rec,
-      cardEnabled: true,
-      coverShortfallWithLivingSpend: true,
+      cardEnabled: false,
+      coverShortfallWithLivingSpend: false,
       policy: DEFAULT_POLICY_CONFIG,
     })
-    expect(sim.phaseA.effectiveMonthlyPay).toBe(0)
+    // Must achieve 0원 purely with LifeCare cashback (1차 체감 금액 = 0원)
+    expect(simWithoutCard.lifeCareMonthlyCashback).toBeGreaterThanOrEqual(41000)
+    expect(simWithoutCard.lifeCareMonthlyCashback).toBe(42000)
+    expect(simWithoutCard.phaseA.afterLifeCareEffective).toBe(0)
+    expect(simWithoutCard.phaseA.effectiveMonthlyPay).toBe(0)
     expect(rec.q40 + rec.q50 + rec.q60).toBeLessThanOrEqual(12)
   })
 

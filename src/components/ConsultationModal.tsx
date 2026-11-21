@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { CheckCircle2, Lock, MessageSquare, Phone, Store, X } from 'lucide-react'
 import { LEGAL_DISCLOSURES } from '../data/legalNotices'
+import { STORE_INFO } from '../data/storeInfo'
 import { submitConsultationWriteOnly } from '../services/apiAdapter'
 import type { CalculationResult, ConsultChannel, ConsultationPayload } from '../types/domain'
 import { formatKRW } from '../utils/calculator'
@@ -172,12 +173,17 @@ export function ConsultationModal({ open, result, onClose }: ConsultationModalPr
                   </strong>
                 </p>
               </div>
-              <div className="rounded-xl bg-[#F8FAFC] border border-[#E2E8F0] p-3.5 text-left text-xs text-[#475569] space-y-1">
-                <div className="font-bold text-[#0F172A]">보안 단방향 전송 완료</div>
+              <div className="rounded-xl bg-[#F8FAFC] border border-[#E2E8F0] p-3.5 text-left text-xs text-[#475569] space-y-1.5">
+                <div className="font-bold text-[#0F172A]">
+                  {STORE_INFO.name} 전담 상담팀 접수 완료
+                </div>
                 <p>
                   {completed.deliveryMode === 'local-preview'
-                    ? '현재 [로컬 프리뷰 모드]로 동작 중이며 개인정보는 브라우저에 저장되지 않습니다. 실서버 URL(VITE_GAS_API_URL) 연결 시 지점 비공개 구글 시트로 즉시 단방향 전송됩니다.'
-                    : '입력하신 연락처와 견적 내역은 지점 비공개 구글 시트로 단방향 전송되었으며 웹 브라우저에는 남지 않습니다.'}
+                    ? '현재 [로컬 프리뷰 모드]로 동작 중이며 개인정보는 브라우저에 저장되지 않습니다.'
+                    : '입력하신 연락처와 맞춤 시뮬레이션 내역이 지점 비공개 시스템으로 안전하게 접수되었습니다.'}
+                </p>
+                <p className="pt-1 border-t border-[#E2E8F0] text-[11px] font-semibold text-[#334155] tabular-nums">
+                  매장 안내: {STORE_INFO.address} · 대표전화 {STORE_INFO.phone} ({STORE_INFO.hours})
                 </p>
               </div>
               <button
@@ -304,16 +310,26 @@ export function ConsultationModal({ open, result, onClose }: ConsultationModalPr
               </div>
 
               {/* Required Legal & Privacy Agreement */}
-              <div className="rounded-xl border border-[#E2E8F0] p-3 space-y-2">
+              <div
+                className={`rounded-xl border p-3.5 space-y-2 transition-colors ${
+                  agreed
+                    ? 'bg-[#ECFDF5]/60 border-[#A7F3D0]'
+                    : 'bg-white border-[#CBD5E1]'
+                }`}
+              >
                 <label className="flex items-start gap-2.5 cursor-pointer select-none">
                   <input
+                    id="consult-agree-checkbox"
                     type="checkbox"
                     checked={agreed}
-                    onChange={(e) => setAgreed(e.target.checked)}
-                    className="mt-0.5 h-4 w-4 rounded border-[#CBD5E1] accent-[#E11D48] shrink-0"
+                    onChange={(e) => {
+                      setAgreed(e.target.checked)
+                      if (e.target.checked && errorMsg) setErrorMsg(null)
+                    }}
+                    className="mt-0.5 h-4.5 w-4.5 rounded border-[#94A3B8] accent-[#059669] shrink-0 cursor-pointer"
                   />
                   <span className="text-xs text-[#334155] leading-relaxed">
-                    <strong className="font-bold text-[#0F172A]">[필수]</strong> 가전 구독·선불식
+                    <strong className="font-bold text-[#0F172A]">[필수 동의]</strong> 가전 구독·선불식
                     할부거래(상조) 별개 계약, 120회 만기 환급 및 중도 해지 위약금(30%·20%·10%),
                     제휴카드 실적 기준을 확인하였으며 상담 목적의 개인정보 수집·이용에 동의합니다.
                   </span>
