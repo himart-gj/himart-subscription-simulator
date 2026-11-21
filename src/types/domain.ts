@@ -29,6 +29,8 @@ export interface BundleLineItem {
   quantity: number
 }
 
+export type BundleSlotType = 'bundle' | 'hero'
+
 export interface RecommendedBundle {
   id: string
   name: string
@@ -38,6 +40,7 @@ export interface RecommendedBundle {
   items: BundleLineItem[]
   visible: boolean
   sortOrder: number
+  slotType?: BundleSlotType
 }
 
 export interface LifeCareTierValues {
@@ -76,6 +79,7 @@ export interface CartLineItem {
   quantity: number
   unitPrice: number
   lineTotal: number
+  contractTotal: number
 }
 
 export type CartTermMode = 'empty' | 'single_36' | 'single_60' | 'mixed'
@@ -181,6 +185,7 @@ export interface ConsultationPayload {
 export interface CatalogSnapshot {
   products: ProductItem[]
   bundles: RecommendedBundle[]
+  heroPresets?: RecommendedBundle[]
   policy: PolicyConfig
   updatedAt: string
 }

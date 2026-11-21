@@ -17,7 +17,7 @@ import {
   sanitizePhoneNumber,
 } from '../utils/sanitize'
 
-const LOCAL_CATALOG_KEY = 'himart_gj_simulator_catalog_v1'
+const LOCAL_CATALOG_KEY = 'himart_gj_simulator_catalog_v2'
 const ADMIN_TOKEN_SESSION_KEY = 'himart_gj_admin_session_token'
 const ADMIN_SESSION_MODE_KEY = 'himart_gj_admin_session_mode'
 const CLIENT_INSTANCE_ID_KEY = 'himart_gj_client_instance_id'
@@ -40,6 +40,8 @@ export type GasPostAction =
   | 'deleteProduct'
   | 'saveSet'
   | 'deleteSet'
+  | 'saveHeroPreset'
+  | 'deleteHeroPreset'
   | 'savePolicy'
   | 'bulkSyncCatalog'
 
@@ -56,6 +58,7 @@ export interface GasApiResponse<T = unknown> {
   products?: unknown[]
   bundles?: unknown[]
   sets?: unknown[]
+  heroPresets?: unknown[]
   policy?: Record<string, unknown>
   updatedAt?: string
 }
@@ -102,10 +105,6 @@ export function isAdminLockedOutError(err: unknown): err is AdminLockedOutError 
   )
 }
 
-/**
- * Returns the validated HTTPS Google Apps Script Web App URL if present.
- * Rejects cleartext HTTP, javascript:, or malformed endpoints.
- */
 export function getGasApiUrl(): string {
   const raw = import.meta.env.VITE_GAS_API_URL
   if (typeof raw !== 'string') return ''
@@ -129,11 +128,6 @@ export function isGasConnected(): boolean {
   return getGasApiUrl().length > 0
 }
 
-/**
- * Local UI sandbox admin mode is strictly permitted ONLY in local Vite dev mode
- * when no production GAS URL is connected. Production builds ALWAYS return false,
- * completely eliminating client-side admin bypass even if env vars are omitted.
- */
 export function isLocalSandboxAllowed(): boolean {
   const isDev = Boolean(import.meta.env.DEV) && !import.meta.env.PROD
   return isDev && !isGasConnected()
@@ -158,7 +152,6 @@ export function getStoredAdminSession(): AdminSession | null {
       return { token, mode: 'local-sandbox' }
     }
 
-    // Server tokens must meet minimum length sanity check
     if (token.length < 20 || !isGasConnected()) {
       clearAdminSession()
       return null
@@ -210,11 +203,6 @@ function formatModeLabel(mode: CartTermMode): string {
   return '미선택'
 }
 
-/**
- * Mandatory GAS CORS-safe POST helper.
- * Strictly uses Content-Type: text/plain;charset=utf-8 and redirect: 'follow'
- * with JSON body { action, token, payload } to prevent browser OPTIONS preflight failures.
- */
 async function postGasAction<T = unknown>(
   action: GasPostAction,
   token: string | undefined,
@@ -276,8 +264,6 @@ async function postGasAction<T = unknown>(
   return data
 }
 
-/* ==================== GAS SCHEMA MAPPERS (READ & WRITE) ==================== */
-
 function inferIsLargeAppliance(category: string): boolean {
   return (
     LARGE_APPLIANCE_CATEGORIES.includes(category) ||
@@ -314,10 +300,16 @@ export function sanitizeProduct(p: ProductItem, sortOrderFallback = 1): ProductI
   }
 }
 
-export function sanitizeBundle(b: RecommendedBundle, sortOrderFallback = 1): RecommendedBundle {
+export function sanitizeBundle(
+  b: RecommendedBundle,
+  sortOrderFallback = 1,
+  defaultSlotType: 'bundle' | 'hero' = 'bundle',
+): RecommendedBundle {
+  const slotType = b.slotType ?? defaultSlotType
+  const fallbackPrefix = slotType === 'hero' ? 'hero' : 'set'
   return {
     ...b,
-    id: sanitizeForSheet(b.id, 80) || `set_${Date.now().toString(36)}`,
+    id: sanitizeForSheet(b.id, 80) || `${fallbackPrefix}_${Date.now().toString(36)}`,
     name: sanitizeForSheet(b.name, 100),
     description: sanitizeForSheet(b.description, 220),
     badge: sanitizeForSheet(b.badge, 30) || '추천',
@@ -332,13 +324,16 @@ export function sanitizeBundle(b: RecommendedBundle, sortOrderFallback = 1): Rec
       Number.isFinite(b.sortOrder) && b.sortOrder > 0
         ? Math.round(b.sortOrder)
         : sortOrderFallback,
+    slotType,
   }
 }
 
 export function sanitizeCatalogSnapshot(snapshot: CatalogSnapshot): CatalogSnapshot {
+  const heroList = snapshot.heroPresets ?? INITIAL_CATALOG_SNAPSHOT.heroPresets ?? []
   return {
     products: snapshot.products.map((p, idx) => sanitizeProduct(p, idx + 1)),
-    bundles: snapshot.bundles.map((b, idx) => sanitizeBundle(b, idx + 1)),
+    bundles: snapshot.bundles.map((b, idx) => sanitizeBundle(b, idx + 1, 'bundle')),
+    heroPresets: heroList.map((h, idx) => sanitizeBundle(h, idx + 1, 'hero')),
     policy: normalizePolicy(snapshot.policy),
     updatedAt: new Date().toISOString(),
   }
@@ -366,9 +361,10 @@ export function toGasSetPayload(b: RecommendedBundle, products: ProductItem[]) {
     const prod = productMap.get(item.productId)
     return prod ? prod.isLargeAppliance || inferIsLargeAppliance(prod.category) : false
   })
+  const isHero = b.slotType === 'hero' || b.id.startsWith('hero-') || b.id.startsWith('hero_')
   return {
     id: b.id,
-    setCategory: hasLarge ? '대형' : '소형',
+    setCategory: isHero ? '메인원클릭' : hasLarge ? '대형' : '소형',
     name: b.name,
     description: b.description,
     badge: b.badge,
@@ -538,11 +534,15 @@ function normalizeRemoteProduct(raw: unknown, idx: number): ProductItem | null {
   }
 }
 
-function normalizeRemoteBundle(raw: unknown, idx: number): RecommendedBundle | null {
+function normalizeRemoteBundle(
+  raw: unknown,
+  idx: number,
+  forcedSlotType?: 'bundle' | 'hero',
+): RecommendedBundle | null {
   if (!raw || typeof raw !== 'object') return null
   const r = raw as Record<string, unknown>
   const id = sanitizeForSheet(String(r.id || r.setId || ''), 80)
-  const name = sanitizeForSheet(String(r.name || ''), 100)
+  const name = sanitizeForSheet(String(r.name || r.title || ''), 100)
   if (!id || !name) return null
 
   let rawItems: unknown = r.items
@@ -568,15 +568,24 @@ function normalizeRemoteBundle(raw: unknown, idx: number): RecommendedBundle | n
         .filter((x): x is BundleLineItem => x !== null)
     : []
 
+  const setCat = String(r.setCategory || r.slotType || '').trim()
+  const isHero =
+    forcedSlotType === 'hero' ||
+    setCat === '메인원클릭' ||
+    setCat === 'hero' ||
+    id.startsWith('hero-') ||
+    id.startsWith('hero_')
+
   return {
     id,
     name,
-    description: sanitizeForSheet(String(r.description || ''), 220),
+    description: sanitizeForSheet(String(r.description || r.subtitle || ''), 220),
     badge: sanitizeForSheet(String(r.badge || '추천'), 30),
     defaultTerm: Number(r.defaultTerm) === 36 ? 36 : 60,
     items,
     visible: toBool(r.isVisible ?? r.visible ?? r.isActive, true),
-    sortOrder: Number(r.sortOrder) || idx + 1,
+    sortOrder: Number(r.sortOrder ?? r.slotOrder) || idx + 1,
+    slotType: forcedSlotType ?? (isHero ? 'hero' : 'bundle'),
   }
 }
 
@@ -590,9 +599,15 @@ function extractCatalogSnapshot(rawResponse: GasApiResponse): CatalogSnapshot | 
 
   const rawProducts = container.products
   const rawBundles = container.bundles ?? container.sets
+  const rawHeroPresets = container.heroPresets
   const rawPolicy = container.policy
 
-  if (!Array.isArray(rawProducts) && !Array.isArray(rawBundles) && !rawPolicy) {
+  if (
+    !Array.isArray(rawProducts) &&
+    !Array.isArray(rawBundles) &&
+    !Array.isArray(rawHeroPresets) &&
+    !rawPolicy
+  ) {
     return null
   }
 
@@ -602,15 +617,36 @@ function extractCatalogSnapshot(rawResponse: GasApiResponse): CatalogSnapshot | 
         .filter((p): p is ProductItem => p !== null)
     : INITIAL_CATALOG_SNAPSHOT.products
 
-  const bundles = Array.isArray(rawBundles)
+  const parsedSets = Array.isArray(rawBundles)
     ? rawBundles
         .map((item, idx) => normalizeRemoteBundle(item, idx))
         .filter((b): b is RecommendedBundle => b !== null)
     : INITIAL_CATALOG_SNAPSHOT.bundles
 
+  const explicitHeroPresets = Array.isArray(rawHeroPresets)
+    ? rawHeroPresets
+        .map((item, idx) => normalizeRemoteBundle(item, idx, 'hero'))
+        .filter((b): b is RecommendedBundle => b !== null)
+    : []
+
+  const heroFromSets = parsedSets.filter((b) => b.slotType === 'hero')
+  const regularBundles = parsedSets.filter((b) => b.slotType !== 'hero')
+
+  const heroMap = new Map<string, RecommendedBundle>()
+  for (const h of [...explicitHeroPresets, ...heroFromSets]) {
+    heroMap.set(h.id, { ...h, slotType: 'hero' })
+  }
+  const mergedHeroPresets = Array.from(heroMap.values()).sort(
+    (a, b) => a.sortOrder - b.sortOrder,
+  )
+
   return {
     products,
-    bundles,
+    bundles: regularBundles,
+    heroPresets:
+      mergedHeroPresets.length > 0
+        ? mergedHeroPresets
+        : (INITIAL_CATALOG_SNAPSHOT.heroPresets ?? []),
     policy: normalizePolicy(rawPolicy),
     updatedAt:
       typeof container.updatedAt === 'string' && container.updatedAt
@@ -630,6 +666,9 @@ function readLocalCatalog(): CatalogSnapshot {
     return {
       products: parsed.products,
       bundles: parsed.bundles,
+      heroPresets: Array.isArray(parsed.heroPresets)
+        ? parsed.heroPresets
+        : (INITIAL_CATALOG_SNAPSHOT.heroPresets ?? []),
       policy: normalizePolicy(parsed.policy),
       updatedAt: parsed.updatedAt || new Date().toISOString(),
     }
@@ -637,8 +676,6 @@ function readLocalCatalog(): CatalogSnapshot {
     return INITIAL_CATALOG_SNAPSHOT
   }
 }
-
-/* ==================== PUBLIC CATALOG & WRITE-ONLY LEADS ==================== */
 
 export async function fetchCatalogSnapshot(): Promise<{
   snapshot: CatalogSnapshot
@@ -664,12 +701,29 @@ export async function fetchCatalogSnapshot(): Promise<{
     const data = (await response.json()) as GasApiResponse
     const extracted = extractCatalogSnapshot(data)
     if (extracted && extracted.products.length > 0) {
-      return { snapshot: extracted, source: 'gas' }
+      return {
+        snapshot: {
+          ...extracted,
+          bundles:
+            extracted.bundles.length > 0
+              ? extracted.bundles
+              : INITIAL_CATALOG_SNAPSHOT.bundles,
+          heroPresets:
+            extracted.heroPresets && extracted.heroPresets.length > 0
+              ? extracted.heroPresets
+              : (INITIAL_CATALOG_SNAPSHOT.heroPresets ?? []),
+        },
+        source: 'gas',
+      }
     }
     return {
       snapshot: extracted
         ? {
             ...INITIAL_CATALOG_SNAPSHOT,
+            heroPresets:
+              extracted.heroPresets && extracted.heroPresets.length > 0
+                ? extracted.heroPresets
+                : (INITIAL_CATALOG_SNAPSHOT.heroPresets ?? []),
             policy: extracted.policy,
             updatedAt: extracted.updatedAt,
           }
@@ -681,12 +735,6 @@ export async function fetchCatalogSnapshot(): Promise<{
   }
 }
 
-/**
- * Write-Only Lead Submission (`submitLead`).
- * Maps 100% of live Code.gs sheet columns (`contactMethod`, `modeSummary`,
- * `cardStatusSummary`, `period1Summary`, `period2Summary`, `maturityRefundSummary`,
- * `agreedToTerms`, `honeypot`) and enforces duplicate submission cooldown.
- */
 export async function submitConsultationWriteOnly(
   rawPayload: ConsultationPayload,
 ): Promise<{ ok: boolean; deliveryMode: 'gas' | 'local-preview'; referenceCode: string }> {
@@ -745,7 +793,7 @@ export async function submitConsultationWriteOnly(
   const combinedQuoteText = sanitizeMemoForSheet(
     [
       `[선택품목] ${sanitizedPayload.summary.itemsText}`,
-      `[구독프리드] ${sanitizedPayload.summary.lifeCareText}`,
+      `[구독프리드(회비카드납부·현금캐시백)] ${sanitizedPayload.summary.lifeCareText}`,
       `[제휴카드] ${sanitizedPayload.summary.cardStatusText}`,
       `[구간체감] ${sanitizedPayload.summary.phaseASummary}${
         sanitizedPayload.summary.phaseBSummary
@@ -765,7 +813,6 @@ export async function submitConsultationWriteOnly(
     referenceCode,
     honeypot: sanitizedPayload.honeypot ?? '',
     clientInstanceId: getOrCreateClientInstanceId(),
-    // Exact live Code.gs column keys
     name: sanitizedPayload.customerName,
     phone: sanitizedPayload.customerPhone,
     contactMethod: sanitizedPayload.consultChannel,
@@ -778,7 +825,6 @@ export async function submitConsultationWriteOnly(
     maturityRefundSummary: maturityRefundSummaryText,
     agreedToTerms: okConsent,
     memo: sanitizedPayload.memo,
-    // Backward-compatible aliases
     channel: sanitizedPayload.consultChannel,
     consultMethod: sanitizedPayload.consultChannel,
     preferredChannel: sanitizedPayload.consultChannel,
@@ -820,8 +866,6 @@ export async function submitConsultationWriteOnly(
   }
 }
 
-/* ==================== ADMIN AUTHENTICATION (ZERO-SECRET) ==================== */
-
 export async function authenticateAdminViaServer(
   password: string,
   unlockCode?: string,
@@ -857,16 +901,12 @@ export async function logoutAdminSession(session: AdminSession | null): Promise<
       await postGasAction('adminLogout', session.token, {})
     }
   } catch {
-    // Always clear local session even if server logout call fails or token already expired
+    // Always clear local session
   } finally {
     clearAdminSession()
   }
 }
 
-/**
- * Available ONLY in local Vite dev mode (`import.meta.env.DEV && !import.meta.env.PROD`)
- * when VITE_GAS_API_URL is empty. Strictly blocked in all production builds.
- */
 export function enterLocalSandboxAdminSession(): AdminSession {
   if (!isLocalSandboxAllowed()) {
     throw new Error('운영 환경에서는 로컬 샌드박스 관리자 진입이 영구 차단됩니다.')
@@ -878,8 +918,6 @@ export function enterLocalSandboxAdminSession(): AdminSession {
   storeAdminSession(session)
   return session
 }
-
-/* ==================== ADMIN CMS ACTIONS ==================== */
 
 function assertValidAdminMode(session: AdminSession): 'gas' | 'local-sandbox' {
   if (session.mode === 'local-sandbox') {
@@ -962,7 +1000,7 @@ export async function saveSetRemote(
   currentSnapshot: CatalogSnapshot,
 ): Promise<RecommendedBundle> {
   const mode = assertValidAdminMode(session)
-  const clean = sanitizeBundle(bundle, bundle.sortOrder)
+  const clean = sanitizeBundle(bundle, bundle.sortOrder, 'bundle')
   if (mode === 'local-sandbox') {
     const nextSnap = sanitizeCatalogSnapshot({
       ...currentSnapshot,
@@ -999,6 +1037,54 @@ export async function deleteSetRemote(
   await postGasAction('deleteSet', session.token, { id: bundleId })
 }
 
+export async function saveHeroPresetRemote(
+  preset: RecommendedBundle,
+  session: AdminSession,
+  allHeroPresetsAfterChange: RecommendedBundle[],
+  currentSnapshot: CatalogSnapshot,
+): Promise<RecommendedBundle> {
+  const mode = assertValidAdminMode(session)
+  const ensuredId = preset.id.startsWith('hero-') || preset.id.startsWith('hero_')
+    ? preset.id
+    : `hero-${preset.id}`
+  const clean = sanitizeBundle({ ...preset, id: ensuredId, slotType: 'hero' }, preset.sortOrder, 'hero')
+
+  if (mode === 'local-sandbox') {
+    const nextSnap = sanitizeCatalogSnapshot({
+      ...currentSnapshot,
+      heroPresets: allHeroPresetsAfterChange,
+    })
+    localStorage.setItem(LOCAL_CATALOG_KEY, JSON.stringify(nextSnap))
+    return clean
+  }
+
+  await postGasAction(
+    'saveSet',
+    session.token,
+    toGasSetPayload(clean, currentSnapshot.products),
+  )
+  return clean
+}
+
+export async function deleteHeroPresetRemote(
+  presetId: string,
+  session: AdminSession,
+  allHeroPresetsAfterChange: RecommendedBundle[],
+  currentSnapshot: CatalogSnapshot,
+): Promise<void> {
+  const mode = assertValidAdminMode(session)
+  if (mode === 'local-sandbox') {
+    const nextSnap = sanitizeCatalogSnapshot({
+      ...currentSnapshot,
+      heroPresets: allHeroPresetsAfterChange,
+    })
+    localStorage.setItem(LOCAL_CATALOG_KEY, JSON.stringify(nextSnap))
+    return
+  }
+
+  await postGasAction('deleteSet', session.token, { id: presetId })
+}
+
 export async function savePolicyRemote(
   policy: PolicyConfig,
   session: AdminSession,
@@ -1031,11 +1117,17 @@ export async function bulkSyncCatalogRemote(
     return { snapshot: cleanSnapshot, mode: 'local-sandbox' }
   }
 
+  const heroPayloads = (cleanSnapshot.heroPresets ?? []).map((h) =>
+    toGasSetPayload({ ...h, slotType: 'hero' }, cleanSnapshot.products),
+  )
+  const bundlePayloads = cleanSnapshot.bundles.map((b) =>
+    toGasSetPayload({ ...b, slotType: 'bundle' }, cleanSnapshot.products),
+  )
+
   await postGasAction('bulkSyncCatalog', session.token, {
     products: cleanSnapshot.products.map(toGasProductPayload),
-    sets: cleanSnapshot.bundles.map((b) =>
-      toGasSetPayload(b, cleanSnapshot.products),
-    ),
+    sets: [...heroPayloads, ...bundlePayloads],
+    heroPresets: heroPayloads,
     policy: toGasPolicyPayload(cleanSnapshot.policy),
   })
 

@@ -154,6 +154,62 @@ export const INITIAL_PRODUCTS: ProductItem[] = [
   },
 ]
 
+export const INITIAL_HERO_PRESETS: RecommendedBundle[] = [
+  {
+    id: 'hero-roborock-single',
+    name: '로보락 올인원 로봇청소기 맞춤 설계',
+    description: '가장 문의가 많은 S9 MaxV Ultra 60개월 단독 구독 구성',
+    badge: '단품 인기 1위',
+    defaultTerm: 60,
+    items: [{ productId: 'prod-robovac-roborock', term: 60, quantity: 1 }],
+    visible: true,
+    sortOrder: 1,
+    slotType: 'hero',
+  },
+  {
+    id: 'hero-newlywed-4',
+    name: '입주·신혼 대형 베스트 4종',
+    description: '냉장고·워시타워·75형 TV·2in1 에어컨 풀패키지 구성',
+    badge: '신혼·입주 추천',
+    defaultTerm: 60,
+    items: [
+      { productId: 'prod-fridge-bespoke', term: 60, quantity: 1 },
+      { productId: 'prod-washtower-lg', term: 60, quantity: 1 },
+      { productId: 'prod-tv-qled', term: 60, quantity: 1 },
+      { productId: 'prod-ac-whisen', term: 60, quantity: 1 },
+    ],
+    visible: true,
+    sortOrder: 2,
+    slotType: 'hero',
+  },
+  {
+    id: 'hero-daily-helper-3',
+    name: '주방·청소 살림효자 3종',
+    description: 'IH 압력밥솥(36m) + 무선청소기(36m) + 로봇청소기(60m) 실속 혼합',
+    badge: '살림효자',
+    defaultTerm: 60,
+    items: [
+      { productId: 'prod-ricecooker-cuckoo', term: 36, quantity: 1 },
+      { productId: 'prod-cordless-dyson', term: 36, quantity: 1 },
+      { productId: 'prod-robovac-roborock', term: 60, quantity: 1 },
+    ],
+    visible: true,
+    sortOrder: 3,
+    slotType: 'hero',
+  },
+  {
+    id: 'hero-washtower-single',
+    name: 'LG 오브제 워시타워 단독 설계',
+    description: '25kg 세탁 + 21kg 건조 일체형 워시타워 60개월 케어 구독',
+    badge: '대형 베스트',
+    defaultTerm: 60,
+    items: [{ productId: 'prod-washtower-lg', term: 60, quantity: 1 }],
+    visible: true,
+    sortOrder: 4,
+    slotType: 'hero',
+  },
+]
+
 export const INITIAL_BUNDLES: RecommendedBundle[] = [
   {
     id: 'bundle-newlywed-4',
@@ -170,6 +226,7 @@ export const INITIAL_BUNDLES: RecommendedBundle[] = [
     ],
     visible: true,
     sortOrder: 1,
+    slotType: 'bundle',
   },
   {
     id: 'bundle-daily-helper-3',
@@ -185,6 +242,7 @@ export const INITIAL_BUNDLES: RecommendedBundle[] = [
     ],
     visible: true,
     sortOrder: 2,
+    slotType: 'bundle',
   },
   {
     id: 'bundle-clean-home-2',
@@ -199,12 +257,14 @@ export const INITIAL_BUNDLES: RecommendedBundle[] = [
     ],
     visible: true,
     sortOrder: 3,
+    slotType: 'bundle',
   },
 ]
 
 export const INITIAL_CATALOG_SNAPSHOT: CatalogSnapshot = {
   products: INITIAL_PRODUCTS,
   bundles: INITIAL_BUNDLES,
+  heroPresets: INITIAL_HERO_PRESETS,
   policy: DEFAULT_POLICY_CONFIG,
-  updatedAt: '2026-11-21T09:00:00.000Z',
+  updatedAt: '2026-11-22T00:00:00.000Z',
 }

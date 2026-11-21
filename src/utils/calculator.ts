@@ -36,10 +36,6 @@ export const DEFAULT_POLICY_CONFIG: PolicyConfig = {
   cardMonthlyCashback: 18000,
 }
 
-/**
- * Clamps LifeCare unit selections so each tier is a non-negative integer
- * and the combined total never exceeds policy.maxLifeCareUnits (default 12).
- */
 export function clampLifeCareUnits(
   units: LifeCareUnits,
   maxTotal: number = DEFAULT_POLICY_CONFIG.maxLifeCareUnits,
@@ -53,10 +49,6 @@ export function clampLifeCareUnits(
   return { q40, q50, q60 }
 }
 
-/**
- * Resolves the effective unit monthly fee for a product given a requested term.
- * Falls back gracefully only if the requested term is unavailable on that product.
- */
 export function resolveProductTermPrice(
   product: ProductItem,
   requestedTerm: SubscriptionTerm,
@@ -116,12 +108,6 @@ function buildPhaseCalculation(params: {
   }
 }
 
-/**
- * Master zero-error calculation engine for:
- * - Appliance subscription (36m / 60m / Mixed split phases with NO averaging)
- * - LifeCare (구독프리드 공식 명칭: 구독플러스 72 / 구독플러스 90 / 구독플러스 108, max 12 units)
- * - Hi-Class Lotte Card (300,000 spend threshold recognizing LifeCare dues, 18,000/mo once over max term)
- */
 export function calculateBenefitSimulation(input: CalculationInput): CalculationResult {
   const { cart, products, cardEnabled, coverShortfallWithLivingSpend, policy } = input
   const productMap = new Map(products.map((p) => [p.id, p]))
@@ -142,12 +128,14 @@ export function calculateBenefitSimulation(input: CalculationInput): Calculation
 
     const qty = Math.floor(item.quantity)
     const lineTotal = resolved.price * qty
+    const contractTotal = lineTotal * resolved.term
     lines.push({
       product,
       term: resolved.term,
       quantity: qty,
       unitPrice: resolved.price,
       lineTotal,
+      contractTotal,
     })
 
     totalQuantity += qty
@@ -168,7 +156,6 @@ export function calculateBenefitSimulation(input: CalculationInput): Calculation
   if (has36 && has60) {
     mode = 'mixed'
     durationMonths = 60
-    // Mixed package MUST unify LifeCare cashback on 60-month schedule
     lifeCareBasisTerm = 60
     cardDurationMonths = 60
   } else if (has36) {
@@ -234,7 +221,6 @@ export function calculateBenefitSimulation(input: CalculationInput): Calculation
   const lifeCareTotalCashbackOverTerm =
     mode === 'empty' ? 0 : lifeCareMonthlyCashback * durationMonths
 
-  // Class Card rules: LifeCare dues count 100% toward 300,000 minimum spend
   const cardRecognizedSpend = lifeCareMonthlyDues
   const cardShortfall = Math.max(0, policy.cardMinSpend - cardRecognizedSpend)
   const cardAutoMetByLifeCare = cardRecognizedSpend >= policy.cardMinSpend
@@ -250,7 +236,6 @@ export function calculateBenefitSimulation(input: CalculationInput): Calculation
   let phaseB: PhaseCalculation | null = null
 
   if (mode === 'mixed') {
-    // NEVER average: split into 1~36 (36m + 60m) and 37~60 (60m only)
     phaseA = buildPhaseCalculation({
       label: '1~36개월차',
       startMonth: 1,
@@ -350,11 +335,6 @@ export function calculateBenefitSimulation(input: CalculationInput): Calculation
   }
 }
 
-/**
- * Computes the lowest-monthly-dues LifeCare (구독프리드) combination (<= maxLifeCareUnits)
- * that offsets Phase A subscription fee to 0원 using ONLY 구독프리드 cashback
- * (excluding Class Card benefits).
- */
 export function recommendZeroCostLifeCare(params: {
   cart: CartItem[]
   products: ProductItem[]
@@ -378,36 +358,70 @@ export function recommendZeroCostLifeCare(params: {
       ? params.policy.lifeCareCashback36
       : params.policy.lifeCareCashback60
   const dues = params.policy.lifeCareUnitMonthlyDues
-  const maxUnits = params.policy.maxLifeCareUnits
+  const maxUnits = Math.max(1, params.policy.maxLifeCareUnits)
 
-  let best: { units: LifeCareUnits; monthlyDues: number; totalUnits: number; surplus: number } | null =
-    null
+  const minUnitCashback = Math.min(cb.u40, cb.u50, cb.u60)
+  if (targetGross <= minUnitCashback) {
+    return { q40: 1, q50: 0, q60: 0 }
+  }
+
+  interface Candidate {
+    units: LifeCareUnits
+    priority: number
+    scoreDistance: number
+    monthlyDues: number
+    totalUnits: number
+  }
+
+  let best: Candidate | null = null
 
   for (let q60 = 0; q60 <= maxUnits; q60++) {
     for (let q50 = 0; q50 <= maxUnits - q60; q50++) {
       for (let q40 = 0; q40 <= maxUnits - q60 - q50; q40++) {
+        const totalUnits = q40 + q50 + q60
+        if (totalUnits === 0) continue
+
         const monthlyDues = q40 * dues.u40 + q50 * dues.u50 + q60 * dues.u60
         const lifeCareCb = q40 * cb.u40 + q50 * cb.u50 + q60 * cb.u60
+        const remainder = targetGross - lifeCareCb
 
-        // Must offset subscription fee purely with 구독프리드 cashback alone
-        if (lifeCareCb >= targetGross) {
-          const totalUnits = q40 + q50 + q60
-          const surplus = lifeCareCb - targetGross
-          if (
-            !best ||
-            monthlyDues < best.monthlyDues ||
-            (monthlyDues === best.monthlyDues && totalUnits < best.totalUnits) ||
-            (monthlyDues === best.monthlyDues &&
-              totalUnits === best.totalUnits &&
-              surplus < best.surplus)
-          ) {
-            best = {
-              units: { q40, q50, q60 },
-              monthlyDues,
-              totalUnits,
-              surplus,
-            }
-          }
+        if (remainder <= 0) continue
+
+        let priority: number
+        let scoreDistance: number
+
+        if (remainder >= 1000 && remainder < 10000) {
+          priority = 1
+          scoreDistance = remainder
+        } else if (remainder > 0 && remainder < 1000) {
+          priority = 2
+          scoreDistance = 1000 - remainder
+        } else {
+          priority = 3
+          scoreDistance = remainder
+        }
+
+        const cand: Candidate = {
+          units: { q40, q50, q60 },
+          priority,
+          scoreDistance,
+          monthlyDues,
+          totalUnits,
+        }
+
+        if (
+          !best ||
+          cand.priority < best.priority ||
+          (cand.priority === best.priority && cand.scoreDistance < best.scoreDistance) ||
+          (cand.priority === best.priority &&
+            cand.scoreDistance === best.scoreDistance &&
+            cand.monthlyDues < best.monthlyDues) ||
+          (cand.priority === best.priority &&
+            cand.scoreDistance === best.scoreDistance &&
+            cand.monthlyDues === best.monthlyDues &&
+            cand.totalUnits < best.totalUnits)
+        ) {
+          best = cand
         }
       }
     }
@@ -417,7 +431,6 @@ export function recommendZeroCostLifeCare(params: {
     return best.units
   }
 
-  // If subscription exceeds max 12 units of 구독플러스 108, return max units
   return { q40: 0, q50: 0, q60: maxUnits }
 }
 

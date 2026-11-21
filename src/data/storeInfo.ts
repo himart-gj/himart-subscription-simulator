@@ -7,7 +7,9 @@ export const STORE_INFO = {
   telHref: 'tel:031-767-1044',
   hours: '매일 10:00 ~ 20:00 (연중무휴)',
   naverMapUrl: 'https://naver.me/5Ifcoycf',
+  instagramUrl: 'https://www.instagram.com/himart.ggukji?hvrq=MTVtMGd2cG51NzNwOQ==',
+  facebookUrl: 'https://www.facebook.com/share/1FQK2rGGZM/',
+  naverBlogUrl: 'https://blog.naver.com/sernal3',
   kakaoChatUrl: 'https://pf.kakao.com/_hnxcxexl/chat',
   naverTalkUrl: 'https://talk.naver.com/profile/wd21jdv',
-  naverBlogUrl: 'https://m.blog.naver.com/himart411',
 } as const
