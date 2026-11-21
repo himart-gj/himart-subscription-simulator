@@ -24,6 +24,7 @@ export function ConsultationModal({ open, result, onClose }: ConsultationModalPr
   const [phone, setPhone] = useState('')
   const [channel, setChannel] = useState<ConsultChannel>('매장 방문')
   const [memo, setMemo] = useState('')
+  const [honeypot, setHoneypot] = useState('')
   const [agreed, setAgreed] = useState(false)
   const [showLegalDetail, setShowLegalDetail] = useState(false)
   const [submitting, setSubmitting] = useState(false)
@@ -44,7 +45,7 @@ export function ConsultationModal({ open, result, onClose }: ConsultationModalPr
     .map((t) => `${t.label} ${t.quantity}구좌`)
   const lifeCareText =
     lifeCareParts.length > 0
-      ? `${lifeCareParts.join(' + ')} (총 ${result.totalLifeCareUnits}구좌 / 월 회비 ${formatKRW(result.lifeCareMonthlyDues)} / 월 캐시백 ${formatKRW(result.lifeCareMonthlyCashback)})`
+      ? `${lifeCareParts.join(' + ')} (총 ${result.totalLifeCareUnits}구좌 / 월 납입금 ${formatKRW(result.lifeCareMonthlyDues)} / 월 캐시백 ${formatKRW(result.lifeCareMonthlyCashback)})`
       : '미선택 (0구좌)'
 
   const cardStatusText = !result.cardEnabled
@@ -57,8 +58,8 @@ export function ConsultationModal({ open, result, onClose }: ConsultationModalPr
 
   const formatPhaseSummary = (p: CalculationResult['phaseA']) =>
     p.monthlySurplusCash > 0
-      ? `${p.label}: 구독료 0원 + 매월 +${p.monthlySurplusCash.toLocaleString('ko-KR')}원 현금 잉여`
-      : `${p.label}: 월 실질 체감 ${formatKRW(p.effectiveMonthlyPay)} (청구 ${formatKRW(p.grossSubscription)} - 혜택 ${formatKRW(p.totalMonthlyBenefit)})`
+      ? `${p.label}: 월 체감 구독료 0원 + 매월 ${p.monthlySurplusCash.toLocaleString('ko-KR')}원 더 받음`
+      : `${p.label}: 할인 후 최종 월 체감가 ${formatKRW(p.effectiveMonthlyPay)} (구독료 ${formatKRW(p.grossSubscription)} - 할인 ${formatKRW(p.totalMonthlyBenefit)})`
 
   const phaseASummary = formatPhaseSummary(result.phaseA)
   const phaseBSummary = result.phaseB ? formatPhaseSummary(result.phaseB) : null
@@ -88,6 +89,7 @@ export function ConsultationModal({ open, result, onClose }: ConsultationModalPr
       consultChannel: channel,
       memo,
       agreedLegalAndPrivacy: true,
+      honeypot,
       summary: {
         mode: result.mode,
         itemsText,
@@ -122,6 +124,7 @@ export function ConsultationModal({ open, result, onClose }: ConsultationModalPr
       setName('')
       setPhone('')
       setMemo('')
+      setHoneypot('')
       setAgreed(false)
     }
     setErrorMsg(null)
@@ -196,6 +199,23 @@ export function ConsultationModal({ open, result, onClose }: ConsultationModalPr
             </div>
           ) : (
             <form onSubmit={handleSubmit} className="space-y-4">
+              {/* Off-screen Anti-Bot Honeypot Trap */}
+              <div
+                aria-hidden="true"
+                className="absolute -left-[9999px] top-auto w-px h-px overflow-hidden opacity-0 pointer-events-none"
+              >
+                <label htmlFor="consult-company-website">웹사이트</label>
+                <input
+                  id="consult-company-website"
+                  type="text"
+                  name="website"
+                  tabIndex={-1}
+                  autoComplete="off"
+                  value={honeypot}
+                  onChange={(e) => setHoneypot(e.target.value)}
+                />
+              </div>
+
               {/* Auto-attached Simulation Summary */}
               <div className="rounded-xl bg-[#F8FAFC] border border-[#E2E8F0] p-3.5 space-y-2 text-xs">
                 <div className="font-extrabold text-[#0F172A]">
@@ -236,6 +256,7 @@ export function ConsultationModal({ open, result, onClose }: ConsultationModalPr
                     id="consult-name"
                     type="text"
                     required
+                    maxLength={40}
                     value={name}
                     onChange={(e) => setName(e.target.value)}
                     placeholder="홍길동"
@@ -255,6 +276,7 @@ export function ConsultationModal({ open, result, onClose }: ConsultationModalPr
                     type="tel"
                     inputMode="numeric"
                     required
+                    maxLength={13}
                     value={phone}
                     onChange={(e) => setPhone(sanitizePhoneNumber(e.target.value))}
                     placeholder="010-0000-0000"
@@ -302,6 +324,7 @@ export function ConsultationModal({ open, result, onClose }: ConsultationModalPr
                 <textarea
                   id="consult-memo"
                   rows={2}
+                  maxLength={400}
                   value={memo}
                   onChange={(e) => setMemo(e.target.value)}
                   placeholder="입주 예정일, 희망 방문 시간, 설치 환경 등을 자유롭게 남겨주세요."

@@ -61,7 +61,7 @@ export function StoreInfoSection() {
           <a
             href={STORE_INFO.naverMapUrl}
             target="_blank"
-            rel="noreferrer"
+            rel="noopener noreferrer"
             className="inline-flex items-center gap-1.5 h-10 px-3.5 rounded-xl bg-white hover:bg-[#F8FAFC] border border-[#E2E8F0] text-xs font-bold text-[#0F172A] transition-colors"
           >
             <MapPin size={14} className="text-[#059669]" />
@@ -71,7 +71,7 @@ export function StoreInfoSection() {
           <a
             href={STORE_INFO.kakaoChatUrl}
             target="_blank"
-            rel="noreferrer"
+            rel="noopener noreferrer"
             className="inline-flex items-center gap-1.5 h-10 px-3.5 rounded-xl bg-white hover:bg-[#F8FAFC] border border-[#E2E8F0] text-xs font-bold text-[#0F172A] transition-colors"
           >
             <MessageCircle size={14} className="text-[#D97706]" />
@@ -140,7 +140,7 @@ export function StoreInfoSection() {
                 <a
                   href={STORE_INFO.naverBlogUrl}
                   target="_blank"
-                  rel="noreferrer"
+                  rel="noopener noreferrer"
                   className="hover:text-[#0F172A] underline underline-offset-2"
                 >
                   공식 블로그
@@ -149,7 +149,7 @@ export function StoreInfoSection() {
                 <a
                   href={STORE_INFO.naverTalkUrl}
                   target="_blank"
-                  rel="noreferrer"
+                  rel="noopener noreferrer"
                   className="hover:text-[#0F172A] underline underline-offset-2"
                 >
                   네이버 톡톡

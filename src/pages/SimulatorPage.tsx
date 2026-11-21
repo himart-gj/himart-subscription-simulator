@@ -217,7 +217,7 @@ export function SimulatorPage({
       policy: catalog.policy,
     })
     setLifeCare(recommended)
-    showToast('구독프리드 혜택만으로 구독료 0원이 되는 맞춤 구좌가 적용되었습니다')
+    showToast('구독프리드 지원금만으로 월 체감 0원이 되는 맞춤 구좌가 적용되었습니다')
   }
 
   const handleQuickTrySample = () => {
@@ -275,7 +275,7 @@ export function SimulatorPage({
                 <h1 className="text-[15px] sm:text-base font-extrabold text-[#0F172A] tracking-tight truncate">
                   {STORE_INFO.name}
                 </h1>
-                {dataSource === 'local-preview' && (
+                {dataSource === 'local-preview' && import.meta.env.DEV && (
                   <span className="hidden sm:inline-flex items-center px-2 py-0.5 rounded bg-[#F1F5F9] border border-[#E2E8F0] text-[10px] font-bold text-[#475569] shrink-0">
                     [로컬 프리뷰 모드]
                   </span>
@@ -294,7 +294,7 @@ export function SimulatorPage({
             <a
               href={STORE_INFO.naverMapUrl}
               target="_blank"
-              rel="noreferrer"
+              rel="noopener noreferrer"
               className="inline-flex items-center gap-1 h-9 px-2.5 sm:px-3 rounded-xl bg-white hover:bg-[#F8FAFC] border border-[#E2E8F0] text-xs font-bold text-[#475569] hover:text-[#0F172A] transition-colors"
             >
               <MapPin size={14} className="text-[#059669]" />
@@ -574,15 +574,15 @@ export function SimulatorPage({
                 {isEmpty
                   ? '가전을 담아 혜택을 확인하세요'
                   : result.mode === 'mixed'
-                    ? '1~36개월차 체감 (37~60개월 별도)'
-                    : `${result.durationMonths}개월 최종 월 체감가`}
+                    ? '1~36개월차 최종 체감가 (37~60개월 별도)'
+                    : `${result.durationMonths}개월 할인 후 최종 월 체감가`}
               </div>
               {isEmpty ? (
                 <div className="text-sm font-extrabold text-[#0F172A]">구독함 비어 있음</div>
               ) : phaseASurplus ? (
                 <div className="text-sm font-extrabold text-[#059669] tabular-nums truncate">
                   체감 0원 · 매월 +
-                  <SpringNumber value={result.phaseA.monthlySurplusCash} suffix="원" />
+                  <SpringNumber value={result.phaseA.monthlySurplusCash} suffix="원 더 받음" />
                 </div>
               ) : (
                 <div className="text-[15px] font-extrabold text-[#0F172A] tabular-nums">
@@ -622,7 +622,7 @@ export function SimulatorPage({
               <div className="flex items-center gap-2">
                 <span className="w-8 h-1 rounded-full bg-[#CBD5E1] hidden" />
                 <span className="text-sm font-extrabold text-[#0F172A]">
-                  실시간 혜택 비교 영수증
+                  실시간 맞춤 혜택 영수증
                 </span>
               </div>
               <button

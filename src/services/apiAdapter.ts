@@ -1,6 +1,7 @@
 import { INITIAL_CATALOG_SNAPSHOT } from '../data/initialSeedData'
 import type {
   BundleLineItem,
+  CartTermMode,
   CatalogSnapshot,
   ConsultationPayload,
   PolicyConfig,
@@ -19,6 +20,9 @@ import {
 const LOCAL_CATALOG_KEY = 'himart_gj_simulator_catalog_v1'
 const ADMIN_TOKEN_SESSION_KEY = 'himart_gj_admin_session_token'
 const ADMIN_SESSION_MODE_KEY = 'himart_gj_admin_session_mode'
+const CLIENT_INSTANCE_ID_KEY = 'himart_gj_client_instance_id'
+const LEAD_COOLDOWN_PREFIX = 'himart_gj_lead_cd_'
+const CLIENT_LEAD_COOLDOWN_MS = 60_000
 
 const LARGE_APPLIANCE_CATEGORIES = [
   '대형가전',
@@ -67,6 +71,17 @@ export class AdminUnauthorizedError extends Error {
   }
 }
 
+export class AdminLockedOutError extends Error {
+  readonly code = 'LOCKED_OUT' as const
+
+  constructor(
+    message = '비밀번호 연속 오입력으로 잠금 보호가 작동 중입니다. 비상 잠금해제 코드를 함께 입력하거나 잠시 후 시도해 주세요.',
+  ) {
+    super(message)
+    this.name = 'AdminLockedOutError'
+  }
+}
+
 export function isAdminUnauthorizedError(err: unknown): err is AdminUnauthorizedError {
   return (
     err instanceof AdminUnauthorizedError ||
@@ -77,17 +92,51 @@ export function isAdminUnauthorizedError(err: unknown): err is AdminUnauthorized
   )
 }
 
+export function isAdminLockedOutError(err: unknown): err is AdminLockedOutError {
+  return (
+    err instanceof AdminLockedOutError ||
+    (typeof err === 'object' &&
+      err !== null &&
+      'code' in err &&
+      (err as { code?: unknown }).code === 'LOCKED_OUT')
+  )
+}
+
 /**
- * Returns the configured Google Apps Script Web App URL if present.
- * Zero secrets are ever stored in the client bundle.
+ * Returns the validated HTTPS Google Apps Script Web App URL if present.
+ * Rejects cleartext HTTP, javascript:, or malformed endpoints.
  */
 export function getGasApiUrl(): string {
   const raw = import.meta.env.VITE_GAS_API_URL
-  return typeof raw === 'string' ? raw.trim() : ''
+  if (typeof raw !== 'string') return ''
+  const trimmed = raw.trim()
+  if (!trimmed) return ''
+
+  try {
+    const parsed = new URL(trimmed)
+    if (parsed.protocol !== 'https:') return ''
+    const allowedHost =
+      parsed.hostname === 'script.google.com' ||
+      parsed.hostname === 'script.googleusercontent.com'
+    if (!allowedHost) return ''
+    return parsed.toString()
+  } catch {
+    return ''
+  }
 }
 
 export function isGasConnected(): boolean {
   return getGasApiUrl().length > 0
+}
+
+/**
+ * Local UI sandbox admin mode is strictly permitted ONLY in local Vite dev mode
+ * when no production GAS URL is connected. Production builds ALWAYS return false,
+ * completely eliminating client-side admin bypass even if env vars are omitted.
+ */
+export function isLocalSandboxAllowed(): boolean {
+  const isDev = Boolean(import.meta.env.DEV) && !import.meta.env.PROD
+  return isDev && !isGasConnected()
 }
 
 export interface AdminSession {
@@ -100,13 +149,24 @@ export function getStoredAdminSession(): AdminSession | null {
     const token = sessionStorage.getItem(ADMIN_TOKEN_SESSION_KEY)
     const mode = sessionStorage.getItem(ADMIN_SESSION_MODE_KEY)
     if (!token) return null
-    if (mode === 'local-sandbox' && isGasConnected()) {
+
+    if (mode !== 'gas') {
+      if (!isLocalSandboxAllowed()) {
+        clearAdminSession()
+        return null
+      }
+      return { token, mode: 'local-sandbox' }
+    }
+
+    // Server tokens must meet minimum length sanity check
+    if (token.length < 20 || !isGasConnected()) {
       clearAdminSession()
       return null
     }
+
     return {
       token,
-      mode: mode === 'gas' ? 'gas' : 'local-sandbox',
+      mode: 'gas',
     }
   } catch {
     return null
@@ -125,6 +185,29 @@ export function clearAdminSession(): void {
 function storeAdminSession(session: AdminSession): void {
   sessionStorage.setItem(ADMIN_TOKEN_SESSION_KEY, session.token)
   sessionStorage.setItem(ADMIN_SESSION_MODE_KEY, session.mode)
+}
+
+function getOrCreateClientInstanceId(): string {
+  try {
+    const existing = sessionStorage.getItem(CLIENT_INSTANCE_ID_KEY)
+    if (existing && existing.length >= 16) return existing
+    const randomPart =
+      typeof crypto !== 'undefined' && 'randomUUID' in crypto
+        ? crypto.randomUUID()
+        : `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 12)}`
+    const generated = `cid_${randomPart}`
+    sessionStorage.setItem(CLIENT_INSTANCE_ID_KEY, generated)
+    return generated
+  } catch {
+    return `cid_ephemeral_${Date.now().toString(36)}`
+  }
+}
+
+function formatModeLabel(mode: CartTermMode): string {
+  if (mode === 'mixed') return '36+60개월 혼합'
+  if (mode === 'single_36') return '36개월 단일'
+  if (mode === 'single_60') return '60개월 단일'
+  return '미선택'
 }
 
 /**
@@ -163,13 +246,21 @@ async function postGasAction<T = unknown>(
   try {
     data = (await response.json()) as GasApiResponse<T>
   } catch {
-    throw new Error('구글 앱스 스크립트 응답(JSON)을 해석할 수 없습니다.')
+    throw new Error('서버 응답을 처리하는 중 일시적인 오류가 발생했습니다.')
   }
 
   if (data.code === 'UNAUTHORIZED' || data.error === 'UNAUTHORIZED') {
     clearAdminSession()
     throw new AdminUnauthorizedError(
-      data.message || '관리자 세션이 만료되었습니다. 다시 로그인해 주세요.',
+      data.message || data.error || '관리자 세션이 만료되었습니다. 다시 로그인해 주세요.',
+    )
+  }
+
+  const errMsg = data.message || data.error || ''
+  if (data.code === 'LOCKED_OUT' || errMsg.includes('잠겼습니다')) {
+    throw new AdminLockedOutError(
+      errMsg ||
+        '비밀번호 오류 횟수 초과로 보호 잠금이 작동 중입니다. 비상 잠금해제 코드를 함께 입력해 주세요.',
     )
   }
 
@@ -179,7 +270,7 @@ async function postGasAction<T = unknown>(
     (typeof data.error === 'string' && data.error.length > 0)
 
   if (explicitlyFailed) {
-    throw new Error(data.message || data.error || '요청 처리 중 오류가 발생했습니다.')
+    throw new Error(errMsg || '요청 처리 중 오류가 발생했습니다.')
   }
 
   return data
@@ -253,10 +344,6 @@ export function sanitizeCatalogSnapshot(snapshot: CatalogSnapshot): CatalogSnaps
   }
 }
 
-/**
- * Serializes internal ProductItem to the exact Google Apps Script sheet schema:
- * { id, category, brand, name, modelName, imageUrl, price36, price60, careTags, isVisible }
- */
 export function toGasProductPayload(p: ProductItem) {
   return {
     id: p.id,
@@ -273,10 +360,6 @@ export function toGasProductPayload(p: ProductItem) {
   }
 }
 
-/**
- * Serializes internal RecommendedBundle to the exact Google Apps Script sheet schema:
- * { id, setCategory, name, description, badge, defaultTerm, items: [{ productId, term, qty }], sortOrder, isVisible }
- */
 export function toGasSetPayload(b: RecommendedBundle, products: ProductItem[]) {
   const productMap = new Map(products.map((p) => [p.id, p]))
   const hasLarge = b.items.some((item) => {
@@ -300,9 +383,6 @@ export function toGasSetPayload(b: RecommendedBundle, products: ProductItem[]) {
   }
 }
 
-/**
- * Serializes internal PolicyConfig to the exact Google Apps Script snake_case policy schema.
- */
 export function toGasPolicyPayload(policy: PolicyConfig) {
   return {
     freed_40k_cashback_36: policy.lifeCareCashback36.u40,
@@ -352,9 +432,18 @@ function normalizePolicy(raw: unknown): PolicyConfig {
 
   return {
     lifeCareUnitMonthlyDues: {
-      u40: num(dues.u40 ?? obj.freed_40k_dues ?? obj.dues40, DEFAULT_POLICY_CONFIG.lifeCareUnitMonthlyDues.u40),
-      u50: num(dues.u50 ?? obj.freed_50k_dues ?? obj.dues50, DEFAULT_POLICY_CONFIG.lifeCareUnitMonthlyDues.u50),
-      u60: num(dues.u60 ?? obj.freed_60k_dues ?? obj.dues60, DEFAULT_POLICY_CONFIG.lifeCareUnitMonthlyDues.u60),
+      u40: num(
+        dues.u40 ?? obj.freed_40k_dues ?? obj.dues40,
+        DEFAULT_POLICY_CONFIG.lifeCareUnitMonthlyDues.u40,
+      ),
+      u50: num(
+        dues.u50 ?? obj.freed_50k_dues ?? obj.dues50,
+        DEFAULT_POLICY_CONFIG.lifeCareUnitMonthlyDues.u50,
+      ),
+      u60: num(
+        dues.u60 ?? obj.freed_60k_dues ?? obj.dues60,
+        DEFAULT_POLICY_CONFIG.lifeCareUnitMonthlyDues.u60,
+      ),
     },
     lifeCareCashback36: {
       u40: num(
@@ -414,27 +503,27 @@ function normalizePolicy(raw: unknown): PolicyConfig {
 function normalizeRemoteProduct(raw: unknown, idx: number): ProductItem | null {
   if (!raw || typeof raw !== 'object') return null
   const r = raw as Record<string, unknown>
-  const id = String(r.id || r.productId || '').trim()
-  const name = String(r.name || '').trim()
+  const id = sanitizeForSheet(String(r.id || r.productId || ''), 80)
+  const name = sanitizeForSheet(String(r.name || ''), 120)
   if (!id || !name) return null
 
   let careTags: string[] = []
   if (Array.isArray(r.careTags)) {
-    careTags = r.careTags.map((t) => String(t).trim()).filter(Boolean)
+    careTags = r.careTags.map((t) => sanitizeForSheet(String(t), 40)).filter(Boolean)
   } else if (typeof r.careTags === 'string') {
     careTags = r.careTags
       .split(',')
-      .map((t) => t.trim())
+      .map((t) => sanitizeForSheet(t, 40))
       .filter(Boolean)
   }
 
-  const category = String(r.category || '').trim() || '대형가전'
+  const category = sanitizeForSheet(String(r.category || ''), 40) || '대형가전'
 
   return {
     id,
     name,
-    modelCode: String(r.modelName ?? r.modelCode ?? r.model ?? '').trim(),
-    brand: String(r.brand || '').trim() || '기타',
+    modelCode: sanitizeForSheet(String(r.modelName ?? r.modelCode ?? r.model ?? ''), 80),
+    brand: sanitizeForSheet(String(r.brand || ''), 40) || '기타',
     category,
     isLargeAppliance:
       r.isLargeAppliance !== undefined
@@ -452,8 +541,8 @@ function normalizeRemoteProduct(raw: unknown, idx: number): ProductItem | null {
 function normalizeRemoteBundle(raw: unknown, idx: number): RecommendedBundle | null {
   if (!raw || typeof raw !== 'object') return null
   const r = raw as Record<string, unknown>
-  const id = String(r.id || r.setId || '').trim()
-  const name = String(r.name || '').trim()
+  const id = sanitizeForSheet(String(r.id || r.setId || ''), 80)
+  const name = sanitizeForSheet(String(r.name || ''), 100)
   if (!id || !name) return null
 
   let rawItems: unknown = r.items
@@ -470,7 +559,7 @@ function normalizeRemoteBundle(raw: unknown, idx: number): RecommendedBundle | n
         .map((it) => {
           if (!it || typeof it !== 'object') return null
           const row = it as Record<string, unknown>
-          const productId = String(row.productId || row.id || '').trim()
+          const productId = sanitizeForSheet(String(row.productId || row.id || ''), 80)
           if (!productId) return null
           const term: SubscriptionTerm = Number(row.term) === 36 ? 36 : 60
           const quantity = Math.max(1, Math.round(Number(row.qty ?? row.quantity) || 1))
@@ -482,8 +571,8 @@ function normalizeRemoteBundle(raw: unknown, idx: number): RecommendedBundle | n
   return {
     id,
     name,
-    description: String(r.description || '').trim(),
-    badge: String(r.badge || '추천').trim(),
+    description: sanitizeForSheet(String(r.description || ''), 220),
+    badge: sanitizeForSheet(String(r.badge || '추천'), 30),
     defaultTerm: Number(r.defaultTerm) === 36 ? 36 : 60,
     items,
     visible: toBool(r.isVisible ?? r.visible ?? r.isActive, true),
@@ -551,9 +640,6 @@ function readLocalCatalog(): CatalogSnapshot {
 
 /* ==================== PUBLIC CATALOG & WRITE-ONLY LEADS ==================== */
 
-/**
- * Public Catalog Read: GET ${GAS_URL}?action=getCatalog with redirect: "follow"
- */
 export async function fetchCatalogSnapshot(): Promise<{
   snapshot: CatalogSnapshot
   source: 'gas' | 'local-preview'
@@ -597,18 +683,34 @@ export async function fetchCatalogSnapshot(): Promise<{
 
 /**
  * Write-Only Lead Submission (`submitLead`).
- * Customer personal information is sanitized and transmitted one-way only.
- * There is intentionally NO read/list API for leads anywhere in this application.
+ * Maps 100% of live Code.gs sheet columns (`contactMethod`, `modeSummary`,
+ * `cardStatusSummary`, `period1Summary`, `period2Summary`, `maturityRefundSummary`,
+ * `agreedToTerms`, `honeypot`) and enforces duplicate submission cooldown.
  */
 export async function submitConsultationWriteOnly(
   rawPayload: ConsultationPayload,
 ): Promise<{ ok: boolean; deliveryMode: 'gas' | 'local-preview'; referenceCode: string }> {
+  const digitsOnly = rawPayload.customerPhone.replace(/\D/g, '').slice(0, 11)
+  const cooldownKey = `${LEAD_COOLDOWN_PREFIX}${digitsOnly.slice(-8)}`
+
+  try {
+    const lastTs = Number(sessionStorage.getItem(cooldownKey) || '0')
+    if (lastTs > 0 && Date.now() - lastTs < CLIENT_LEAD_COOLDOWN_MS) {
+      throw new Error('이미 상담 신청이 접수되었습니다. 잠시 후 다시 시도해 주세요.')
+    }
+  } catch (err) {
+    if (err instanceof Error && err.message.includes('잠시 후')) {
+      throw err
+    }
+  }
+
   const sanitizedPayload: ConsultationPayload = {
     customerName: sanitizeForSheet(rawPayload.customerName, 50),
     customerPhone: sanitizePhoneNumber(rawPayload.customerPhone),
     consultChannel: rawPayload.consultChannel,
     memo: sanitizeMemoForSheet(rawPayload.memo, 400),
     agreedLegalAndPrivacy: rawPayload.agreedLegalAndPrivacy,
+    honeypot: rawPayload.honeypot ? String(rawPayload.honeypot).slice(0, 80) : '',
     summary: {
       ...rawPayload.summary,
       itemsText: sanitizeForSheet(rawPayload.summary.itemsText, 500),
@@ -634,6 +736,12 @@ export async function submitConsultationWriteOnly(
   }
 
   const okConsent = Boolean(sanitizedPayload.agreedLegalAndPrivacy)
+  const modeSummaryText = formatModeLabel(sanitizedPayload.summary.mode)
+  const maturityRefundSummaryText =
+    sanitizedPayload.summary.maturityRefundTotal > 0
+      ? `${sanitizedPayload.summary.maturityRefundTotal.toLocaleString('ko-KR')}원`
+      : '미선택 (0원)'
+
   const combinedQuoteText = sanitizeMemoForSheet(
     [
       `[선택품목] ${sanitizedPayload.summary.itemsText}`,
@@ -645,7 +753,7 @@ export async function submitConsultationWriteOnly(
           : ''
       }`,
       sanitizedPayload.summary.maturityRefundTotal > 0
-        ? `[120회만기환급] ${sanitizedPayload.summary.maturityRefundTotal.toLocaleString('ko-KR')}원`
+        ? `[120회만기환급] ${maturityRefundSummaryText}`
         : '',
     ]
       .filter(Boolean)
@@ -655,58 +763,41 @@ export async function submitConsultationWriteOnly(
 
   await postGasAction('submitLead', undefined, {
     referenceCode,
+    honeypot: sanitizedPayload.honeypot ?? '',
+    clientInstanceId: getOrCreateClientInstanceId(),
+    // Exact live Code.gs column keys
     name: sanitizedPayload.customerName,
     phone: sanitizedPayload.customerPhone,
+    contactMethod: sanitizedPayload.consultChannel,
+    modeSummary: modeSummaryText,
+    itemsSummary: sanitizedPayload.summary.itemsText,
+    freedSummary: sanitizedPayload.summary.lifeCareText,
+    cardStatusSummary: sanitizedPayload.summary.cardStatusText,
+    period1Summary: sanitizedPayload.summary.phaseASummary,
+    period2Summary: sanitizedPayload.summary.phaseBSummary || '해당 없음',
+    maturityRefundSummary: maturityRefundSummaryText,
+    agreedToTerms: okConsent,
+    memo: sanitizedPayload.memo,
+    // Backward-compatible aliases
     channel: sanitizedPayload.consultChannel,
     consultMethod: sanitizedPayload.consultChannel,
     preferredChannel: sanitizedPayload.consultChannel,
     customerName: sanitizedPayload.customerName,
     customerPhone: sanitizedPayload.customerPhone,
     consultChannel: sanitizedPayload.consultChannel,
-    memo: sanitizedPayload.memo,
     note: sanitizedPayload.memo,
-    // Consent keys verified against live Google Apps Script validation
     agreed: okConsent,
     agree: okConsent,
     isAgreed: okConsent,
     consent: okConsent,
-    hasAgreed: okConsent,
     privacyAgreed: okConsent,
-    agreedPrivacy: okConsent,
-    agreePrivacy: okConsent,
-    privacyConsent: okConsent,
-    privacy_agreed: okConsent,
-    agreed_privacy: okConsent,
     legalAgreed: okConsent,
-    agreedLegal: okConsent,
-    agreeLegal: okConsent,
-    legalConsent: okConsent,
-    legal_agreed: okConsent,
     noticeAgreed: okConsent,
-    agreedNotice: okConsent,
-    agreeNotice: okConsent,
-    disclosureAgreed: okConsent,
-    agreedDisclosure: okConsent,
-    agreeDisclosure: okConsent,
-    termsAgreed: okConsent,
-    agreedTerms: okConsent,
-    agreeTerms: okConsent,
-    agreedToTerms: okConsent,
-    agreedAll: okConsent,
     agreeAll: okConsent,
-    requiredAgreed: okConsent,
-    agreedRequired: okConsent,
-    consentPrivacy: okConsent,
-    consentLegal: okConsent,
-    consentNotice: okConsent,
-    consentTerms: okConsent,
     agreedLegalAndPrivacy: okConsent,
-    // Sheet summary columns
     mode: sanitizedPayload.summary.mode,
-    itemsSummary: sanitizedPayload.summary.itemsText,
     cartSummary: sanitizedPayload.summary.itemsText,
     lifeCareSummary: sanitizedPayload.summary.lifeCareText,
-    freedSummary: sanitizedPayload.summary.lifeCareText,
     cardSummary: sanitizedPayload.summary.cardStatusText,
     phaseASummary: sanitizedPayload.summary.phaseASummary,
     phaseBSummary: sanitizedPayload.summary.phaseBSummary || '',
@@ -715,6 +806,12 @@ export async function submitConsultationWriteOnly(
     simulationSummary: combinedQuoteText,
     summary: sanitizedPayload.summary,
   })
+
+  try {
+    sessionStorage.setItem(cooldownKey, String(Date.now()))
+  } catch {
+    // Ignore restricted storage
+  }
 
   return {
     ok: true,
@@ -725,25 +822,27 @@ export async function submitConsultationWriteOnly(
 
 /* ==================== ADMIN AUTHENTICATION (ZERO-SECRET) ==================== */
 
-/**
- * Authenticates admin password strictly via backend Google Apps Script (`adminLogin`).
- * Token is stored ONLY in sessionStorage and wiped on tab close or UNAUTHORIZED.
- */
-export async function authenticateAdminViaServer(password: string): Promise<AdminSession> {
+export async function authenticateAdminViaServer(
+  password: string,
+  unlockCode?: string,
+): Promise<AdminSession> {
   const trimmed = password.trim()
   if (!trimmed) {
     throw new Error('관리자 비밀번호를 입력해 주세요.')
   }
 
+  const cleanUnlock = typeof unlockCode === 'string' ? unlockCode.trim() : ''
   const data = await postGasAction<{ token?: string }>('adminLogin', undefined, {
     password: trimmed,
+    clientInstanceId: getOrCreateClientInstanceId(),
+    ...(cleanUnlock ? { unlockCode: cleanUnlock } : {}),
   })
 
   const token =
     (typeof data.token === 'string' && data.token) ||
     (data.data && typeof data.data.token === 'string' ? data.data.token : '')
 
-  if (!token) {
+  if (!token || token.length < 20) {
     throw new Error('서버에서 유효한 인증 토큰을 반환하지 않았습니다.')
   }
 
@@ -752,9 +851,6 @@ export async function authenticateAdminViaServer(password: string): Promise<Admi
   return session
 }
 
-/**
- * Invalidates admin token on server (`adminLogout`) and immediately clears sessionStorage.
- */
 export async function logoutAdminSession(session: AdminSession | null): Promise<void> {
   try {
     if (session && session.mode === 'gas' && isGasConnected()) {
@@ -768,11 +864,12 @@ export async function logoutAdminSession(session: AdminSession | null): Promise<
 }
 
 /**
- * Available ONLY when VITE_GAS_API_URL is empty so the operator can preview CMS UI locally.
+ * Available ONLY in local Vite dev mode (`import.meta.env.DEV && !import.meta.env.PROD`)
+ * when VITE_GAS_API_URL is empty. Strictly blocked in all production builds.
  */
 export function enterLocalSandboxAdminSession(): AdminSession {
-  if (isGasConnected()) {
-    throw new Error('실서버 연동 상태에서는 로컬 샌드박스 진입이 차단됩니다.')
+  if (!isLocalSandboxAllowed()) {
+    throw new Error('운영 환경에서는 로컬 샌드박스 관리자 진입이 영구 차단됩니다.')
   }
   const session: AdminSession = {
     token: `local-sandbox-${Date.now()}`,
@@ -784,13 +881,26 @@ export function enterLocalSandboxAdminSession(): AdminSession {
 
 /* ==================== ADMIN CMS ACTIONS ==================== */
 
-/**
- * Loads authoritative admin catalog (including hidden items) via `adminGetCatalog`.
- */
+function assertValidAdminMode(session: AdminSession): 'gas' | 'local-sandbox' {
+  if (session.mode === 'local-sandbox') {
+    if (!isLocalSandboxAllowed()) {
+      clearAdminSession()
+      throw new AdminUnauthorizedError('허용되지 않은 로컬 샌드박스 세션이 차단되었습니다.')
+    }
+    return 'local-sandbox'
+  }
+  if (!isGasConnected() || !session.token) {
+    clearAdminSession()
+    throw new AdminUnauthorizedError('유효한 실서버 관리자 세션이 필요합니다.')
+  }
+  return 'gas'
+}
+
 export async function fetchAdminCatalog(
   session: AdminSession,
 ): Promise<{ snapshot: CatalogSnapshot; remoteEmpty: boolean }> {
-  if (!isGasConnected() || session.mode === 'local-sandbox') {
+  const mode = assertValidAdminMode(session)
+  if (mode === 'local-sandbox') {
     return { snapshot: readLocalCatalog(), remoteEmpty: false }
   }
 
@@ -805,17 +915,15 @@ export async function fetchAdminCatalog(
   }
 }
 
-/**
- * Upserts a single product via `saveProduct` using the exact GAS product schema.
- */
 export async function saveProductRemote(
   product: ProductItem,
   session: AdminSession,
   allProductsAfterChange: ProductItem[],
   currentSnapshot: CatalogSnapshot,
 ): Promise<ProductItem> {
+  const mode = assertValidAdminMode(session)
   const clean = sanitizeProduct(product, product.sortOrder)
-  if (!isGasConnected() || session.mode === 'local-sandbox') {
+  if (mode === 'local-sandbox') {
     const nextSnap = sanitizeCatalogSnapshot({
       ...currentSnapshot,
       products: allProductsAfterChange,
@@ -828,16 +936,14 @@ export async function saveProductRemote(
   return clean
 }
 
-/**
- * Deletes a single product via `deleteProduct`.
- */
 export async function deleteProductRemote(
   productId: string,
   session: AdminSession,
   allProductsAfterChange: ProductItem[],
   currentSnapshot: CatalogSnapshot,
 ): Promise<void> {
-  if (!isGasConnected() || session.mode === 'local-sandbox') {
+  const mode = assertValidAdminMode(session)
+  if (mode === 'local-sandbox') {
     const nextSnap = sanitizeCatalogSnapshot({
       ...currentSnapshot,
       products: allProductsAfterChange,
@@ -849,17 +955,15 @@ export async function deleteProductRemote(
   await postGasAction('deleteProduct', session.token, { id: productId })
 }
 
-/**
- * Upserts a single recommended bundle via `saveSet` using the exact GAS set schema.
- */
 export async function saveSetRemote(
   bundle: RecommendedBundle,
   session: AdminSession,
   allBundlesAfterChange: RecommendedBundle[],
   currentSnapshot: CatalogSnapshot,
 ): Promise<RecommendedBundle> {
+  const mode = assertValidAdminMode(session)
   const clean = sanitizeBundle(bundle, bundle.sortOrder)
-  if (!isGasConnected() || session.mode === 'local-sandbox') {
+  if (mode === 'local-sandbox') {
     const nextSnap = sanitizeCatalogSnapshot({
       ...currentSnapshot,
       bundles: allBundlesAfterChange,
@@ -876,16 +980,14 @@ export async function saveSetRemote(
   return clean
 }
 
-/**
- * Deletes a single recommended bundle via `deleteSet`.
- */
 export async function deleteSetRemote(
   bundleId: string,
   session: AdminSession,
   allBundlesAfterChange: RecommendedBundle[],
   currentSnapshot: CatalogSnapshot,
 ): Promise<void> {
-  if (!isGasConnected() || session.mode === 'local-sandbox') {
+  const mode = assertValidAdminMode(session)
+  if (mode === 'local-sandbox') {
     const nextSnap = sanitizeCatalogSnapshot({
       ...currentSnapshot,
       bundles: allBundlesAfterChange,
@@ -897,16 +999,14 @@ export async function deleteSetRemote(
   await postGasAction('deleteSet', session.token, { id: bundleId })
 }
 
-/**
- * Saves PolicyConfig via `savePolicy` using the exact GAS snake_case policy keys.
- */
 export async function savePolicyRemote(
   policy: PolicyConfig,
   session: AdminSession,
   currentSnapshot: CatalogSnapshot,
 ): Promise<PolicyConfig> {
+  const mode = assertValidAdminMode(session)
   const cleanPolicy = normalizePolicy(policy)
-  if (!isGasConnected() || session.mode === 'local-sandbox') {
+  if (mode === 'local-sandbox') {
     const nextSnap = sanitizeCatalogSnapshot({
       ...currentSnapshot,
       policy: cleanPolicy,
@@ -919,16 +1019,14 @@ export async function savePolicyRemote(
   return cleanPolicy
 }
 
-/**
- * Bulk syncs full catalog snapshot via `bulkSyncCatalog` using the exact GAS schemas.
- */
 export async function bulkSyncCatalogRemote(
   snapshot: CatalogSnapshot,
   session: AdminSession,
 ): Promise<{ snapshot: CatalogSnapshot; mode: 'gas' | 'local-sandbox' }> {
+  const mode = assertValidAdminMode(session)
   const cleanSnapshot = sanitizeCatalogSnapshot(snapshot)
 
-  if (!isGasConnected() || session.mode === 'local-sandbox') {
+  if (mode === 'local-sandbox') {
     localStorage.setItem(LOCAL_CATALOG_KEY, JSON.stringify(cleanSnapshot))
     return { snapshot: cleanSnapshot, mode: 'local-sandbox' }
   }
@@ -946,6 +1044,9 @@ export async function bulkSyncCatalogRemote(
 }
 
 export function resetLocalSandboxCatalog(): CatalogSnapshot {
+  if (!isLocalSandboxAllowed()) {
+    return INITIAL_CATALOG_SNAPSHOT
+  }
   localStorage.removeItem(LOCAL_CATALOG_KEY)
   return INITIAL_CATALOG_SNAPSHOT
 }

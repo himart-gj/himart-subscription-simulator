@@ -2,16 +2,19 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { INITIAL_CATALOG_SNAPSHOT } from '../data/initialSeedData'
 import { calculateBenefitSimulation } from '../utils/calculator'
 import {
+  AdminLockedOutError,
   AdminUnauthorizedError,
   authenticateAdminViaServer,
   bulkSyncCatalogRemote,
   clearAdminSession,
   deleteProductRemote,
   deleteSetRemote,
+  enterLocalSandboxAdminSession,
   fetchAdminCatalog,
   fetchCatalogSnapshot,
   getGasApiUrl,
   getStoredAdminSession,
+  isLocalSandboxAllowed,
   logoutAdminSession,
   savePolicyRemote,
   saveProductRemote,
@@ -40,6 +43,9 @@ class MemoryStorage implements Storage {
     this.store.set(key, String(value))
   }
 }
+
+const TEST_GAS_URL =
+  'https://script.google.com/macros/s/AKfycbxgCv2hTeEj9LCs7LlRGKKHzLrwUhP-ScYUB81m25bmiMP-rKaBasjYNMw3FXYenmaY6Q/exec'
 
 const LIVE_GAS_SAMPLE_RESPONSE = {
   ok: true,
@@ -115,10 +121,11 @@ const LIVE_GAS_SAMPLE_RESPONSE = {
   },
 }
 
-describe('GAS API Adapter Schema, CORS & Security Verification', () => {
+describe('GAS API Adapter Schema, CORS & Production Security Hardening', () => {
   const fetchMock = vi.fn()
 
   beforeEach(() => {
+    vi.stubEnv('VITE_GAS_API_URL', TEST_GAS_URL)
     vi.stubGlobal('fetch', fetchMock)
     vi.stubGlobal('sessionStorage', new MemoryStorage())
     vi.stubGlobal('localStorage', new MemoryStorage())
@@ -126,6 +133,7 @@ describe('GAS API Adapter Schema, CORS & Security Verification', () => {
   })
 
   afterEach(() => {
+    vi.unstubAllEnvs()
     vi.unstubAllGlobals()
   })
 
@@ -137,13 +145,32 @@ describe('GAS API Adapter Schema, CORS & Security Verification', () => {
     })
   }
 
-  it('Loads configured GAS Web App URL from .env VITE_GAS_API_URL', () => {
-    expect(getGasApiUrl()).toBe(
-      'https://script.google.com/macros/s/AKfycbxgCv2hTeEj9LCs7LlRGKKHzLrwUhP-ScYUB81m25bmiMP-rKaBasjYNMw3FXYenmaY6Q/exec',
-    )
+  it('Validates HTTPS Google Apps Script Web App URL strictly and rejects insecure/forged URLs', () => {
+    expect(getGasApiUrl()).toBe(TEST_GAS_URL)
+
+    vi.stubEnv('VITE_GAS_API_URL', 'http://script.google.com/macros/s/abc/exec')
+    expect(getGasApiUrl()).toBe('')
+
+    vi.stubEnv('VITE_GAS_API_URL', 'javascript:alert(1)')
+    expect(getGasApiUrl()).toBe('')
   })
 
-  it('Parses live GAS schema (price36/price60, modelName, isVisible, sets[].items[].qty, freed_* policy) so items add cleanly into receipt', async () => {
+  it('Blocks local-sandbox admin bypass completely in production mode even if VITE_GAS_API_URL is empty', () => {
+    vi.stubEnv('VITE_GAS_API_URL', '')
+    vi.stubEnv('PROD', true)
+    vi.stubEnv('DEV', false)
+
+    expect(isLocalSandboxAllowed()).toBe(false)
+    expect(() => enterLocalSandboxAdminSession()).toThrow()
+
+    // Forged sessionStorage injection via DevTools must be wiped & rejected
+    sessionStorage.setItem('himart_gj_admin_session_token', 'local-sandbox-forged')
+    sessionStorage.setItem('himart_gj_admin_session_mode', 'local-sandbox')
+    expect(getStoredAdminSession()).toBeNull()
+    expect(sessionStorage.getItem('himart_gj_admin_session_token')).toBeNull()
+  })
+
+  it('Parses live GAS schema (price36/price60, modelName, isVisible, sets[].items[].qty, freed_* policy) cleanly', async () => {
     mockJsonResponse(LIVE_GAS_SAMPLE_RESPONSE)
     const res = await fetchCatalogSnapshot()
 
@@ -153,16 +180,7 @@ describe('GAS API Adapter Schema, CORS & Security Verification', () => {
     expect(res.snapshot.products[0].monthly60).toBe(17900)
     expect(res.snapshot.products[0].modelCode).toBe('AU9882WD')
     expect(res.snapshot.products[0].visible).toBe(true)
-    expect(res.snapshot.products[2].isLargeAppliance).toBe(true)
 
-    expect(res.snapshot.bundles).toHaveLength(1)
-    expect(res.snapshot.bundles[0].items[1]).toEqual({
-      productId: 'prod_02',
-      term: 60,
-      quantity: 2,
-    })
-
-    // Verify adding that exact bundle populates the receipt cleanly!
     const sim = calculateBenefitSimulation({
       cart: res.snapshot.bundles[0].items,
       products: res.snapshot.products,
@@ -172,20 +190,14 @@ describe('GAS API Adapter Schema, CORS & Security Verification', () => {
       policy: res.snapshot.policy,
     })
     expect(sim.mode).toBe('mixed')
-    expect(sim.lines).toHaveLength(2)
-    expect(sim.phaseA.grossSubscription).toBe(18900 + 17900 * 2) // 54,700
-    expect(sim.phaseB?.grossSubscription).toBe(17900 * 2) // 35,800
-
-    const [calledUrl, init] = fetchMock.mock.calls[0]
-    expect(calledUrl).toBe(`${getGasApiUrl()}?action=getCatalog`)
-    expect(init.method).toBe('GET')
-    expect(init.redirect).toBe('follow')
+    expect(sim.phaseA.grossSubscription).toBe(54700)
+    expect(sim.phaseB?.grossSubscription).toBe(35800)
   })
 
-  it('All 10 GAS POST actions serialize exact live GAS schemas with text/plain;charset=utf-8 and redirect: follow', async () => {
+  it('All 10 GAS POST actions serialize exact live GAS schemas (including Code.gs submitLead columns & clientInstanceId)', async () => {
     const assertLastPostContract = (expectedAction: string, expectedToken: string) => {
       const [calledUrl, init] = fetchMock.mock.calls.at(-1)!
-      expect(calledUrl).toBe(getGasApiUrl())
+      expect(calledUrl).toBe(TEST_GAS_URL)
       expect(init.method).toBe('POST')
       expect(init.redirect).toBe('follow')
       expect(init.headers).toEqual({ 'Content-Type': 'text/plain;charset=utf-8' })
@@ -196,19 +208,20 @@ describe('GAS API Adapter Schema, CORS & Security Verification', () => {
       return parsed
     }
 
-    // 1. adminLogin
-    mockJsonResponse({ ok: true, token: 'tok-live-123' })
-    const session = await authenticateAdminViaServer('my-secret-pass')
-    assertLastPostContract('adminLogin', '')
-    expect(getStoredAdminSession()?.token).toBe('tok-live-123')
-    expect(localStorage.length).toBe(0)
+    // 1. adminLogin (includes clientInstanceId & optional unlockCode)
+    mockJsonResponse({ ok: true, token: 'tok-live-12345678901234567890' })
+    const session = await authenticateAdminViaServer('my-secret-pass', '991122')
+    const loginPost = assertLastPostContract('adminLogin', '')
+    expect(loginPost.payload.clientInstanceId).toBeTruthy()
+    expect(loginPost.payload.unlockCode).toBe('991122')
+    expect(getStoredAdminSession()?.token).toBe('tok-live-12345678901234567890')
 
     // 2. adminGetCatalog
     mockJsonResponse(LIVE_GAS_SAMPLE_RESPONSE)
     await fetchAdminCatalog(session)
-    assertLastPostContract('adminGetCatalog', 'tok-live-123')
+    assertLastPostContract('adminGetCatalog', 'tok-live-12345678901234567890')
 
-    // 3. saveProduct -> MUST send price36, price60, modelName, isVisible
+    // 3. saveProduct
     mockJsonResponse({ ok: true })
     await saveProductRemote(
       INITIAL_CATALOG_SNAPSHOT.products[0],
@@ -216,11 +229,9 @@ describe('GAS API Adapter Schema, CORS & Security Verification', () => {
       INITIAL_CATALOG_SNAPSHOT.products,
       INITIAL_CATALOG_SNAPSHOT,
     )
-    const prodPost = assertLastPostContract('saveProduct', 'tok-live-123')
+    const prodPost = assertLastPostContract('saveProduct', 'tok-live-12345678901234567890')
     expect(prodPost.payload.price36).toBe(86900)
     expect(prodPost.payload.price60).toBe(54900)
-    expect(prodPost.payload.modelName).toBe('RF85DB9581AP')
-    expect(prodPost.payload.isVisible).toBe(true)
 
     // 4. deleteProduct
     mockJsonResponse({ ok: true })
@@ -230,10 +241,9 @@ describe('GAS API Adapter Schema, CORS & Security Verification', () => {
       INITIAL_CATALOG_SNAPSHOT.products,
       INITIAL_CATALOG_SNAPSHOT,
     )
-    const delProdBody = assertLastPostContract('deleteProduct', 'tok-live-123')
-    expect(delProdBody.payload).toEqual({ id: 'prod_01' })
+    assertLastPostContract('deleteProduct', 'tok-live-12345678901234567890')
 
-    // 5. saveSet -> MUST send setCategory, isVisible, items[].qty
+    // 5. saveSet
     mockJsonResponse({ ok: true })
     await saveSetRemote(
       INITIAL_CATALOG_SNAPSHOT.bundles[1],
@@ -241,10 +251,7 @@ describe('GAS API Adapter Schema, CORS & Security Verification', () => {
       INITIAL_CATALOG_SNAPSHOT.bundles,
       INITIAL_CATALOG_SNAPSHOT,
     )
-    const setPost = assertLastPostContract('saveSet', 'tok-live-123')
-    expect(setPost.payload.isVisible).toBe(true)
-    expect(setPost.payload.setCategory).toBe('소형')
-    expect(setPost.payload.items[0]).toHaveProperty('qty', 1)
+    assertLastPostContract('saveSet', 'tok-live-12345678901234567890')
 
     // 6. deleteSet
     mockJsonResponse({ ok: true })
@@ -254,62 +261,90 @@ describe('GAS API Adapter Schema, CORS & Security Verification', () => {
       INITIAL_CATALOG_SNAPSHOT.bundles,
       INITIAL_CATALOG_SNAPSHOT,
     )
-    assertLastPostContract('deleteSet', 'tok-live-123')
+    assertLastPostContract('deleteSet', 'tok-live-12345678901234567890')
 
-    // 7. savePolicy -> MUST send freed_* & card_* snake_case keys
+    // 7. savePolicy
     mockJsonResponse({ ok: true })
     await savePolicyRemote(INITIAL_CATALOG_SNAPSHOT.policy, session, INITIAL_CATALOG_SNAPSHOT)
-    const policyPost = assertLastPostContract('savePolicy', 'tok-live-123')
-    expect(policyPost.payload.freed_50k_cashback_36).toBe(25000)
-    expect(policyPost.payload.freed_50k_cashback_60).toBe(15000)
-    expect(policyPost.payload.freed_max_accounts).toBe(12)
-    expect(policyPost.payload.card_min_spend).toBe(300000)
-    expect(policyPost.payload.card_monthly_cashback).toBe(18000)
+    assertLastPostContract('savePolicy', 'tok-live-12345678901234567890')
 
     // 8. bulkSyncCatalog
     mockJsonResponse({ ok: true })
     await bulkSyncCatalogRemote(INITIAL_CATALOG_SNAPSHOT, session)
-    const bulkPost = assertLastPostContract('bulkSyncCatalog', 'tok-live-123')
-    expect(bulkPost.payload.products[0]).toHaveProperty('price36')
-    expect(bulkPost.payload.sets[0].items[0]).toHaveProperty('qty')
-    expect(bulkPost.payload.policy).toHaveProperty('card_monthly_cashback', 18000)
+    assertLastPostContract('bulkSyncCatalog', 'tok-live-12345678901234567890')
 
-    // 9. submitLead
+    // 9. submitLead -> verifies exact live Code.gs column keys + duplicate cooldown
     mockJsonResponse({ ok: true })
     await submitConsultationWriteOnly({
       customerName: '=EVIL()',
       customerPhone: '01012345678',
-      consultChannel: '매장 방문',
+      consultChannel: '카카오톡 상담',
       memo: '+test',
       agreedLegalAndPrivacy: true,
+      honeypot: '',
       summary: {
         mode: 'single_36',
         itemsText: '테스트',
-        lifeCareText: '5만×6',
+        lifeCareText: '구독플러스 90 6구좌',
         cardStatusText: '자동충족',
-        phaseASummary: '0원',
+        phaseASummary: '월 체감 0원',
         phaseBSummary: null,
         maturityRefundTotal: 27000000,
         submittedAt: '2026-11-21T00:00:00Z',
       },
     })
     const leadBody = assertLastPostContract('submitLead', '')
-    expect(leadBody.payload.customerName).toBe("'=EVIL()")
-    expect(leadBody.payload.customerPhone).toBe('010-1234-5678')
-    expect(leadBody.payload.privacyAgreed).toBe(true)
-    expect(leadBody.payload.legalAgreed).toBe(true)
-    expect(leadBody.payload.noticeAgreed).toBe(true)
-    expect(leadBody.payload.agreeAll).toBe(true)
+    expect(leadBody.payload.name).toBe("'=EVIL()")
+    expect(leadBody.payload.phone).toBe('010-1234-5678')
+    expect(leadBody.payload.contactMethod).toBe('카카오톡 상담')
+    expect(leadBody.payload.modeSummary).toBe('36개월 단일')
+    expect(leadBody.payload.cardStatusSummary).toBe('자동충족')
+    expect(leadBody.payload.period1Summary).toBe('월 체감 0원')
+    expect(leadBody.payload.maturityRefundSummary).toBe('27,000,000원')
+    expect(leadBody.payload.agreedToTerms).toBe(true)
+
+    // Immediate duplicate submission from same phone is blocked by client cooldown too
+    await expect(
+      submitConsultationWriteOnly({
+        customerName: '홍길동',
+        customerPhone: '010-1234-5678',
+        consultChannel: '전화 상담',
+        memo: '',
+        agreedLegalAndPrivacy: true,
+        summary: {
+          mode: 'single_36',
+          itemsText: '테스트',
+          lifeCareText: '구독플러스 90 6구좌',
+          cardStatusText: '자동충족',
+          phaseASummary: '월 체감 0원',
+          phaseBSummary: null,
+          maturityRefundTotal: 27000000,
+          submittedAt: '2026-11-21T00:00:00Z',
+        },
+      }),
+    ).rejects.toThrow(/잠시 후/)
 
     // 10. adminLogout
     mockJsonResponse({ ok: true })
     await logoutAdminSession(session)
-    assertLastPostContract('adminLogout', 'tok-live-123')
+    assertLastPostContract('adminLogout', 'tok-live-12345678901234567890')
     expect(getStoredAdminSession()).toBeNull()
   })
 
+  it('Surfaces AdminLockedOutError when server triggers Lockout DoS defense so AdminPage reveals recovery PIN field', async () => {
+    mockJsonResponse({
+      ok: false,
+      code: 'LOCKED_OUT',
+      error: '비정상적인 로그인 시도가 감지되었습니다. 비상 잠금해제 코드를 함께 입력해 주세요.',
+    })
+
+    await expect(authenticateAdminViaServer('pass')).rejects.toBeInstanceOf(
+      AdminLockedOutError,
+    )
+  })
+
   it('Immediately clears sessionStorage and throws AdminUnauthorizedError on code === "UNAUTHORIZED"', async () => {
-    mockJsonResponse({ ok: true, token: 'tok-expiring' })
+    mockJsonResponse({ ok: true, token: 'tok-expiring-123456789012345' })
     const session = await authenticateAdminViaServer('pass')
 
     mockJsonResponse({

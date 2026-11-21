@@ -32,19 +32,17 @@ export function SpringNumber({
       window.matchMedia &&
       window.matchMedia('(prefers-reduced-motion: reduce)').matches
 
-    if (prefersReduced) {
-      previousRef.current = targetVal
-      setDisplayValue(targetVal)
-      return
-    }
-
     let rafId = 0
     const startTime = performance.now()
 
     const tick = (now: number) => {
+      if (prefersReduced) {
+        previousRef.current = targetVal
+        setDisplayValue(targetVal)
+        return
+      }
       const elapsed = now - startTime
       const progress = Math.min(1, elapsed / durationMs)
-      // Smooth cubic ease-out: snappy arrival without sluggish bounce
       const eased = 1 - Math.pow(1 - progress, 3)
       const next = Math.round(startVal + (targetVal - startVal) * eased)
       setDisplayValue(next)

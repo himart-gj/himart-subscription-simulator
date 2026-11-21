@@ -7,11 +7,27 @@ yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
 
+# Build & Dependencies
 node_modules
 dist
 dist-ssr
+coverage
+
+# Environment & Secrets (Strict Default-Deny)
 *.local
 .env
+.env.*
+!.env.example
+!.env.production
+
+# Google Apps Script / Cloud Credentials
+.clasp.json
+.clasprc.json
+*credentials*.json
+*service-account*.json
+*.pem
+*.key
+*.p12
 
 # Editor directories and files
 .vscode/*

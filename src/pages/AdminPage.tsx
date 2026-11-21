@@ -27,8 +27,10 @@ import {
   enterLocalSandboxAdminSession,
   fetchAdminCatalog,
   getStoredAdminSession,
+  isAdminLockedOutError,
   isAdminUnauthorizedError,
   isGasConnected,
+  isLocalSandboxAllowed,
   logoutAdminSession,
   resetLocalSandboxCatalog,
   savePolicyRemote,
@@ -56,28 +58,29 @@ export function AdminPage({
   onNavigateCustomer,
 }: AdminPageProps) {
   const gasConnected = isGasConnected()
+  const sandboxAllowed = isLocalSandboxAllowed()
   const [session, setSession] = useState<AdminSession | null>(() =>
     getStoredAdminSession(),
-  )
-  const [hasEnteredDashboard, setHasEnteredDashboard] = useState<boolean>(
-    () => getStoredAdminSession() !== null,
   )
 
   // Initial login gate state
   const [password, setPassword] = useState('')
+  const [unlockCode, setUnlockCode] = useState('')
+  const [showUnlockField, setShowUnlockField] = useState(false)
   const [authLoading, setAuthLoading] = useState(false)
   const [authError, setAuthError] = useState<string | null>(null)
 
   // Re-login modal state (triggered immediately on code === "UNAUTHORIZED")
-  const [reauthModalOpen, setReauthModalOpen] = useState(false)
-  const [reauthReason, setReauthReason] = useState<string>('')
+  const [reauthReason, setReauthReason] = useState<string | null>(null)
   const [reauthPassword, setReauthPassword] = useState('')
+  const [reauthUnlockCode, setReauthUnlockCode] = useState('')
+  const [reauthShowUnlock, setReauthShowUnlock] = useState(false)
   const [reauthLoading, setReauthLoading] = useState(false)
   const [reauthError, setReauthError] = useState<string | null>(null)
 
   // Dashboard state
   const [activeTab, setActiveTab] = useState<AdminTab>('catalog')
-  const [draft, setDraft] = useState<CatalogSnapshot>(catalog)
+  const [draftOverride, setDraftOverride] = useState<CatalogSnapshot | null>(null)
   const [dirty, setDirty] = useState(false)
   const [syncing, setSyncing] = useState(false)
   const [loadingRemote, setLoadingRemote] = useState(false)
@@ -85,11 +88,7 @@ export function AdminPage({
   const [saveToast, setSaveToast] = useState<string | null>(null)
   const [saveError, setSaveError] = useState<string | null>(null)
 
-  useEffect(() => {
-    if (!dirty) {
-      setDraft(catalog)
-    }
-  }, [catalog, dirty])
+  const draft = draftOverride ?? catalog
 
   const showToast = useCallback((msg: string) => {
     setSaveToast(msg)
@@ -98,10 +97,6 @@ export function AdminPage({
     }, 3200)
   }, [])
 
-  /**
-   * Central error handler: whenever code === "UNAUTHORIZED" arrives,
-   * immediately clears sessionStorage & active session and opens the Re-login Modal.
-   */
   const handleAdminError = useCallback((err: unknown, fallbackMessage: string) => {
     if (isAdminUnauthorizedError(err)) {
       clearAdminSession()
@@ -110,16 +105,13 @@ export function AdminPage({
         err.message || '관리자 세션이 만료되었습니다(UNAUTHORIZED). 다시 로그인해 주세요.',
       )
       setReauthPassword('')
+      setReauthUnlockCode('')
       setReauthError(null)
-      setReauthModalOpen(true)
       return
     }
     setSaveError(err instanceof Error ? err.message : fallbackMessage)
   }, [])
 
-  /**
-   * Fetches authoritative admin catalog (including hidden items) via `adminGetCatalog`.
-   */
   const syncFromAdminServer = useCallback(
     async (activeSession: AdminSession) => {
       if (activeSession.mode !== 'gas') return
@@ -129,7 +121,7 @@ export function AdminPage({
         const res = await fetchAdminCatalog(activeSession)
         setRemoteEmptyHint(res.remoteEmpty)
         if (!res.remoteEmpty) {
-          setDraft(res.snapshot)
+          setDraftOverride(res.snapshot)
           onCatalogSaved(res.snapshot)
           setDirty(false)
         }
@@ -143,21 +135,45 @@ export function AdminPage({
   )
 
   useEffect(() => {
-    if (session && session.mode === 'gas') {
-      void syncFromAdminServer(session)
+    if (!session || session.mode !== 'gas') return
+    let cancelled = false
+    fetchAdminCatalog(session)
+      .then((res) => {
+        if (cancelled) return
+        setRemoteEmptyHint(res.remoteEmpty)
+        if (!res.remoteEmpty) {
+          setDraftOverride(res.snapshot)
+          onCatalogSaved(res.snapshot)
+          setDirty(false)
+        }
+      })
+      .catch((err) => {
+        if (cancelled) return
+        handleAdminError(err, '관리자 카탈로그를 불러오지 못했습니다.')
+      })
+    return () => {
+      cancelled = true
     }
-  }, [session, syncFromAdminServer])
+  }, [session, handleAdminError, onCatalogSaved])
 
   const handleServerLogin = async (e: React.FormEvent) => {
     e.preventDefault()
     setAuthError(null)
     try {
       setAuthLoading(true)
-      const nextSession = await authenticateAdminViaServer(password)
+      const nextSession = await authenticateAdminViaServer(
+        password,
+        showUnlockField ? unlockCode : undefined,
+      )
       setSession(nextSession)
-      setHasEnteredDashboard(true)
+      setReauthReason(null)
       setPassword('')
+      setUnlockCode('')
+      setShowUnlockField(false)
     } catch (err) {
+      if (isAdminLockedOutError(err)) {
+        setShowUnlockField(true)
+      }
       setAuthError(
         err instanceof Error ? err.message : '관리자 인증에 실패했습니다.',
       )
@@ -171,12 +187,20 @@ export function AdminPage({
     setReauthError(null)
     try {
       setReauthLoading(true)
-      const freshSession = await authenticateAdminViaServer(reauthPassword)
+      const freshSession = await authenticateAdminViaServer(
+        reauthPassword,
+        reauthShowUnlock ? reauthUnlockCode : undefined,
+      )
       setSession(freshSession)
       setReauthPassword('')
-      setReauthModalOpen(false)
+      setReauthUnlockCode('')
+      setReauthShowUnlock(false)
+      setReauthReason(null)
       showToast('관리자 재인증이 완료되었습니다. 작업을 계속 진행하실 수 있습니다.')
     } catch (err) {
+      if (isAdminLockedOutError(err)) {
+        setReauthShowUnlock(true)
+      }
       setReauthError(
         err instanceof Error ? err.message : '비밀번호가 일치하지 않습니다.',
       )
@@ -190,7 +214,7 @@ export function AdminPage({
     try {
       const nextSession = enterLocalSandboxAdminSession()
       setSession(nextSession)
-      setHasEnteredDashboard(true)
+      setReauthReason(null)
     } catch (err) {
       setAuthError(err instanceof Error ? err.message : '샌드박스 진입 불가')
     }
@@ -199,16 +223,14 @@ export function AdminPage({
   const handleLogout = async () => {
     await logoutAdminSession(session)
     setSession(null)
-    setHasEnteredDashboard(false)
-    setReauthModalOpen(false)
+    setReauthReason(null)
     setDirty(false)
-    setDraft(catalog)
+    setDraftOverride(null)
   }
 
   const requireActiveSession = (): AdminSession | null => {
     if (!session) {
       setReauthReason('관리자 세션이 필요합니다. 비밀번호를 입력해 다시 로그인해 주세요.')
-      setReauthModalOpen(true)
       return null
     }
     return session
@@ -236,7 +258,7 @@ export function AdminPage({
         products: reconciled,
         updatedAt: new Date().toISOString(),
       }
-      setDraft(nextSnap)
+      setDraftOverride(nextSnap)
       onCatalogSaved(nextSnap)
       setRemoteEmptyHint(false)
       showToast(
@@ -265,7 +287,7 @@ export function AdminPage({
         products: nextProducts,
         updatedAt: new Date().toISOString(),
       }
-      setDraft(nextSnap)
+      setDraftOverride(nextSnap)
       onCatalogSaved(nextSnap)
       showToast(
         active.mode === 'gas'
@@ -299,7 +321,7 @@ export function AdminPage({
         bundles: reconciled,
         updatedAt: new Date().toISOString(),
       }
-      setDraft(nextSnap)
+      setDraftOverride(nextSnap)
       onCatalogSaved(nextSnap)
       setRemoteEmptyHint(false)
       showToast(
@@ -328,7 +350,7 @@ export function AdminPage({
         bundles: nextBundles,
         updatedAt: new Date().toISOString(),
       }
-      setDraft(nextSnap)
+      setDraftOverride(nextSnap)
       onCatalogSaved(nextSnap)
       showToast(
         active.mode === 'gas'
@@ -351,12 +373,12 @@ export function AdminPage({
       bundles: nextBundles,
       updatedAt: new Date().toISOString(),
     }
-    setDraft(nextSnap)
+    setDraftOverride(nextSnap)
     setSyncing(true)
     setSaveError(null)
     try {
       const res = await bulkSyncCatalogRemote(nextSnap, active)
-      setDraft(res.snapshot)
+      setDraftOverride(res.snapshot)
       onCatalogSaved(res.snapshot)
       setDirty(false)
       showToast('추천 세트 노출 순서가 시트에 반영되었습니다.')
@@ -380,7 +402,7 @@ export function AdminPage({
         policy: savedPolicy,
         updatedAt: new Date().toISOString(),
       }
-      setDraft(nextSnap)
+      setDraftOverride(nextSnap)
       onCatalogSaved(nextSnap)
       setDirty(false)
       showToast(
@@ -404,14 +426,14 @@ export function AdminPage({
     try {
       const res = await bulkSyncCatalogRemote(targetSnapshot, active)
       onCatalogSaved(res.snapshot)
-      setDraft(res.snapshot)
+      setDraftOverride(res.snapshot)
       setDirty(false)
       setRemoteEmptyHint(false)
       showToast(
         label ||
           (res.mode === 'gas'
             ? '전체 카탈로그·세트·정책이 구글 시트(bulkSyncCatalog)에 일괄 동기화되었습니다.'
-            : '[로컬 프리뷰 모드] 브라우저 샌드박스에 일괄 저장되었습니다.'),
+            : '[로컬 개발 모드] 브라우저 샌드박스에 일괄 저장되었습니다.'),
       )
     } catch (err) {
       handleAdminError(err, '일괄 동기화 중 오류가 발생했습니다.')
@@ -423,13 +445,108 @@ export function AdminPage({
   const handleResetLocalSeed = () => {
     const initial = resetLocalSandboxCatalog()
     onCatalogSaved(initial)
-    setDraft(initial)
+    setDraftOverride(initial)
     setDirty(false)
     showToast('로컬 프리뷰 데이터가 초기 시드 상태로 복원되었습니다.')
   }
 
+  /* ==================== RE-AUTH GATE WHEN SESSION EXPIRED (NO DASHBOARD DOM LEAK) ==================== */
+  if (!session && reauthReason) {
+    return (
+      <div className="min-h-screen bg-[#F8FAFC] flex items-center justify-center p-4">
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="reauth-modal-title"
+          className="w-full max-w-md rounded-2xl bg-white border border-[#E2E8F0] p-6 shadow-xl space-y-4"
+        >
+          <div className="flex items-start gap-3">
+            <div className="w-10 h-10 rounded-xl bg-[#FFF1F2] border border-[#FECDD3] text-[#E11D48] flex items-center justify-center shrink-0">
+              <KeyRound size={19} />
+            </div>
+            <div>
+              <h2
+                id="reauth-modal-title"
+                className="text-base font-extrabold text-[#0F172A]"
+              >
+                세션 만료 · 관리자 재로그인
+              </h2>
+              <p className="mt-1 text-xs text-[#475569] leading-relaxed">
+                {reauthReason}
+              </p>
+            </div>
+          </div>
+
+          <form onSubmit={handleReauthSubmit} className="space-y-3">
+            <div>
+              <label
+                htmlFor="reauth-password"
+                className="block text-xs font-bold text-[#334155] mb-1.5"
+              >
+                관리자 비밀번호
+              </label>
+              <input
+                id="reauth-password"
+                type="password"
+                autoFocus
+                required
+                value={reauthPassword}
+                onChange={(e) => setReauthPassword(e.target.value)}
+                placeholder="비밀번호 재입력"
+                className="w-full h-11 px-3.5 rounded-xl bg-white border border-[#CBD5E1] focus:border-[#0F172A] focus:outline-none text-base"
+              />
+            </div>
+
+            {reauthShowUnlock && (
+              <div>
+                <label
+                  htmlFor="reauth-unlock-code"
+                  className="block text-xs font-bold text-[#BE123C] mb-1.5"
+                >
+                  관리자 비상 잠금해제 PIN (잠금 우회용)
+                </label>
+                <input
+                  id="reauth-unlock-code"
+                  type="password"
+                  autoComplete="off"
+                  value={reauthUnlockCode}
+                  onChange={(e) => setReauthUnlockCode(e.target.value)}
+                  placeholder="비상 잠금해제 PIN 입력"
+                  className="w-full h-11 px-3.5 rounded-xl bg-[#FFF1F2]/40 border border-[#FECDD3] focus:border-[#E11D48] focus:outline-none text-base"
+                />
+              </div>
+            )}
+
+            {reauthError && (
+              <div className="rounded-xl bg-[#FFF1F2] border border-[#FECDD3] px-3 py-2 text-xs font-bold text-[#BE123C]">
+                {reauthError}
+              </div>
+            )}
+
+            <div className="flex items-center gap-2 pt-1">
+              <button
+                type="button"
+                onClick={() => void handleLogout()}
+                className="h-11 px-4 rounded-xl border border-[#E2E8F0] text-xs font-bold text-[#475569] hover:text-[#0F172A] cursor-pointer"
+              >
+                초기 화면으로
+              </button>
+              <button
+                type="submit"
+                disabled={reauthLoading}
+                className="flex-1 h-11 rounded-xl bg-[#E11D48] hover:bg-[#BE123C] disabled:bg-[#FDA4AF] text-white text-sm font-extrabold cursor-pointer"
+              >
+                {reauthLoading ? '재인증 중...' : '재로그인하여 계속하기'}
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    )
+  }
+
   /* ==================== ZERO-SECRET LOGIN GATE ==================== */
-  if (!hasEnteredDashboard && !session) {
+  if (!session) {
     return (
       <div className="min-h-screen bg-[#F8FAFC] flex flex-col items-center justify-center px-4 py-10">
         <div className="w-full max-w-md space-y-5">
@@ -463,7 +580,7 @@ export function AdminPage({
                   htmlFor="admin-password"
                   className="block text-xs font-bold text-[#334155] mb-1.5"
                 >
-                  관리자 비밀번호 (서버 SHA-256 검증)
+                  관리자 비밀번호 (서버 SHA-256 + Salt 검증)
                 </label>
                 <input
                   id="admin-password"
@@ -475,6 +592,26 @@ export function AdminPage({
                   className="w-full h-11 px-3.5 rounded-xl bg-white border border-[#CBD5E1] focus:border-[#0F172A] focus:outline-none text-base"
                 />
               </div>
+
+              {showUnlockField && (
+                <div>
+                  <label
+                    htmlFor="admin-unlock-code"
+                    className="block text-xs font-bold text-[#BE123C] mb-1.5"
+                  >
+                    관리자 비상 잠금해제 PIN (잠금 보호 발동 시)
+                  </label>
+                  <input
+                    id="admin-unlock-code"
+                    type="password"
+                    autoComplete="off"
+                    value={unlockCode}
+                    onChange={(e) => setUnlockCode(e.target.value)}
+                    placeholder="스크립트 속성에 등록한 비상 PIN 입력"
+                    className="w-full h-11 px-3.5 rounded-xl bg-[#FFF1F2]/40 border border-[#FECDD3] focus:border-[#E11D48] focus:outline-none text-base"
+                  />
+                </div>
+              )}
 
               {authError && (
                 <div className="rounded-xl bg-[#FFF1F2] border border-[#FECDD3] px-3.5 py-2.5 text-xs font-bold text-[#BE123C]">
@@ -495,8 +632,18 @@ export function AdminPage({
                   ? '서버 인증 확인 중...'
                   : gasConnected
                     ? '관리자 세션 발급 및 로그인'
-                    : '실서버 URL 연결 후 서버 로그인 활성화'}
+                    : '실서버 URL 연결 필요 (관리자 로그인 비활성)'}
               </button>
+
+              {gasConnected && !showUnlockField && (
+                <button
+                  type="button"
+                  onClick={() => setShowUnlockField(true)}
+                  className="w-full text-center text-[11px] font-semibold text-[#64748B] hover:text-[#0F172A] underline underline-offset-2 cursor-pointer"
+                >
+                  외부 오입력으로 계정이 잠겼나요? 비상 잠금해제 PIN 함께 입력하기
+                </button>
+              )}
             </form>
 
             <div className="rounded-xl bg-[#F8FAFC] border border-[#E2E8F0] p-3.5 text-[11px] text-[#475569] leading-relaxed space-y-1">
@@ -508,13 +655,13 @@ export function AdminPage({
               </p>
             </div>
 
-            {/* Sandbox Entry: rendered ONLY when VITE_GAS_API_URL is NOT configured */}
-            {!gasConnected && (
+            {/* Sandbox Entry: strictly limited to local DEV mode ONLY (dead-code in PROD builds) */}
+            {sandboxAllowed && (
               <div className="pt-4 border-t border-[#E2E8F0] space-y-2.5">
                 <div className="flex items-center justify-between text-xs">
-                  <span className="font-bold text-[#D97706]">[로컬 프리뷰 모드]</span>
+                  <span className="font-bold text-[#D97706]">[로컬 개발 샌드박스]</span>
                   <span className="text-[11px] text-[#64748B]">
-                    VITE_GAS_API_URL 미설정 상태
+                    DEV 전용 (운영 빌드 완전 차단)
                   </span>
                 </div>
                 <button
@@ -523,11 +670,8 @@ export function AdminPage({
                   className="w-full h-11 rounded-xl bg-[#FFFBEB] hover:bg-[#FEF3C7] border border-[#FDE68A] text-[#92400E] text-xs font-extrabold flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
                 >
                   <FlaskConical size={15} />
-                  <span>로컬 UI 샌드박스 미리보기 진입</span>
+                  <span>로컬 개발 UI 미리보기 진입</span>
                 </button>
-                <p className="text-[11px] text-[#64748B] text-center">
-                  실서버 URL을 연결하면 이 버튼은 화면에서 완전히 제거됩니다.
-                </p>
               </div>
             )}
           </div>
@@ -558,25 +702,19 @@ export function AdminPage({
                 </h1>
                 <span
                   className={`text-[10px] font-extrabold px-2 py-0.5 rounded shrink-0 ${
-                    session?.mode === 'gas'
+                    session.mode === 'gas'
                       ? 'bg-[#ECFDF5] text-[#047857] border border-[#A7F3D0]'
-                      : !session
-                        ? 'bg-[#FFF1F2] text-[#BE123C] border border-[#FECDD3]'
-                        : 'bg-[#FFFBEB] text-[#B45309] border border-[#FDE68A]'
+                      : 'bg-[#FFFBEB] text-[#B45309] border border-[#FDE68A]'
                   }`}
                 >
-                  {session?.mode === 'gas'
-                    ? '구글 시트 실서버'
-                    : !session
-                      ? '세션 만료 · 재인증 필요'
-                      : '[로컬 프리뷰 모드]'}
+                  {session.mode === 'gas' ? '구글 시트 실서버' : '[로컬 개발 모드]'}
                 </span>
               </div>
             </div>
           </div>
 
           <div className="flex items-center gap-2 shrink-0">
-            {session?.mode === 'gas' && (
+            {session.mode === 'gas' && (
               <button
                 type="button"
                 disabled={loadingRemote || syncing}
@@ -635,7 +773,7 @@ export function AdminPage({
         </div>
 
         {/* Empty Sheet First-Time Seed Helper */}
-        {remoteEmptyHint && session?.mode === 'gas' && (
+        {remoteEmptyHint && session.mode === 'gas' && (
           <div className="rounded-2xl bg-[#FFFBEB] border border-[#FDE68A] p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div className="text-xs text-[#92400E]">
               <strong className="font-extrabold block mb-0.5">
@@ -752,7 +890,7 @@ export function AdminPage({
             snapshot={draft}
             busy={syncing}
             onChangePolicy={(nextPolicy) => {
-              setDraft((prev) => ({ ...prev, policy: nextPolicy }))
+              setDraftOverride({ ...draft, policy: nextPolicy })
               setDirty(true)
             }}
             onSavePolicy={handleSavePolicy}
@@ -772,80 +910,6 @@ export function AdminPage({
           />
         )}
       </main>
-
-      {/* ==================== UNAUTHORIZED RE-LOGIN MODAL ==================== */}
-      {reauthModalOpen && (
-        <div
-          role="dialog"
-          aria-modal="true"
-          aria-labelledby="reauth-modal-title"
-          className="fixed inset-0 z-50 flex items-center justify-center bg-[#0F172A]/60 p-4"
-        >
-          <div className="w-full max-w-md rounded-2xl bg-white border border-[#E2E8F0] p-6 shadow-2xl space-y-4">
-            <div className="flex items-start gap-3">
-              <div className="w-10 h-10 rounded-xl bg-[#FFF1F2] border border-[#FECDD3] text-[#E11D48] flex items-center justify-center shrink-0">
-                <KeyRound size={19} />
-              </div>
-              <div>
-                <h2
-                  id="reauth-modal-title"
-                  className="text-base font-extrabold text-[#0F172A]"
-                >
-                  세션 만료 · 관리자 재로그인
-                </h2>
-                <p className="mt-1 text-xs text-[#475569] leading-relaxed">
-                  {reauthReason ||
-                    '보안 세션이 만료(UNAUTHORIZED)되어 기존 토큰이 즉시 파기되었습니다. 비밀번호를 다시 입력해 새 토큰을 발급받으세요.'}
-                </p>
-              </div>
-            </div>
-
-            <form onSubmit={handleReauthSubmit} className="space-y-3">
-              <div>
-                <label
-                  htmlFor="reauth-password"
-                  className="block text-xs font-bold text-[#334155] mb-1.5"
-                >
-                  관리자 비밀번호
-                </label>
-                <input
-                  id="reauth-password"
-                  type="password"
-                  autoFocus
-                  required
-                  value={reauthPassword}
-                  onChange={(e) => setReauthPassword(e.target.value)}
-                  placeholder="비밀번호 재입력"
-                  className="w-full h-11 px-3.5 rounded-xl bg-white border border-[#CBD5E1] focus:border-[#0F172A] focus:outline-none text-base"
-                />
-              </div>
-
-              {reauthError && (
-                <div className="rounded-xl bg-[#FFF1F2] border border-[#FECDD3] px-3 py-2 text-xs font-bold text-[#BE123C]">
-                  {reauthError}
-                </div>
-              )}
-
-              <div className="flex items-center gap-2 pt-1">
-                <button
-                  type="button"
-                  onClick={() => void handleLogout()}
-                  className="h-11 px-4 rounded-xl border border-[#E2E8F0] text-xs font-bold text-[#475569] hover:text-[#0F172A] cursor-pointer"
-                >
-                  로그인 화면으로
-                </button>
-                <button
-                  type="submit"
-                  disabled={reauthLoading}
-                  className="flex-1 h-11 rounded-xl bg-[#E11D48] hover:bg-[#BE123C] disabled:bg-[#FDA4AF] text-white text-sm font-extrabold cursor-pointer"
-                >
-                  {reauthLoading ? '재인증 중...' : '재로그인하여 계속하기'}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
     </div>
   )
 }

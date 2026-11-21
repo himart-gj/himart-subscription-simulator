@@ -10,7 +10,7 @@ import {
   Upload,
 } from 'lucide-react'
 import type { CatalogSnapshot, PolicyConfig } from '../../types/domain'
-import { isGasConnected } from '../../services/apiAdapter'
+import { isGasConnected, isLocalSandboxAllowed } from '../../services/apiAdapter'
 import { DEFAULT_POLICY_CONFIG } from '../../utils/calculator'
 
 interface PolicySyncTabProps {
@@ -23,6 +23,12 @@ interface PolicySyncTabProps {
   onResetLocalSeed: () => void
 }
 
+const TIER_ADMIN_LABELS = [
+  '구독플러스 72 (월 4만)',
+  '구독플러스 90 (월 5만)',
+  '구독플러스 108 (월 6만)',
+] as const
+
 export function PolicySyncTab({
   snapshot,
   busy = false,
@@ -34,6 +40,7 @@ export function PolicySyncTab({
 }: PolicySyncTabProps) {
   const { policy } = snapshot
   const gasConnected = isGasConnected()
+  const sandboxAllowed = isLocalSandboxAllowed()
 
   const [importText, setImportText] = useState('')
   const [statusMessage, setStatusMessage] = useState<string | null>(null)
@@ -132,7 +139,7 @@ export function PolicySyncTab({
                     : 'bg-[#FFFBEB] text-[#B45309]'
                 }`}
               >
-                {gasConnected ? '실서버 연동 활성' : '[로컬 프리뷰 모드]'}
+                {gasConnected ? '실서버 연동 활성' : '[로컬 개발 모드]'}
               </span>
             </div>
             <p className="text-xs text-[#64748B] mt-1 leading-relaxed">
@@ -161,7 +168,7 @@ export function PolicySyncTab({
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
           <div>
             <h3 className="text-sm font-extrabold text-[#0F172A]">
-              구독프리드 · 클래스카드 혜택 정책 수치
+              구독프리드(구독플러스 72·90·108) · 클래스카드 혜택 정책 수치
             </h3>
             <p className="text-xs text-[#64748B] mt-0.5">
               프로모션 단가 변경 시 코드 배포 없이 여기서 즉시 수정·저장(`savePolicy`)할 수 있습니다.
@@ -198,8 +205,8 @@ export function PolicySyncTab({
             <div className="grid grid-cols-3 gap-2">
               {(['u40', 'u50', 'u60'] as const).map((tier, idx) => (
                 <div key={tier}>
-                  <label className="block text-[11px] font-bold text-[#64748B] mb-1">
-                    {[4, 5, 6][idx]}만 원권
+                  <label className="block text-[11px] font-bold text-[#64748B] mb-1 truncate">
+                    {TIER_ADMIN_LABELS[idx]}
                   </label>
                   <input
                     type="number"
@@ -220,8 +227,8 @@ export function PolicySyncTab({
             <div className="grid grid-cols-3 gap-2">
               {(['u40', 'u50', 'u60'] as const).map((tier, idx) => (
                 <div key={tier}>
-                  <label className="block text-[11px] font-bold text-[#64748B] mb-1">
-                    {[4, 5, 6][idx]}만 원권
+                  <label className="block text-[11px] font-bold text-[#64748B] mb-1 truncate">
+                    {TIER_ADMIN_LABELS[idx]}
                   </label>
                   <input
                     type="number"
@@ -361,7 +368,7 @@ export function PolicySyncTab({
               <span>JSON 가져오기</span>
             </button>
 
-            {!gasConnected && (
+            {sandboxAllowed && (
               <button
                 type="button"
                 onClick={onResetLocalSeed}

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import {
   AirVent,
   CookingPot,
@@ -8,6 +8,7 @@ import {
   WashingMachine,
   Wind,
 } from 'lucide-react'
+import { sanitizeImageUrl } from '../utils/sanitize'
 
 interface ProductThumbnailProps {
   src?: string
@@ -36,14 +37,10 @@ export function ProductThumbnail({
   className = '',
   iconSize = 32,
 }: ProductThumbnailProps) {
-  const [failed, setFailed] = useState(false)
+  const safeSrc = sanitizeImageUrl(src || '')
+  const [failedSrc, setFailedSrc] = useState<string | null>(null)
 
-  useEffect(() => {
-    setFailed(false)
-  }, [src])
-
-  const trimmed = (src || '').trim()
-  const showFallback = !trimmed || failed
+  const showFallback = !safeSrc || failedSrc === safeSrc
 
   return (
     <div
@@ -58,11 +55,12 @@ export function ProductThumbnail({
         </div>
       ) : (
         <img
-          src={trimmed}
+          src={safeSrc}
           alt={alt}
           loading="lazy"
+          referrerPolicy="no-referrer"
           draggable={false}
-          onError={() => setFailed(true)}
+          onError={() => setFailedSrc(safeSrc)}
           className="h-full w-full object-cover object-center transition-transform duration-200 group-hover:scale-[1.02]"
         />
       )}

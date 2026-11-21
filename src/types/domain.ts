@@ -165,6 +165,7 @@ export interface ConsultationPayload {
   consultChannel: ConsultChannel
   memo: string
   agreedLegalAndPrivacy: boolean
+  honeypot?: string
   summary: {
     mode: CartTermMode
     itemsText: string

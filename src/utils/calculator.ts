@@ -119,7 +119,7 @@ function buildPhaseCalculation(params: {
 /**
  * Master zero-error calculation engine for:
  * - Appliance subscription (36m / 60m / Mixed split phases with NO averaging)
- * - LifeCare (구독프리드 4만/5만/6만, max 12 units, 90 pay / 30 defer / 120 maturity 100% refund)
+ * - LifeCare (구독프리드 공식 명칭: 구독플러스 72 / 구독플러스 90 / 구독플러스 108, max 12 units)
  * - Hi-Class Lotte Card (300,000 spend threshold recognizing LifeCare dues, 18,000/mo once over max term)
  */
 export function calculateBenefitSimulation(input: CalculationInput): CalculationResult {
@@ -192,7 +192,7 @@ export function calculateBenefitSimulation(input: CalculationInput): Calculation
   const lifeCarePerTier: LifeCareTierBreakdown[] = [
     {
       key: 'q40',
-      label: '4만 원권',
+      label: '구독플러스 72',
       unitDues: policy.lifeCareUnitMonthlyDues.u40,
       unitCashback: cashbackTable.u40,
       quantity: safeUnits.q40,
@@ -203,7 +203,7 @@ export function calculateBenefitSimulation(input: CalculationInput): Calculation
     },
     {
       key: 'q50',
-      label: '5만 원권',
+      label: '구독플러스 90',
       unitDues: policy.lifeCareUnitMonthlyDues.u50,
       unitCashback: cashbackTable.u50,
       quantity: safeUnits.q50,
@@ -214,7 +214,7 @@ export function calculateBenefitSimulation(input: CalculationInput): Calculation
     },
     {
       key: 'q60',
-      label: '6만 원권',
+      label: '구독플러스 108',
       unitDues: policy.lifeCareUnitMonthlyDues.u60,
       unitCashback: cashbackTable.u60,
       quantity: safeUnits.q60,
@@ -417,7 +417,7 @@ export function recommendZeroCostLifeCare(params: {
     return best.units
   }
 
-  // If subscription exceeds max 12 units of 60k, return max 60k units
+  // If subscription exceeds max 12 units of 구독플러스 108, return max units
   return { q40: 0, q50: 0, q60: maxUnits }
 }
 
