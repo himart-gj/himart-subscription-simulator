@@ -1,32 +1,75 @@
+/* Hallmark · theme: manifesto (deal) · shape: app screen · posture: restrained */
+/* Hallmark · dismissed 49 · preset row buttons intentionally wrap multi-field title and effective price on narrow Fold screens */
+/* Hallmark · dropped kakaoChatUrl, naverTalkUrl, handleCopyAddress · unused middle StoreInfoSection simplified per user request */
 @import "tailwindcss";
 
 @theme {
-  --font-sans: "Pretendard Variable", Pretendard, Inter, -apple-system, BlinkMacSystemFont, system-ui, Roboto, "Helvetica Neue", "Segoe UI", "Apple SD Gothic Neo", "Noto Sans KR", "Malgun Gothic", sans-serif;
-  --color-canvas: #F8FAFC;
-  --color-surface: #FFFFFF;
-  --color-ink-primary: #0F172A;
-  --color-ink-secondary: #475569;
-  --color-ink-muted: #64748B;
-  --color-hairline: #E2E8F0;
-  --color-brand: #E11D48;
-  --color-brand-hover: #BE123C;
-  --color-brand-soft: #FFF1F2;
-  --color-benefit: #059669;
-  --color-benefit-soft: #ECFDF5;
-  --color-benefit-border: #A7F3D0;
-  --color-notice: #D97706;
-  --color-notice-soft: #FFFBEB;
-  --color-notice-border: #FDE68A;
+  --font-display: "Pretendard Variable", Pretendard, "Apple SD Gothic Neo", "Noto Sans KR", sans-serif;
+  --font-sans: "Pretendard Variable", Pretendard, "Apple SD Gothic Neo", "Noto Sans KR", "Malgun Gothic", sans-serif;
+  --font-mono: "JetBrains Mono", "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+
+  /* 60-30-10 Warm Architectural Stone & Lotte Signal Red System (OKLCH, >0.005 chroma on neutrals) */
+  --color-paper: oklch(0.973 0.006 80);
+  --color-surface: oklch(0.993 0.005 82);
+  --color-field: oklch(0.948 0.008 78);
+  --color-field-hover: oklch(0.924 0.010 78);
+
+  --color-rule: oklch(0.892 0.010 78);
+  --color-rule-strong: oklch(0.785 0.014 75);
+
+  --color-ink: oklch(0.195 0.008 65);
+  --color-ink-hover: oklch(0.280 0.010 65);
+  --color-ink-2: oklch(0.415 0.012 65);
+  --color-muted: oklch(0.540 0.012 65);
+  --color-subtle: oklch(0.665 0.012 68);
+  --color-on-ink: oklch(0.986 0.006 80);
+
+  /* 10% Single Brand Accent: Lotte Himart Signal Red */
+  --color-accent: oklch(0.525 0.202 26);
+  --color-accent-hover: oklch(0.465 0.188 26);
+  --color-accent-ink: oklch(0.993 0.005 82);
+  --color-accent-soft: oklch(0.964 0.016 25);
+  --color-accent-rule: oklch(0.875 0.048 25);
+
+  /* Quiet Editorial Ledger Status Ink (Muted Mineral Forest & Ochre) */
+  --color-positive: oklch(0.420 0.088 156);
+  --color-positive-soft: oklch(0.965 0.014 156);
+  --color-positive-rule: oklch(0.882 0.038 156);
+
+  --color-caution: oklch(0.495 0.115 68);
+  --color-caution-soft: oklch(0.968 0.020 82);
+  --color-caution-rule: oklch(0.892 0.050 80);
 }
 
 @layer base {
-  html {
+  html,
+  body {
+    overflow-x: clip;
     font-family: var(--font-sans);
-    background-color: var(--color-canvas);
-    color: var(--color-ink-primary);
+    background-color: var(--color-paper);
+    color: var(--color-ink);
+    font-variant-numeric: tabular-nums;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
-    scroll-behavior: smooth;
+    scrollbar-color: var(--color-rule-strong) var(--color-paper);
+  }
+
+  ::selection {
+    background-color: var(--color-accent-soft);
+    color: var(--color-accent);
+  }
+
+  h1,
+  h2,
+  h3 {
+    font-family: var(--font-display);
+    word-break: keep-all;
+    overflow-wrap: break-word;
+  }
+
+  h1,
+  h2 {
+    text-wrap: balance;
   }
 
   /* Prevent iOS Safari auto-zoom on form controls */
@@ -34,17 +77,42 @@
   select,
   textarea {
     font-size: 16px;
+    caret-color: var(--color-accent);
   }
 
   button,
   a {
     -webkit-tap-highlight-color: transparent;
   }
+
+  button:focus-visible,
+  a:focus-visible,
+  input:focus-visible,
+  select:focus-visible,
+  textarea:focus-visible {
+    outline: 2px solid var(--color-ink);
+    outline-offset: 2px;
+  }
+
+  button:active {
+    transform: translateY(0.5px);
+  }
+
+  button:disabled,
+  input:disabled,
+  select:disabled,
+  textarea:disabled {
+    cursor: not-allowed;
+  }
 }
 
 .tabular-nums {
   font-variant-numeric: tabular-nums;
   font-feature-settings: "tnum" 1;
+}
+
+.break-keep {
+  word-break: keep-all;
 }
 
 /* Subtle refined scrollbars for desktop sticky receipt */
@@ -57,12 +125,8 @@
 }
 
 .receipt-scroll::-webkit-scrollbar-thumb {
-  background-color: #CBD5E1;
+  background-color: var(--color-rule-strong);
   border-radius: 9999px;
-}
-
-.receipt-scroll::-webkit-scrollbar-thumb:hover {
-  background-color: #94A3B8;
 }
 
 /* Horizontal filter bar without messy scrollbar */

@@ -1,14 +1,10 @@
 import {
   ArrowRight,
-  Banknote,
-  CalendarClock,
-  CheckCircle2,
-  CreditCard,
+  Check,
   Info,
   MessageSquare,
   ShieldCheck,
   SlidersHorizontal,
-  Sparkles,
 } from 'lucide-react'
 import { HERO_SHOWROOM_DATA_URI } from '../assets/heroShowroomImage'
 import type {
@@ -64,529 +60,585 @@ export function HeroQuickSimulator({
       : '구독프리드 미선택'
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
+      {/* 1. EDITORIAL SHOWROOM MASTHEAD (Natural-light photography + quiet Swiss/Korean typography) */}
       <section
-        aria-label="롯데하이마트 경기광주점 메인 쇼룸 및 맞춤 혜택 시뮬레이터"
-        className="rounded-3xl bg-white border border-[#E2E8F0] shadow-[0_10px_36px_rgba(15,23,42,0.06)] overflow-hidden"
+        aria-label="롯데하이마트 경기광주점 가전구독 쇼룸 안내"
+        className="rounded-xl bg-surface border border-rule overflow-hidden"
       >
-        <div className="relative min-h-[220px] sm:min-h-[268px] flex items-end overflow-hidden bg-[#0F172A]">
-          <img
-            src={HERO_SHOWROOM_DATA_URI}
-            alt="롯데하이마트 경기광주점 프리미엄 빌트인 가전 쇼룸"
-            className="absolute inset-0 w-full h-full object-cover object-center opacity-78"
-          />
-          <div className="absolute inset-0 bg-gradient-to-r from-[#0F172A]/92 via-[#0F172A]/72 to-[#0F172A]/28" />
-          <div className="absolute inset-0 bg-gradient-to-t from-[#0F172A]/90 via-transparent to-[#0F172A]/25" />
+        <div className="grid grid-cols-1 lg:grid-cols-12 items-stretch">
+          {/* Natural Sunlit Showroom Photograph (No dark gradient wash or floating badges) */}
+          <figure className="lg:col-span-7 lg:order-2 relative bg-field border-b lg:border-b-0 lg:border-l border-rule">
+            <img
+              src={HERO_SHOWROOM_DATA_URI}
+              alt="롯데하이마트 경기광주점 빌트인 냉장고와 워시타워 가전구독 쇼룸"
+              fetchPriority="high"
+              className="w-full aspect-[16/9] sm:aspect-[21/9] lg:aspect-auto lg:h-full object-cover object-center"
+            />
+            <figcaption className="px-3.5 py-2 bg-surface border-t border-rule text-[11px] text-muted flex items-center justify-between gap-2">
+              <span className="truncate">경기광주점 빌트인 구독 쇼룸 예시</span>
+              <span className="tabular-nums whitespace-nowrap shrink-0">이배재로 8 · 무료주차</span>
+            </figcaption>
+          </figure>
 
-          <div className="relative z-10 w-full px-5 py-5 sm:px-8 sm:py-7 flex flex-col lg:flex-row lg:items-end justify-between gap-4">
-            <div className="max-w-2xl">
-              <div className="flex flex-wrap items-center gap-2 mb-2.5">
-                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-[#E11D48] text-white text-[11px] font-extrabold tracking-tight">
-                  <Sparkles size={12} aria-hidden="true" />
-                  <span>롯데하이마트 경기광주점 공식 혜택 설계관</span>
+          {/* Editorial Headline & Primary Navigation */}
+          <div className="lg:col-span-5 lg:order-1 p-5 sm:p-7 lg:p-8 flex flex-col justify-between gap-5">
+            <div className="space-y-3">
+              <div className="flex flex-wrap items-center gap-2 text-xs">
+                <span className="font-bold text-accent">
+                  롯데하이마트 경기광주점 공식 가전구독
                 </span>
-                <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-white/15 backdrop-blur-xs border border-white/20 text-white text-[11px] font-bold">
-                  <CheckCircle2 size={12} aria-hidden="true" className="text-[#34D399]" />
-                  <span>
-                    {autoOptimizeFreed
-                      ? '천원단위 상조 + 제휴카드 최적 셋팅'
-                      : '구좌 직접 조절 모드'}
-                  </span>
+                <span className="text-rule-strong" aria-hidden="true">|</span>
+                <span className="font-medium text-muted">
+                  {autoOptimizeFreed ? '천원단위 상조 자동 맞춤' : '구좌 직접 조정 중'}
                 </span>
               </div>
 
-              <h2 className="text-[22px] sm:text-[30px] font-black text-white tracking-tight leading-[1.24]">
-                원하는 가전 구독료,{' '}
-                <span className="text-[#FDA4AF]">상조 현금캐시백 + 제휴카드</span>로 부담 없이 시작하세요
+              <h2 className="text-[22px] sm:text-[27px] font-bold text-ink tracking-[-0.03em] leading-[1.3]">
+                원하는 가전 구독료, 상조 캐시백과 제휴카드로 매달 가볍게
               </h2>
-              <p className="mt-1.5 text-xs sm:text-sm text-[#E2E8F0] leading-relaxed">
-                전체 구독료를 약정 개월수로 제휴카드 분할 결제하고, 상조 결합 현금 캐시백으로 천원 단위까지 낮춘 뒤 카드 실적 혜택으로 <strong className="font-extrabold text-[#6EE7B7]">월 체감 0원 이하</strong>까지 내려가는 내역을 투명하게 비교해 드립니다.
+
+              <p className="text-[13px] sm:text-sm text-ink-2 leading-[1.65] break-keep">
+                전체 구독 총액을 약정 개월수(36·60개월)로 제휴카드 분할 결제하고, 매달 계좌로 현금 입금되는 상조 지원금과 제휴카드 캐시백을 반영한 실제 월 체감가를 투명하게 비교해 보세요.
               </p>
             </div>
 
-            <div className="flex flex-wrap items-center gap-2 shrink-0">
+            <div className="flex flex-wrap items-center gap-3 pt-1">
               <button
                 type="button"
                 onClick={() => onOpenCustomizer('products')}
-                className="inline-flex items-center gap-2 h-11 px-4 sm:px-5 rounded-xl bg-white hover:bg-[#F8FAFC] text-[#0F172A] text-xs sm:text-sm font-extrabold shadow-lg transition-colors cursor-pointer"
+                className="inline-flex items-center justify-center gap-2 h-11 px-5 rounded-lg bg-ink hover:bg-ink-hover text-on-ink text-[13px] font-bold transition-colors cursor-pointer"
               >
-                <SlidersHorizontal size={15} aria-hidden="true" className="text-[#E11D48]" />
+                <SlidersHorizontal size={15} aria-hidden="true" />
                 <span>원하는 가전 직접 골라 담기</span>
                 <ArrowRight size={15} aria-hidden="true" />
+              </button>
+
+              <button
+                type="button"
+                onClick={() => onOpenCustomizer('bundles')}
+                className="inline-flex items-center justify-center h-11 px-4 rounded-lg bg-surface hover:bg-field border border-rule-strong text-ink text-[13px] font-semibold transition-colors cursor-pointer"
+              >
+                <span>추천 세트 보기</span>
               </button>
             </div>
           </div>
         </div>
+      </section>
 
-        {presets.length > 0 && (
-          <div className="px-4 py-4 sm:px-7 sm:py-5 border-b border-[#F1F5F9] bg-[#F8FAFC]/75">
-            <div className="flex items-center justify-between gap-2 mb-2.5">
-              <div className="flex items-center gap-2">
-                <span className="text-xs font-extrabold text-[#0F172A]">
-                  원클릭 인기 추천 구성
-                </span>
-                <span className="hidden sm:inline text-[11px] font-medium text-[#64748B]">
-                  카드를 누르면 최적 구좌와 캐시백이 즉시 계산됩니다
-                </span>
-              </div>
-              {!activePresetId && !isEmpty && (
-                <span className="text-[11px] font-extrabold text-[#E11D48] tabular-nums">
-                  내 맞춤 선택 ({result.totalQuantity}대) 적용 중
-                </span>
-              )}
+      {/* 2. ONE-CLICK RECOMMENDED PRESETS (Strictly 1-column full-width rows on Fold & below: grid-cols-1 xl:grid-cols-2) */}
+      {presets.length > 0 && (
+        <section
+          aria-label="인기 추천 구성 바로 선택"
+          className="space-y-3"
+        >
+          <div className="flex flex-wrap items-baseline justify-between gap-2 px-0.5">
+            <div className="flex flex-wrap items-baseline gap-2">
+              <h3 className="text-[16px] sm:text-[17px] font-bold text-ink tracking-tight">
+                인기 추천 구성 원클릭 비교
+              </h3>
+              <span className="text-xs text-muted">
+                항목을 선택하면 아래 명세서가 즉시 바뀝니다
+              </span>
             </div>
+            {!activePresetId && !isEmpty && (
+              <span className="text-xs font-bold text-accent tabular-nums">
+                직접 담은 구성 ({result.totalQuantity}대) 적용 중
+              </span>
+            )}
+          </div>
 
-            <div
-              role="tablist"
-              aria-label="메인 원클릭 추천 구성 4종"
-              className="grid grid-cols-2 lg:grid-cols-4 gap-2.5"
-            >
-              {presets.map((preset) => {
-                const isSelected = activePresetId === preset.id
-                const recUnits = recommendZeroCostLifeCare({
-                  cart: preset.items,
-                  products,
-                  policy,
-                })
-                const sim = calculateBenefitSimulation({
-                  cart: preset.items,
-                  products,
-                  lifeCare: recUnits,
-                  cardEnabled: true,
-                  coverShortfallWithLivingSpend: true,
-                  policy,
-                })
-                const leadProd = productMap.get(preset.items[0]?.productId || '')
+          <div
+            role="tablist"
+            aria-label="메인 원클릭 추천 구성"
+            className="preset-tab-row grid grid-cols-1 xl:grid-cols-2 gap-2.5"
+          >
+            {presets.map((preset) => {
+              const isSelected = activePresetId === preset.id
+              const recUnits = recommendZeroCostLifeCare({
+                cart: preset.items,
+                products,
+                policy,
+              })
+              const sim = calculateBenefitSimulation({
+                cart: preset.items,
+                products,
+                lifeCare: recUnits,
+                cardEnabled: true,
+                coverShortfallWithLivingSpend: true,
+                policy,
+              })
+              const leadProd = productMap.get(preset.items[0]?.productId || '')
+              const termLabel =
+                sim.mode === 'mixed'
+                  ? '36+60개월 혼합'
+                  : `${sim.durationMonths || 60}개월`
 
-                return (
-                  <button
-                    key={preset.id}
-                    type="button"
-                    role="tab"
-                    aria-selected={isSelected}
-                    onClick={() => onSelectPreset(preset)}
-                    className={`group text-left p-2.5 sm:p-3 rounded-2xl border transition-colors cursor-pointer flex items-center gap-2.5 ${
+              return (
+                <button
+                  key={preset.id}
+                  type="button"
+                  role="tab"
+                  aria-selected={isSelected}
+                  onClick={() => onSelectPreset(preset)}
+                  className={`w-full text-left px-3.5 py-3 sm:px-4 sm:py-3.5 rounded-xl border transition-colors cursor-pointer flex items-center gap-3 sm:gap-3.5 ${
+                    isSelected
+                      ? 'bg-surface border-ink ring-1 ring-ink'
+                      : 'bg-surface hover:bg-field/60 border-rule hover:border-rule-strong'
+                  }`}
+                >
+                  {/* Radio Selection Indicator */}
+                  <span
+                    aria-hidden="true"
+                    className={`w-4.5 h-4.5 rounded-full border flex items-center justify-center shrink-0 transition-colors ${
                       isSelected
-                        ? 'bg-[#0F172A] border-[#0F172A] text-white shadow-sm'
-                        : 'bg-white hover:bg-[#FFF1F2]/30 border-[#E2E8F0] hover:border-[#FECDD3] text-[#0F172A]'
+                        ? 'border-accent bg-accent text-accent-ink'
+                        : 'border-rule-strong bg-surface'
                     }`}
                   >
-                    <ProductThumbnail
-                      src={leadProd?.imageUrl}
-                      alt={preset.shortTitle}
-                      category={leadProd?.category}
-                      brand={leadProd?.brand}
-                      className="w-12 h-12 sm:w-14 sm:h-14 rounded-xl shrink-0 border border-[#E2E8F0] bg-white"
-                      iconSize={18}
-                    />
-                    <div className="min-w-0 flex-1">
-                      <div className="flex items-center gap-1 mb-0.5">
-                        <span
-                          className={`inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-extrabold truncate ${
-                            isSelected
-                              ? 'bg-[#E11D48] text-white'
-                              : 'bg-[#FFF1F2] text-[#E11D48]'
-                          }`}
-                        >
+                    {isSelected && <Check size={11} strokeWidth={3} aria-hidden="true" />}
+                  </span>
+
+                  {/* Studio Appliance Thumbnail */}
+                  <ProductThumbnail
+                    src={leadProd?.imageUrl}
+                    alt={preset.shortTitle}
+                    category={leadProd?.category}
+                    brand={leadProd?.brand}
+                    className="w-13 h-13 sm:w-14 sm:h-14 rounded-lg shrink-0 border border-rule bg-field"
+                    iconSize={18}
+                  />
+
+                  {/* Full Single-Row Layout (No Truncated Ellipsis on Fold or Mobile) */}
+                  <div className="min-w-0 flex-1 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1.5 sm:gap-4">
+                    <div className="min-w-0">
+                      <div className="flex flex-wrap items-center gap-1.5 mb-0.5">
+                        <span className="text-[11px] font-bold text-accent">
                           {preset.badge}
                         </span>
+                        <span className="text-[11px] text-muted tabular-nums">
+                          {termLabel}
+                        </span>
                       </div>
-                      <div className="text-xs sm:text-[13px] font-extrabold tracking-tight truncate">
+                      <div className="text-[14px] sm:text-[15px] font-bold text-ink leading-snug break-keep">
                         {preset.shortTitle}
                       </div>
-                      <div
-                        className={`mt-0.5 text-[11px] font-bold tabular-nums truncate ${
-                          isSelected ? 'text-[#6EE7B7]' : 'text-[#059669]'
-                        }`}
-                      >
-                        상조체감 {sim.phaseA.afterLifeCareEffective.toLocaleString('ko-KR')}원 → 카드 시 0원
-                      </div>
                     </div>
-                  </button>
-                )
-              })}
-            </div>
-          </div>
-        )}
 
-        <div className="p-4 sm:p-7 grid grid-cols-1 lg:grid-cols-12 gap-5 lg:gap-6 items-stretch">
-          <div className="order-1 lg:order-2 lg:col-span-6 rounded-2xl bg-[#0F172A] text-white p-4 sm:p-6 flex flex-col justify-between gap-4">
-            <div className="space-y-3.5">
-              <div className="space-y-2 pb-3.5 border-b border-white/10 text-xs tabular-nums">
-                <div className="flex items-start justify-between gap-2">
-                  <div className="min-w-0">
-                    <div className="text-[#CBD5E1] font-bold">
-                      1. 가전 구독료 (제휴카드 필수 · 약정개월 분할결제)
-                    </div>
-                    <div className="text-[11px] text-[#94A3B8]">
-                      총 구독액 {result.overallTotalGross.toLocaleString('ko-KR')}원 ÷ 약정기간 분할 결제 ({phaseA.label})
+                    <div className="sm:text-right tabular-nums shrink-0 flex flex-wrap sm:flex-col items-baseline sm:items-end gap-x-2 gap-y-0.5 pt-0.5 sm:pt-0 border-t sm:border-t-0 border-rule/70">
+                      <span className="text-[11px] text-muted">
+                        원금 {formatKRW(sim.phaseA.grossSubscription)} / 상조체감 {formatKRW(sim.phaseA.afterLifeCareEffective)}
+                      </span>
+                      <span className="text-[13px] sm:text-[14px] font-extrabold text-ink">
+                        카드 반영 시 월 {formatKRW(sim.phaseA.effectiveMonthlyPay)}
+                        {sim.phaseA.monthlySurplusCash > 0 && (
+                          <span className="ml-1 text-[12px] font-bold text-positive">
+                            (+{sim.phaseA.monthlySurplusCash.toLocaleString('ko-KR')}원)
+                          </span>
+                        )}
+                      </span>
                     </div>
                   </div>
-                  <span className="font-extrabold text-white text-sm whitespace-nowrap shrink-0">
-                    월 {phaseA.grossSubscription.toLocaleString('ko-KR')}원
+                </button>
+              )
+            })}
+          </div>
+        </section>
+      )}
+
+      {/* 3. MAIN 12-COL EDITORIAL STATEMENT & APPLIANCE DETAIL (Paper Ledger, Zero Neon/Dark-Slate Slop) */}
+      <section
+        aria-label="선택 구성 및 월별 체감가 명세서"
+        className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start"
+      >
+        {/* RIGHT ON DESKTOP / FIRST ON MOBILE: Clean Paper Financial Statement */}
+        <div className="order-1 lg:order-2 lg:col-span-6 rounded-xl bg-surface border border-ink overflow-hidden">
+          {/* Statement Top Band */}
+          <div className="px-5 py-3.5 bg-ink text-on-ink flex items-center justify-between gap-2">
+            <span className="text-[14px] font-bold tracking-tight">
+              월별 납부 및 캐시백 명세서
+            </span>
+            <span className="text-xs font-medium text-on-ink/80 tabular-nums">
+              {isEmpty
+                ? '품목 선택 대기'
+                : isMixed
+                  ? '36+60개월 혼합 약정'
+                  : `${result.durationMonths || 60}개월 약정 기준`}
+            </span>
+          </div>
+
+          <div className="p-5 sm:p-6 space-y-5">
+            {/* 3-Step Paper Ledger */}
+            <div className="divide-y divide-rule text-xs sm:text-[13px] tabular-nums">
+              {/* Row 1: Subscription Gross */}
+              <div className="pb-3.5 flex items-start justify-between gap-3">
+                <div className="min-w-0 space-y-0.5">
+                  <div className="font-bold text-ink">
+                    1. 가전 구독 월 결제액 (제휴카드 약정개월 분할)
+                  </div>
+                  <div className="text-[11px] text-muted">
+                    총 구독액 {result.overallTotalGross.toLocaleString('ko-KR')}원 ÷ 약정기간 분할 결제 ({phaseA.label})
+                  </div>
+                </div>
+                <span className="font-extrabold text-ink text-sm whitespace-nowrap shrink-0">
+                  월 {phaseA.grossSubscription.toLocaleString('ko-KR')}원
+                </span>
+              </div>
+
+              {/* Row 2: Freed Cash Deposit */}
+              <div className="py-3.5 space-y-2">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0 space-y-0.5">
+                    <div className="font-bold text-ink">
+                      2. 구독프리드 상조 지원금 (매월 현금 캐시백 입금)
+                    </div>
+                    <div className="text-[11px] text-muted">
+                      상조 월 회비 {result.lifeCareMonthlyDues.toLocaleString('ko-KR')}원은 제휴카드 납부, 지원금은 계좌 현금 입금
+                    </div>
+                  </div>
+                  <span className="font-extrabold text-accent text-sm whitespace-nowrap shrink-0">
+                    -월 {phaseA.lifeCareCashback.toLocaleString('ko-KR')}원
                   </span>
                 </div>
 
-                <div className="rounded-xl bg-white/6 border border-white/10 p-3 space-y-1">
-                  <div className="flex items-center justify-between gap-2">
-                    <span className="text-[#6EE7B7] font-bold">
-                      2. 구독프리드 상조 지원 (현금 캐시백 입금)
-                    </span>
-                    <span className="font-extrabold text-[#34D399] whitespace-nowrap shrink-0">
-                      -월 {phaseA.lifeCareCashback.toLocaleString('ko-KR')}원
-                    </span>
-                  </div>
-                  <div className="text-[11px] text-[#94A3B8]">
-                    상조 회비 월 {result.lifeCareMonthlyDues.toLocaleString('ko-KR')}원 <strong className="text-[#E2E8F0]">제휴카드 납부</strong> · 지원금은 매월 <strong className="text-[#E2E8F0]">계좌 현금 입금</strong>
-                  </div>
-                  <div className="pt-1.5 mt-1 border-t border-white/10 flex items-center justify-between gap-2">
-                    <span className="text-[11px] font-bold text-[#F8FAFC]">
-                      제휴카드 제외 · 상조 결합 후 1차 월 체감가
-                    </span>
-                    <span className="text-sm font-black text-[#FDE68A] whitespace-nowrap shrink-0">
-                      월 {phaseA.afterLifeCareEffective.toLocaleString('ko-KR')}원
-                    </span>
-                  </div>
-                </div>
-
-                <div className="rounded-xl bg-white/6 border border-white/10 p-3 space-y-2">
-                  <div className="flex items-center justify-between gap-2">
-                    <span className="inline-flex items-center gap-1 text-[#CBD5E1] font-bold">
-                      <CreditCard size={13} aria-hidden="true" className="text-[#38BDF8]" />
-                      <span>3. Hi-Class 제휴카드 실적 추가 혜택</span>
-                    </span>
-                    <span className="font-extrabold text-[#34D399] whitespace-nowrap shrink-0">
-                      {result.cardBenefitActive
-                        ? `-월 ${policy.cardMonthlyCashback.toLocaleString('ko-KR')}원`
-                        : '미적용 (0원)'}
-                    </span>
-                  </div>
-
-                  {result.cardAutoMetByLifeCare ? (
-                    <div className="text-[11px] text-[#6EE7B7] font-semibold">
-                      상조 월 회비({formatKRW(result.cardRecognizedSpend)}) 제휴카드 납부만으로 전월 실적 30만 원 자동 충족! (추가 사용 0원)
-                    </div>
-                  ) : (
-                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                      <div className="text-[11px] text-[#CBD5E1] leading-snug">
-                        상조회비 실적 {formatKRW(result.cardRecognizedSpend)} 외{' '}
-                        <strong className="text-[#FDE68A]">
-                          생활비 월 {formatKRW(result.cardShortfall)} 추가 사용 시
-                        </strong>{' '}
-                        월 {formatKRW(policy.cardMonthlyCashback)} 할인
-                      </div>
-                      <button
-                        type="button"
-                        role="switch"
-                        aria-checked={result.cardCoverShortfall}
-                        onClick={() => onToggleCoverShortfall(!result.cardCoverShortfall)}
-                        className={`self-start sm:self-auto px-2.5 py-1 rounded-lg text-[11px] font-extrabold transition-colors whitespace-nowrap shrink-0 cursor-pointer ${
-                          result.cardCoverShortfall
-                            ? 'bg-[#10B981] text-[#052E16]'
-                            : 'bg-white/15 text-[#CBD5E1]'
-                        }`}
-                      >
-                        {result.cardCoverShortfall ? '추가실적 충족 ON' : '상조회비만 사용'}
-                      </button>
-                    </div>
-                  )}
+                <div className="rounded-lg bg-field px-3 py-2 flex items-center justify-between gap-2">
+                  <span className="text-[11px] font-semibold text-ink-2">
+                    제휴카드 혜택 제외, 상조 결합 1차 월 체감가
+                  </span>
+                  <span className="text-[13px] font-extrabold text-ink whitespace-nowrap shrink-0">
+                    월 {phaseA.afterLifeCareEffective.toLocaleString('ko-KR')}원
+                  </span>
                 </div>
               </div>
 
-              <div className="rounded-2xl bg-[#064E3B]/60 border border-[#10B981]/45 p-4">
-                <div className="flex items-center justify-between gap-2 mb-1">
-                  <span className="text-xs font-bold text-[#A7F3D0] truncate">
-                    {isMixed
-                      ? '1~36개월차 최종 고객 월 체감가'
-                      : `${result.durationMonths || 60}개월 최종 고객 월 체감가`}
+              {/* Row 3: Affiliate Card Cashback */}
+              <div className="pt-3.5 space-y-2">
+                <div className="flex items-center justify-between gap-3">
+                  <span className="font-bold text-ink">
+                    3. Hi-Class 제휴카드 캐시백 (조건 충족 시)
                   </span>
-                  {isZeroEffective && (
-                    <span className="px-2 py-0.5 rounded-md bg-[#10B981] text-[#052E16] text-[10px] font-black whitespace-nowrap shrink-0">
-                      구독료 전액 상쇄
-                    </span>
-                  )}
+                  <span className="font-extrabold text-accent text-sm whitespace-nowrap shrink-0">
+                    {result.cardBenefitActive
+                      ? `-월 ${policy.cardMonthlyCashback.toLocaleString('ko-KR')}원`
+                      : '미적용 (0원)'}
+                  </span>
                 </div>
 
-                <div className="flex flex-wrap items-baseline gap-x-2.5 gap-y-1">
-                  <div className="flex items-baseline gap-1 text-white whitespace-nowrap">
-                    <span className="text-sm font-bold text-[#A7F3D0]">월 체감</span>
-                    <SpringNumber
-                      value={isEmpty ? 0 : phaseA.effectiveMonthlyPay}
-                      suffix="원"
-                      className="text-[30px] sm:text-[36px] font-black tracking-tight tabular-nums text-white"
-                    />
-                  </div>
-                  {hasExtraCashback && !isEmpty && (
-                    <span className="inline-flex items-center px-2.5 py-1 rounded-lg bg-[#ECFDF5] text-[#047857] text-xs font-extrabold tabular-nums whitespace-nowrap">
-                      매월 +{phaseA.monthlySurplusCash.toLocaleString('ko-KR')}원 현금 입금 플러스
-                    </span>
-                  )}
-                </div>
-
-                {isMixed && result.phaseB && (
-                  <div className="mt-2 pt-2 border-t border-white/10 flex items-center justify-between gap-2 text-[11px] text-[#D1FAE5] tabular-nums">
-                    <span className="whitespace-nowrap">37~60개월차 최종 체감가</span>
-                    <span className="font-extrabold whitespace-nowrap">
-                      {result.phaseB.monthlySurplusCash > 0
-                        ? `체감 0원 (+${result.phaseB.monthlySurplusCash.toLocaleString('ko-KR')}원/월 더 받음)`
-                        : `월 ${result.phaseB.effectiveMonthlyPay.toLocaleString('ko-KR')}원`}
-                    </span>
+                {result.cardAutoMetByLifeCare ? (
+                  <p className="text-[11px] font-semibold text-positive">
+                    상조 월 회비({formatKRW(result.cardRecognizedSpend)}) 카드 납부만으로 전월 실적 30만 원 자동 충족 (추가 지출 0원)
+                  </p>
+                ) : (
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 rounded-lg bg-field px-3 py-2">
+                    <div className="text-[11px] text-ink-2 leading-snug">
+                      상조회비 실적 {formatKRW(result.cardRecognizedSpend)} 외{' '}
+                      <strong className="font-bold text-ink">
+                        생활비 월 {formatKRW(result.cardShortfall)} 추가 사용 시
+                      </strong>{' '}
+                      월 {formatKRW(policy.cardMonthlyCashback)} 캐시백 적용
+                    </div>
+                    <button
+                      type="button"
+                      role="switch"
+                      aria-checked={result.cardCoverShortfall}
+                      onClick={() => onToggleCoverShortfall(!result.cardCoverShortfall)}
+                      className={`self-start sm:self-auto px-2.5 py-1 rounded text-[11px] font-bold transition-colors whitespace-nowrap shrink-0 cursor-pointer border ${
+                        result.cardCoverShortfall
+                          ? 'bg-ink border-ink text-on-ink'
+                          : 'bg-surface border-rule-strong text-ink-2'
+                      }`}
+                    >
+                      {result.cardCoverShortfall ? '추가실적 반영 ON' : '상조회비만 반영'}
+                    </button>
                   </div>
                 )}
               </div>
+            </div>
 
-              {result.totalLifeCareUnits > 0 && (
-                <div className="rounded-xl bg-white/7 border border-white/12 px-3.5 py-2.5 space-y-1 tabular-nums">
-                  <div className="flex items-center justify-between gap-2 text-xs">
-                    <span className="inline-flex items-center gap-1.5 font-bold text-[#E2E8F0] truncate">
-                      <ShieldCheck size={14} aria-hidden="true" className="text-[#34D399] shrink-0" />
-                      <span className="truncate">{result.lifeCareMaturityMonths}회 만기 시 상조 납입 원금 100% 환급</span>
-                    </span>
-                    <span className="font-extrabold text-[#34D399] text-sm whitespace-nowrap shrink-0">
-                      <SpringNumber value={result.lifeCareMaturityRefundTotal} suffix="원" />
-                    </span>
-                  </div>
-                  <p className="text-[11px] text-[#94A3B8] leading-snug">
-                    제휴카드 월 {result.lifeCareMonthlyDues.toLocaleString('ko-KR')}원 × {result.lifeCarePayMonths}회 납입 후 {result.lifeCareDeferMonths}회 거치(0원) · 만기 미이용 해지 시 전액 환급
-                  </p>
+            {/* Final Customer Effective Price Box */}
+            <div className="rounded-xl bg-field border border-rule-strong p-4 sm:p-5 space-y-2">
+              <div className="flex items-center justify-between gap-2">
+                <span className="text-xs font-bold text-ink-2">
+                  {isMixed
+                    ? '1~36개월차 최종 고객 월 체감가'
+                    : `${result.durationMonths || 60}개월 최종 고객 월 체감가`}
+                </span>
+                {isZeroEffective && !isEmpty && (
+                  <span className="px-2 py-0.5 rounded bg-surface border border-rule text-[11px] font-bold text-ink whitespace-nowrap shrink-0">
+                    구독료 전액 상쇄
+                  </span>
+                )}
+              </div>
+
+              <div className="flex flex-wrap items-baseline justify-between gap-2">
+                <div className="flex items-baseline gap-1.5 whitespace-nowrap">
+                  <span className="text-sm font-bold text-ink-2">월 체감</span>
+                  <SpringNumber
+                    value={isEmpty ? 0 : phaseA.effectiveMonthlyPay}
+                    suffix="원"
+                    className="text-[30px] sm:text-[34px] font-black tracking-tight tabular-nums text-ink"
+                  />
+                </div>
+                {hasExtraCashback && !isEmpty && (
+                  <span className="inline-flex items-center px-2.5 py-1 rounded-md bg-positive-soft border border-positive-rule text-positive text-xs font-bold tabular-nums whitespace-nowrap">
+                    매월 +{phaseA.monthlySurplusCash.toLocaleString('ko-KR')}원 현금 입금
+                  </span>
+                )}
+              </div>
+
+              {isMixed && result.phaseB && (
+                <div className="pt-2 border-t border-rule flex items-center justify-between gap-2 text-xs text-ink-2 tabular-nums">
+                  <span>37~60개월차 최종 체감가</span>
+                  <span className="font-bold text-ink">
+                    {result.phaseB.monthlySurplusCash > 0
+                      ? `체감 0원 (+${result.phaseB.monthlySurplusCash.toLocaleString('ko-KR')}원/월 입금)`
+                      : `월 ${result.phaseB.effectiveMonthlyPay.toLocaleString('ko-KR')}원`}
+                  </span>
                 </div>
               )}
             </div>
 
-            <div className="space-y-2.5 pt-1">
+            {/* 120-Month Maturity Principal Refund Summary */}
+            {result.totalLifeCareUnits > 0 && (
+              <div className="rounded-lg bg-surface border border-rule px-3.5 py-3 space-y-1 tabular-nums">
+                <div className="flex items-center justify-between gap-2 text-xs">
+                  <span className="inline-flex items-center gap-1.5 font-bold text-ink">
+                    <ShieldCheck size={14} aria-hidden="true" className="text-positive shrink-0" />
+                    <span>{result.lifeCareMaturityMonths}회 만기 시 상조 납입 원금 100% 환급</span>
+                  </span>
+                  <span className="font-extrabold text-ink text-sm whitespace-nowrap shrink-0">
+                    <SpringNumber value={result.lifeCareMaturityRefundTotal} suffix="원" />
+                  </span>
+                </div>
+                <p className="text-[11px] text-muted leading-snug">
+                  제휴카드 월 {result.lifeCareMonthlyDues.toLocaleString('ko-KR')}원 × {result.lifeCarePayMonths}회 납입 후 {result.lifeCareDeferMonths}회 거치(0원), 만기 미이용 해지 시 전액 환급
+                </p>
+              </div>
+            )}
+
+            {/* Primary Consultation CTA + Monthly Price Variability Note */}
+            <div className="space-y-2.5">
               <button
                 type="button"
                 onClick={onOpenConsultModal}
-                className="w-full h-12 sm:h-13 px-4 rounded-xl bg-[#E11D48] hover:bg-[#BE123C] text-white text-sm sm:text-[15px] font-extrabold flex items-center justify-center gap-2 shadow-[0_6px_20px_rgba(225,29,72,0.35)] transition-colors active:scale-[0.99] cursor-pointer whitespace-nowrap"
+                className="w-full h-12 px-4 rounded-lg bg-accent hover:bg-accent-hover text-accent-ink text-sm sm:text-[15px] font-bold flex items-center justify-center gap-2 transition-colors cursor-pointer whitespace-nowrap"
               >
-                <MessageSquare size={17} aria-hidden="true" className="shrink-0" />
-                <span>이 구성 상세 견적 · 환급표 카톡으로 받기</span>
+                <MessageSquare size={16} aria-hidden="true" className="shrink-0" />
+                <span>이 구성 상세 견적 및 환급표 카톡으로 받기</span>
               </button>
 
-              <p className="text-[11px] text-[#94A3B8] leading-snug flex items-start gap-1.5">
-                <Info size={13} aria-hidden="true" className="shrink-0 mt-0.5 text-[#CBD5E1]" />
+              <p className="text-[11px] text-muted leading-snug flex items-start gap-1.5">
+                <Info size={13} aria-hidden="true" className="shrink-0 mt-0.5 text-subtle" />
                 <span>
-                  표시 가격은 당월 기준이며 <strong className="text-[#E2E8F0]">월별 프로모션·행사 일정에 따라 구독료가 일부 변동</strong>될 수 있습니다(상담 시 당일 최적 행사 혜택 적용).
+                  표시 구독료는 당월 업로드 기준이며 월별 프로모션 및 행사 일정에 따라 일부 변동될 수 있습니다(상담 시 당일 행사 혜택가 안내).
                 </span>
               </p>
             </div>
           </div>
+        </div>
 
-          <div className="order-2 lg:order-1 lg:col-span-6 flex flex-col gap-4">
-            <div className="space-y-3">
-              <div className="flex items-center justify-between gap-2">
-                <div className="flex items-center gap-2 min-w-0">
-                  <span className="text-sm font-extrabold text-[#0F172A] whitespace-nowrap">
-                    선택된 구독 가전 상세
+        {/* LEFT ON DESKTOP / SECOND ON MOBILE: Selected Appliance Breakdown & Freed Summary */}
+        <div className="order-2 lg:order-1 lg:col-span-6 space-y-4">
+          <div className="rounded-xl bg-surface border border-rule p-5 sm:p-6 space-y-4">
+            <div className="flex items-center justify-between gap-2 pb-3 border-b border-rule">
+              <div className="flex items-center gap-2 min-w-0">
+                <h3 className="text-[15px] font-bold text-ink whitespace-nowrap">
+                  선택된 구독 가전 내역
+                </h3>
+                {!isEmpty && (
+                  <span className="px-2 py-0.5 rounded bg-field text-[11px] font-bold text-ink-2 tabular-nums whitespace-nowrap">
+                    총 {result.totalQuantity}대 ({isMixed ? '36+60개월 혼합' : `${result.durationMonths}개월`})
                   </span>
-                  {!isEmpty && (
-                    <span className="px-2 py-0.5 rounded-md bg-[#F1F5F9] text-[11px] font-bold text-[#334155] tabular-nums whitespace-nowrap">
-                      총 {result.totalQuantity}대 · {isMixed ? '36+60개월 혼합' : `${result.durationMonths}개월`}
-                    </span>
-                  )}
-                </div>
+                )}
+              </div>
+              <button
+                type="button"
+                onClick={() => onOpenCustomizer('products')}
+                className="inline-flex items-center gap-1 text-xs font-bold text-accent hover:underline whitespace-nowrap shrink-0 cursor-pointer"
+              >
+                <span>품목 변경하기</span>
+                <ArrowRight size={13} aria-hidden="true" />
+              </button>
+            </div>
+
+            {isEmpty ? (
+              <div className="rounded-lg border border-dashed border-rule-strong bg-field/50 p-8 text-center space-y-3">
+                <p className="text-sm font-bold text-ink-2">
+                  위 추천 구성을 선택하거나 원하는 가전을 직접 담아보세요
+                </p>
                 <button
                   type="button"
                   onClick={() => onOpenCustomizer('products')}
-                  className="inline-flex items-center gap-1 text-xs font-extrabold text-[#E11D48] hover:underline whitespace-nowrap shrink-0 cursor-pointer"
+                  className="inline-flex items-center gap-1.5 h-10 px-4 rounded-lg bg-ink text-on-ink text-xs font-bold cursor-pointer"
                 >
-                  <span>다른 가전 골라 담기</span>
-                  <ArrowRight size={13} aria-hidden="true" />
+                  <span>가전 선택 화면 열기</span>
+                  <ArrowRight size={14} aria-hidden="true" />
                 </button>
               </div>
-
-              {isEmpty ? (
-                <div className="rounded-2xl border border-dashed border-[#CBD5E1] bg-[#F8FAFC] p-8 text-center space-y-3">
-                  <p className="text-sm font-bold text-[#334155]">
-                    위 추천 구성을 누르거나 원하는 가전을 직접 골라보세요
-                  </p>
-                  <button
-                    type="button"
-                    onClick={() => onOpenCustomizer('products')}
-                    className="inline-flex items-center gap-1.5 h-10 px-4 rounded-xl bg-[#0F172A] text-white text-xs font-extrabold cursor-pointer"
-                  >
-                    <span>가전 선택 화면 열기</span>
-                    <ArrowRight size={14} aria-hidden="true" />
-                  </button>
-                </div>
-              ) : result.lines.length === 1 ? (
-                (() => {
-                  const line = result.lines[0]
-                  return (
-                    <div className="rounded-2xl bg-[#F8FAFC] border border-[#E2E8F0] overflow-hidden">
-                      <div className="grid grid-cols-1 sm:grid-cols-12 items-center">
-                        <div className="sm:col-span-5 bg-white p-3 sm:p-4 border-b sm:border-b-0 sm:border-r border-[#E2E8F0]">
-                          <ProductThumbnail
-                            src={line.product.imageUrl}
-                            alt={line.product.name}
-                            category={line.product.category}
-                            brand={line.product.brand}
-                            className="aspect-[4/3] w-full rounded-xl bg-white"
-                            iconSize={32}
-                          />
-                        </div>
-                        <div className="sm:col-span-7 p-4 space-y-2">
-                          <div className="flex flex-wrap items-center gap-1.5">
-                            <span className="px-2 py-0.5 rounded-md bg-[#0F172A] text-white text-[11px] font-bold">
-                              {line.product.brand}
-                            </span>
-                            <span className="px-2 py-0.5 rounded-md bg-white border border-[#CBD5E1] text-[11px] font-bold text-[#334155] tabular-nums">
-                              {line.term}개월 제휴카드 분할결제
-                            </span>
-                          </div>
-                          <h3 className="text-base sm:text-lg font-extrabold text-[#0F172A] leading-snug">
-                            {line.product.name}
-                          </h3>
-                          <div className="flex flex-wrap gap-1">
-                            {line.product.careTags.map((tag) => (
-                              <span
-                                key={tag}
-                                className="px-2 py-0.5 rounded bg-white border border-[#E2E8F0] text-[11px] font-semibold text-[#475569]"
-                              >
-                                {tag}
-                              </span>
-                            ))}
-                          </div>
-                          <div className="pt-2 border-t border-[#E2E8F0] flex items-baseline justify-between gap-2 tabular-nums">
-                            <span className="text-xs font-semibold text-[#64748B]">
-                              총 구독액 {line.contractTotal.toLocaleString('ko-KR')}원
-                            </span>
-                            <span className="text-sm font-extrabold text-[#0F172A]">
-                              월 환산 {line.lineTotal.toLocaleString('ko-KR')}원
-                            </span>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  )
-                })()
-              ) : (
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-                  {result.lines.map((line) => (
-                    <div
-                      key={`hero-${line.product.id}-${line.term}`}
-                      className="flex items-center gap-3 p-3 rounded-2xl bg-[#F8FAFC] border border-[#E2E8F0]"
-                    >
+            ) : result.lines.length === 1 ? (
+              (() => {
+                const line = result.lines[0]
+                return (
+                  <div className="grid grid-cols-1 sm:grid-cols-12 gap-4 items-center">
+                    <div className="sm:col-span-5">
                       <ProductThumbnail
                         src={line.product.imageUrl}
                         alt={line.product.name}
                         category={line.product.category}
                         brand={line.product.brand}
-                        className="w-16 h-14 rounded-xl shrink-0 border border-[#E2E8F0] bg-white"
-                        iconSize={22}
+                        className="aspect-[4/3] w-full rounded-lg border border-rule bg-field"
+                        iconSize={28}
                       />
-                      <div className="min-w-0 flex-1">
-                        <div className="flex items-center gap-1.5">
-                          <span className="text-[11px] font-bold text-[#64748B]">
-                            {line.product.brand}
+                    </div>
+                    <div className="sm:col-span-7 space-y-2">
+                      <div className="flex flex-wrap items-center gap-1.5 text-[11px]">
+                        <span className="px-2 py-0.5 rounded bg-ink text-on-ink font-bold">
+                          {line.product.brand}
+                        </span>
+                        <span className="px-2 py-0.5 rounded bg-field border border-rule font-semibold text-ink-2 tabular-nums">
+                          {line.term}개월 제휴카드 분할결제
+                        </span>
+                      </div>
+                      <h4 className="text-base sm:text-[17px] font-bold text-ink leading-snug break-keep">
+                        {line.product.name}
+                      </h4>
+                      <div className="flex flex-wrap gap-1">
+                        {line.product.careTags.map((tag) => (
+                          <span
+                            key={tag}
+                            className="px-2 py-0.5 rounded bg-field text-[11px] font-medium text-ink-2"
+                          >
+                            {tag}
                           </span>
-                          <span className="px-1.5 py-0.5 rounded bg-white border border-[#E2E8F0] text-[10px] font-bold text-[#334155] tabular-nums">
-                            {line.term}개월
-                          </span>
-                          {line.quantity > 1 && (
-                            <span className="text-[10px] font-extrabold text-[#E11D48] tabular-nums">
-                              ×{line.quantity}
-                            </span>
-                          )}
-                        </div>
-                        <div className="text-[13px] font-extrabold text-[#0F172A] truncate mt-0.5">
-                          {line.product.name}
-                        </div>
-                        <div className="text-[11px] font-semibold text-[#64748B] tabular-nums mt-0.5">
-                          월 환산 {line.lineTotal.toLocaleString('ko-KR')}원 (총 {(line.contractTotal / 10000).toFixed(0)}만원)
-                        </div>
+                        ))}
+                      </div>
+                      <div className="pt-2.5 border-t border-rule flex items-baseline justify-between gap-2 tabular-nums">
+                        <span className="text-xs text-muted">
+                          총 구독액 {line.contractTotal.toLocaleString('ko-KR')}원
+                        </span>
+                        <span className="text-sm font-bold text-ink">
+                          원 구독료 월 {line.lineTotal.toLocaleString('ko-KR')}원
+                        </span>
                       </div>
                     </div>
-                  ))}
-                </div>
-              )}
-            </div>
-
-            <div className="space-y-3">
-              {!isEmpty && (
-                <div className="rounded-2xl bg-[#F8FAFC] border border-[#E2E8F0] p-4 space-y-2">
-                  <div className="flex items-center justify-between gap-2">
-                    <span className="text-xs font-extrabold text-[#0F172A]">
-                      자동 추천된 상조 결합 구좌 ({result.totalLifeCareUnits}구좌)
-                    </span>
-                    <span className="text-[11px] font-bold text-[#059669] tabular-nums">
-                      현금 캐시백 월 {formatKRW(result.lifeCareMonthlyCashback)}
-                    </span>
                   </div>
-                  <div className="text-xs font-bold text-[#334155]">
-                    {freedSummaryLabel}
+                )
+              })()
+            ) : (
+              <div className="divide-y divide-rule">
+                {result.lines.map((line) => (
+                  <div
+                    key={`hero-${line.product.id}-${line.term}`}
+                    className="py-3 first:pt-0 last:pb-0 flex items-center gap-3"
+                  >
+                    <ProductThumbnail
+                      src={line.product.imageUrl}
+                      alt={line.product.name}
+                      category={line.product.category}
+                      brand={line.product.brand}
+                      className="w-15 h-13 rounded-lg shrink-0 border border-rule bg-field"
+                      iconSize={20}
+                    />
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-1.5 text-[11px]">
+                        <span className="font-bold text-ink-2">
+                          {line.product.brand}
+                        </span>
+                        <span className="text-muted tabular-nums">
+                          {line.term}개월 약정
+                        </span>
+                        {line.quantity > 1 && (
+                          <span className="font-bold text-accent tabular-nums">
+                            ×{line.quantity}
+                          </span>
+                        )}
+                      </div>
+                      <div className="text-[13px] sm:text-sm font-bold text-ink leading-snug break-keep mt-0.5">
+                        {line.product.name}
+                      </div>
+                      <div className="text-[11px] text-muted tabular-nums mt-0.5">
+                        원 구독료 월 {line.lineTotal.toLocaleString('ko-KR')}원 (총 {(line.contractTotal / 10000).toFixed(0)}만원)
+                      </div>
+                    </div>
                   </div>
-                  <p className="text-[11px] text-[#64748B] leading-relaxed">
-                    상조 결합만으로 무리하게 0원을 맞추지 않고 <strong className="text-[#0F172A]">천원 단위 잔액({formatKRW(phaseA.afterLifeCareEffective)})</strong>만 남긴 뒤, 필수 발급 제휴카드 혜택으로 부담 없이 0원 이하가 되도록 최적화한 구성입니다.
-                  </p>
-                </div>
-              )}
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-                <button
-                  type="button"
-                  onClick={() => onOpenCustomizer('products')}
-                  className="h-11 px-4 rounded-xl bg-[#0F172A] hover:bg-[#1E293B] text-white text-xs sm:text-[13px] font-extrabold flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
-                >
-                  <SlidersHorizontal size={14} aria-hidden="true" />
-                  <span>원하는 가전 골라 담기 (화면 전환)</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => onOpenCustomizer('bundles')}
-                  className="h-11 px-4 rounded-xl bg-white hover:bg-[#F8FAFC] border border-[#CBD5E1] text-[#0F172A] text-xs sm:text-[13px] font-extrabold flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
-                >
-                  <span>지점 추천 세트 더보기 · 구좌 직접조정</span>
-                  <ArrowRight size={14} aria-hidden="true" />
-                </button>
+                ))}
               </div>
+            )}
+
+            {/* Auto-Matched Freed Breakdown */}
+            {!isEmpty && (
+              <div className="rounded-lg bg-field border border-rule p-3.5 space-y-1.5">
+                <div className="flex items-center justify-between gap-2">
+                  <span className="text-xs font-bold text-ink">
+                    자동 맞춤 결합 구좌 ({result.totalLifeCareUnits}구좌)
+                  </span>
+                  <span className="text-xs font-bold text-positive tabular-nums">
+                    현금 캐시백 월 {formatKRW(result.lifeCareMonthlyCashback)}
+                  </span>
+                </div>
+                <div className="text-xs font-semibold text-ink-2">
+                  {freedSummaryLabel}
+                </div>
+                <p className="text-[11px] text-muted leading-relaxed">
+                  상조 혜택만으로 무리하게 0원을 맞추지 않고 천원 단위 잔액({formatKRW(phaseA.afterLifeCareEffective)})만 남긴 뒤, 필수 발급 제휴카드 캐시백으로 0원 이하가 되도록 설계한 추천안입니다.
+                </p>
+              </div>
+            )}
+
+            {/* Dedicated Page-Switch Action Row */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-1">
+              <button
+                type="button"
+                onClick={() => onOpenCustomizer('products')}
+                className="h-11 px-4 rounded-lg bg-ink hover:bg-ink-hover text-on-ink text-xs sm:text-[13px] font-bold flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+              >
+                <SlidersHorizontal size={14} aria-hidden="true" />
+                <span>원하는 가전 직접 골라 담기</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => onOpenCustomizer('bundles')}
+                className="h-11 px-4 rounded-lg bg-surface hover:bg-field border border-rule-strong text-ink text-xs sm:text-[13px] font-semibold flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+              >
+                <span>추천 세트 보기 및 구좌 조정</span>
+                <ArrowRight size={14} aria-hidden="true" />
+              </button>
             </div>
           </div>
-        </div>
 
-        <div className="px-4 py-3 sm:px-7 bg-[#F8FAFC] border-t border-[#E2E8F0] text-[11px] text-[#64748B] leading-relaxed">
-          <strong className="font-bold text-[#334155]">필수 안내:</strong> 롯데하이마트 가전 구독(제휴카드 약정개월 결제)과 선불식 할부거래(구독프리드 상조·120회 만기)는 별개 계약이며, 상조 서비스 미이용 후 120회 만기 완료 익월 해지 신청 시 납입 원금 100%가 환급됩니다.
+          <p className="px-1 text-[11px] text-muted leading-relaxed">
+            <strong className="font-bold text-ink-2">필수 안내:</strong> 롯데하이마트 가전 구독(제휴카드 약정개월 분할결제)과 선불식 할부거래(구독프리드 상조, 120회 만기)는 별개 계약이며, 상조 서비스 미이용 후 120회 만기 완료 익월 해지 신청 시 납입 원금 100%가 환급됩니다.
+          </p>
         </div>
       </section>
 
-      <section aria-label="하이마트 구독 × 구독프리드 핵심 진행 방식" className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div className="rounded-2xl bg-white border border-[#E2E8F0] p-5 flex items-start gap-3.5">
-          <div className="w-10 h-10 rounded-xl bg-[#FFF1F2] border border-[#FECDD3] text-[#E11D48] flex items-center justify-center shrink-0">
-            <CreditCard size={19} aria-hidden="true" />
-          </div>
-          <div>
-            <div className="text-[11px] font-extrabold text-[#E11D48] mb-0.5">STEP 01 · 제휴카드 필수 결제</div>
-            <h3 className="text-sm font-extrabold text-[#0F172A]">약정 개월수대로 총액 분할 결제</h3>
-            <p className="mt-1 text-xs text-[#64748B] leading-relaxed">
-              하이마트 가전 구독은 제휴카드 발급을 통해 전체 구독 총액을 선택하신 36개월·60개월 기간대로 나누어 결제합니다.
-            </p>
-          </div>
+      {/* 4. QUIET EDITORIAL 3-COLUMN SPECIFICATION STRIP (Replaces AI Colored Icon Tiles) */}
+      <section
+        aria-label="하이마트 가전구독 진행 구조 요약"
+        className="pt-6 border-t border-rule grid grid-cols-1 md:grid-cols-3 gap-5 md:gap-8"
+      >
+        <div className="space-y-1">
+          <div className="text-xs font-mono font-bold text-accent tabular-nums">01</div>
+          <h3 className="text-sm font-bold text-ink">약정 개월수 총액 분할결제</h3>
+          <p className="text-xs text-muted leading-relaxed">
+            하이마트 가전 구독은 필수 발급 제휴카드를 통해 전체 구독 총액을 선택하신 36개월 또는 60개월 기간대로 나누어 결제합니다.
+          </p>
         </div>
 
-        <div className="rounded-2xl bg-white border border-[#E2E8F0] p-5 flex items-start gap-3.5">
-          <div className="w-10 h-10 rounded-xl bg-[#ECFDF5] border border-[#A7F3D0] text-[#059669] flex items-center justify-center shrink-0">
-            <Banknote size={19} aria-hidden="true" />
-          </div>
-          <div>
-            <div className="text-[11px] font-extrabold text-[#059669] mb-0.5">STEP 02 · 상조회비 카드납부 &amp; 현금입금</div>
-            <h3 className="text-sm font-extrabold text-[#0F172A]">매월 계좌 캐시백 + 카드 실적 인정</h3>
-            <p className="mt-1 text-xs text-[#64748B] leading-relaxed">
-              상조 월 회비는 제휴카드로 납부하여 전월 실적에 합산되고, 결합 지원금은 매월 고객님 계좌로 현금 캐시백 입금됩니다.
-            </p>
-          </div>
+        <div className="space-y-1 md:border-l md:border-rule md:pl-6">
+          <div className="text-xs font-mono font-bold text-accent tabular-nums">02</div>
+          <h3 className="text-sm font-bold text-ink">상조회비 카드납부 및 현금 캐시백</h3>
+          <p className="text-xs text-muted leading-relaxed">
+            상조 월 회비는 제휴카드로 납부하여 전월 실적에 100% 합산되고, 결합 지원금은 매월 고객님 계좌로 현금 입금됩니다.
+          </p>
         </div>
 
-        <div className="rounded-2xl bg-white border border-[#E2E8F0] p-5 flex items-start gap-3.5">
-          <div className="w-10 h-10 rounded-xl bg-[#F1F5F9] border border-[#CBD5E1] text-[#0F172A] flex items-center justify-center shrink-0">
-            <CalendarClock size={19} aria-hidden="true" />
-          </div>
-          <div>
-            <div className="text-[11px] font-extrabold text-[#475569] mb-0.5">STEP 03 · 120회 만기 100% 환급</div>
-            <h3 className="text-sm font-extrabold text-[#0F172A]">90회 납입 · 30회 거치 후 원금 환급</h3>
-            <p className="mt-1 text-xs text-[#64748B] leading-relaxed">
-              90회 납입 후 91~120회차는 추가 납입 없이 거치하며, 상조 미이용 만기 익월 해지 신청 시 납입 원금 전액을 돌려받습니다.
-            </p>
-          </div>
+        <div className="space-y-1 md:border-l md:border-rule md:pl-6">
+          <div className="text-xs font-mono font-bold text-accent tabular-nums">03</div>
+          <h3 className="text-sm font-bold text-ink">90회 납입 후 120회 만기 원금 환급</h3>
+          <p className="text-xs text-muted leading-relaxed">
+            90회 납입 완료 후 91~120회차는 납입 없이 거치하며, 상조 미이용 시 만기 익월 해지 신청으로 납입 원금 전액을 돌려받습니다.
+          </p>
         </div>
       </section>
     </div>

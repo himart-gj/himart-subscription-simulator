@@ -14,13 +14,13 @@ export function LegalDisclosureSection() {
   return (
     <section
       aria-label="필수 법적 고지사항 및 유의사항"
-      className="mt-12 rounded-2xl bg-white border border-[#E2E8F0] overflow-hidden"
+      className="mt-12 rounded-xl bg-surface border border-rule overflow-hidden"
     >
-      <div className="px-5 sm:px-6 py-4 bg-[#F8FAFC] border-b border-[#E2E8F0] flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+      <div className="px-5 sm:px-6 py-4 bg-field border-b border-rule flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
         <div className="flex items-center gap-2">
-          <Scale size={16} className="text-[#0F172A] shrink-0" />
-          <h2 className="text-sm font-extrabold text-[#0F172A] tracking-tight">
-            가입 전 필수 확인 · 법적 고지사항 (공정거래위원회 지침 및 공식 약관 기준)
+          <Scale size={15} className="text-ink shrink-0" aria-hidden="true" />
+          <h2 className="text-sm font-bold text-ink tracking-tight">
+            가입 전 필수 확인 법적 고지사항 (공정거래위원회 지침 및 공식 약관 기준)
           </h2>
         </div>
         <button
@@ -31,13 +31,13 @@ export function LegalDisclosureSection() {
             for (const d of LEGAL_DISCLOSURES) next[d.id] = !allOpen
             setOpenIds(next)
           }}
-          className="text-xs font-bold text-[#475569] hover:text-[#0F172A] self-start sm:self-auto cursor-pointer"
+          className="text-xs font-semibold text-ink-2 hover:text-ink self-start sm:self-auto cursor-pointer"
         >
           {LEGAL_DISCLOSURES.every((d) => openIds[d.id]) ? '전체 접기' : '전체 펼치기'}
         </button>
       </div>
 
-      <div className="divide-y divide-[#E2E8F0]">
+      <div className="divide-y divide-rule">
         {LEGAL_DISCLOSURES.map((item) => {
           const isOpen = !!openIds[item.id]
           return (
@@ -46,33 +46,34 @@ export function LegalDisclosureSection() {
                 type="button"
                 aria-expanded={isOpen}
                 onClick={() => toggle(item.id)}
-                className="w-full px-5 sm:px-6 py-4 flex items-center justify-between gap-4 text-left hover:bg-[#F8FAFC] transition-colors cursor-pointer"
+                className="w-full px-5 sm:px-6 py-4 flex items-center justify-between gap-4 text-left hover:bg-field/60 transition-colors cursor-pointer"
               >
                 <div className="min-w-0">
                   <div className="flex items-center gap-2">
-                    <span className="text-[11px] font-extrabold text-[#E11D48] tabular-nums">
+                    <span className="text-[11px] font-mono font-bold text-accent tabular-nums">
                       {item.number}
                     </span>
-                    <span className="text-[13px] sm:text-sm font-bold text-[#0F172A]">
+                    <span className="text-[13px] sm:text-sm font-bold text-ink">
                       {item.title}
                     </span>
                   </div>
-                  <p className="mt-0.5 text-xs text-[#64748B] truncate sm:whitespace-normal">
+                  <p className="mt-0.5 text-xs text-muted truncate sm:whitespace-normal">
                     {item.summary}
                   </p>
                 </div>
                 <ChevronDown
                   size={16}
-                  className={`text-[#64748B] shrink-0 transition-transform duration-150 ${
+                  aria-hidden="true"
+                  className={`text-muted shrink-0 transition-transform duration-150 ${
                     isOpen ? 'rotate-180' : ''
                   }`}
                 />
               </button>
               {isOpen && (
-                <div className="px-5 sm:px-6 pb-4 pt-0.5 space-y-2 text-[12px] sm:text-[13px] text-[#475569] leading-relaxed bg-[#FFFFFF]">
+                <div className="px-5 sm:px-6 pb-4 pt-0.5 space-y-2 text-[12px] sm:text-[13px] text-ink-2 leading-relaxed bg-surface">
                   {item.paragraphs.map((p, idx) => (
                     <p key={idx} className="pl-5 relative">
-                      <span className="absolute left-1.5 top-2 w-1 h-1 rounded-full bg-[#94A3B8]" />
+                      <span className="absolute left-1.5 top-2 w-1 h-1 rounded-full bg-subtle" />
                       {p}
                     </p>
                   ))}

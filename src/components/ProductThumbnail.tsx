@@ -18,10 +18,11 @@ interface ProductThumbnailProps {
   brand?: string
   className?: string
   iconSize?: number
+  priority?: boolean
 }
 
 function getCategoryIcon(category: string | undefined, size: number) {
-  const props = { size, strokeWidth: 1.5, className: 'text-[#64748B]', 'aria-hidden': true as const }
+  const props = { size, strokeWidth: 1.5, className: 'text-muted', 'aria-hidden': true as const }
   if (!category) return <Package {...props} />
   if (category.includes('TV') || category.includes('영상')) return <Tv {...props} />
   if (category.includes('냉장고') || category.includes('김치')) return <Refrigerator {...props} />
@@ -38,7 +39,8 @@ export function ProductThumbnail({
   category,
   brand,
   className = '',
-  iconSize = 32,
+  iconSize = 28,
+  priority = false,
 }: ProductThumbnailProps) {
   const primarySrc = sanitizeImageUrl(src || '')
   const fallbackStudioSrc = resolveStudioFallbackImage({ category, brand, alt })
@@ -54,12 +56,12 @@ export function ProductThumbnail({
 
   return (
     <div
-      className={`relative overflow-hidden bg-[#F1F5F9] flex items-center justify-center ${className}`}
+      className={`relative overflow-hidden bg-field flex items-center justify-center ${className}`}
     >
       {!activeSrc ? (
-        <div className="flex flex-col items-center justify-center gap-1.5 text-[#94A3B8] select-none p-3">
+        <div className="flex flex-col items-center justify-center gap-1 text-subtle select-none p-3">
           {getCategoryIcon(category, iconSize)}
-          <span className="text-[11px] font-medium text-[#64748B] tracking-tight">
+          <span className="text-[11px] font-medium text-muted tracking-tight">
             {category || '가전 제품'}
           </span>
         </div>
@@ -67,7 +69,8 @@ export function ProductThumbnail({
         <img
           src={activeSrc}
           alt={alt}
-          loading="lazy"
+          loading={priority ? 'eager' : 'lazy'}
+          fetchPriority={priority ? 'high' : 'auto'}
           referrerPolicy="no-referrer"
           draggable={false}
           onError={() => {
@@ -77,7 +80,7 @@ export function ProductThumbnail({
               setFailedFallback(fallbackStudioSrc)
             }
           }}
-          className="h-full w-full object-cover object-center transition-transform duration-200 group-hover:scale-[1.02]"
+          className="h-full w-full object-cover object-center"
         />
       )}
     </div>
