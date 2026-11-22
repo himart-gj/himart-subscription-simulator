@@ -21,11 +21,12 @@ interface MetaAdShowroomHeroProps {
 
 const SHOWROOM_FILTERS = [
   { id: 'all', label: '전체 인기' },
-  { id: '냉장', label: '냉장·김치' },
-  { id: '세탁', label: '세탁·건조' },
+  { id: '냉장', label: '냉장·김치냉장고' },
+  { id: '세탁', label: '세탁·건조·스타일러' },
+  { id: '에어컨', label: '에어컨·TV' },
   { id: '청소', label: '로봇·무선청소기' },
-  { id: 'TV', label: 'TV·에어컨' },
-  { id: '밥솥', label: '밥솥·식기세척기' },
+  { id: '주방', label: '정수기·주방가전' },
+  { id: '생활IT', label: '욕실·안마·노트북' },
 ] as const
 
 export function MetaAdShowroomHero({
@@ -57,9 +58,12 @@ export function MetaAdShowroomHero({
     if (activeFilter === 'all') return eligibleProducts
     return eligibleProducts.filter((p) => {
       const hay = `${p.category} ${p.name}`
-      if (activeFilter === 'TV') return hay.includes('TV') || hay.includes('에어컨')
-      if (activeFilter === '청소') return hay.includes('청소') || hay.includes('공기')
-      if (activeFilter === '밥솥') return hay.includes('밥솥') || hay.includes('식기')
+      if (activeFilter === '냉장') return hay.includes('냉장') || hay.includes('냉동') || hay.includes('김치')
+      if (activeFilter === '세탁') return hay.includes('세탁') || hay.includes('건조') || hay.includes('의류')
+      if (activeFilter === '에어컨') return hay.includes('에어컨') || hay.includes('TV')
+      if (activeFilter === '청소') return hay.includes('청소')
+      if (activeFilter === '주방') return hay.includes('정수기') || hay.includes('주방')
+      if (activeFilter === '생활IT') return hay.includes('욕실') || hay.includes('안마') || hay.includes('노트북') || hay.includes('태블릿')
       return hay.includes(activeFilter)
     })
   }, [eligibleProducts, activeFilter])

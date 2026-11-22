@@ -230,8 +230,8 @@ describe('GAS API Adapter Schema, CORS & Production Security Hardening', () => {
       INITIAL_CATALOG_SNAPSHOT,
     )
     const prodPost = assertLastPostContract('saveProduct', 'tok-live-12345678901234567890')
-    expect(prodPost.payload.price36).toBe(86900)
-    expect(prodPost.payload.price60).toBe(54900)
+    expect(prodPost.payload.price36).toBe(INITIAL_CATALOG_SNAPSHOT.products[0].monthly36 ?? 0)
+    expect(prodPost.payload.price60).toBe(INITIAL_CATALOG_SNAPSHOT.products[0].monthly60 ?? 0)
 
     // 4. deleteProduct
     mockJsonResponse({ ok: true })

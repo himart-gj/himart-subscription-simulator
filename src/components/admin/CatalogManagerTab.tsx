@@ -35,7 +35,7 @@ const EMPTY_FORM: ProductFormState = {
   modelCode: '',
   brand: '삼성',
   customBrand: '',
-  category: '냉장고/김치냉장고',
+  category: '냉장고/냉동고',
   customCategory: '',
   isLargeAppliance: true,
   imageUrl: '',
@@ -77,7 +77,7 @@ export function CatalogManagerTab({
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase()
     return products.filter((p) => {
-      if (filterCat !== '전체' && p.category !== filterCat) return false
+      if (filterCat === '대형가전') { if (!p.isLargeAppliance) return false } else if (filterCat !== '전체' && p.category !== filterCat) return false
       if (filterBrand !== '전체' && p.brand !== filterBrand) return false
       if (q) {
         const hay = `${p.name} ${p.brand} ${p.modelCode} ${p.category}`.toLowerCase()

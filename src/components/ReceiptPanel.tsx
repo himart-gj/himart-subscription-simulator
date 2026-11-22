@@ -297,44 +297,42 @@ export function ReceiptPanel({
                     </div>
 
                     <div className="mt-2.5 flex items-center justify-between gap-2 flex-wrap">
-                      <div className="inline-flex rounded-md bg-surface border border-rule p-0.5">
-                        <button
-                          type="button"
-                          disabled={!can36}
-                          onClick={() =>
-                            line.term !== 36 &&
-                            can36 &&
-                            onSwitchCartItemTerm(line.product.id, line.term, 36)
-                          }
-                          className={`px-2 py-1 rounded text-[11px] font-bold tabular-nums transition-colors ${
-                            !can36
-                              ? 'text-subtle cursor-not-allowed'
-                              : line.term === 36
+                      {can36 && can60 ? (
+                        <div className="inline-flex rounded-md bg-surface border border-rule p-0.5">
+                          <button
+                            type="button"
+                            onClick={() =>
+                              line.term !== 36 &&
+                              onSwitchCartItemTerm(line.product.id, line.term, 36)
+                            }
+                            className={`px-2 py-1 rounded text-[11px] font-bold tabular-nums transition-colors ${
+                              line.term === 36
                                 ? 'bg-ink text-on-ink'
                                 : 'text-muted hover:text-ink cursor-pointer'
-                          }`}
-                        >
-                          36개월
-                        </button>
-                        <button
-                          type="button"
-                          disabled={!can60}
-                          onClick={() =>
-                            line.term !== 60 &&
-                            can60 &&
-                            onSwitchCartItemTerm(line.product.id, line.term, 60)
-                          }
-                          className={`px-2 py-1 rounded text-[11px] font-bold tabular-nums transition-colors ${
-                            !can60
-                              ? 'text-subtle cursor-not-allowed'
-                              : line.term === 60
+                            }`}
+                          >
+                            36개월
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() =>
+                              line.term !== 60 &&
+                              onSwitchCartItemTerm(line.product.id, line.term, 60)
+                            }
+                            className={`px-2 py-1 rounded text-[11px] font-bold tabular-nums transition-colors ${
+                              line.term === 60
                                 ? 'bg-ink text-on-ink'
                                 : 'text-muted hover:text-ink cursor-pointer'
-                          }`}
-                        >
-                          60개월
-                        </button>
-                      </div>
+                            }`}
+                          >
+                            60개월
+                          </button>
+                        </div>
+                      ) : (
+                        <span className="inline-flex items-center px-2.5 py-1 rounded-md bg-surface border border-rule text-[11px] font-bold text-ink-2 tabular-nums">
+                          {line.term}개월 공식 약정
+                        </span>
+                      )}
 
                       <div className="flex items-center gap-2.5">
                         <div className="inline-flex items-center rounded-md bg-surface border border-rule">

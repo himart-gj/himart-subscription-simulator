@@ -17,7 +17,7 @@ import {
   sanitizePhoneNumber,
 } from '../utils/sanitize'
 
-const LOCAL_CATALOG_KEY = 'himart_gj_simulator_catalog_v2'
+const LOCAL_CATALOG_KEY = 'himart_gj_simulator_catalog_v3'
 const ADMIN_TOKEN_SESSION_KEY = 'himart_gj_admin_session_token'
 const ADMIN_SESSION_MODE_KEY = 'himart_gj_admin_session_mode'
 const CLIENT_INSTANCE_ID_KEY = 'himart_gj_client_instance_id'
@@ -28,7 +28,11 @@ const LARGE_APPLIANCE_CATEGORIES = [
   '대형가전',
   'TV/영상',
   '냉장고/김치냉장고',
+  '냉장고/냉동고',
+  '김치냉장고',
   '세탁/건조',
+  '세탁/건조/의류케어',
+  '에어컨',
 ]
 
 export type GasPostAction =
@@ -105,6 +109,10 @@ export function isAdminLockedOutError(err: unknown): err is AdminLockedOutError 
   )
 }
 
+/**
+ * Returns the validated HTTPS Google Apps Script Web App URL if present.
+ * Rejects cleartext HTTP, javascript:, or malformed endpoints.
+ */
 export function getGasApiUrl(): string {
   const raw = import.meta.env.VITE_GAS_API_URL
   if (typeof raw !== 'string') return ''
@@ -128,6 +136,10 @@ export function isGasConnected(): boolean {
   return getGasApiUrl().length > 0
 }
 
+/**
+ * Local UI sandbox admin mode is strictly permitted ONLY in local Vite dev mode
+ * when no production GAS URL is connected. Production builds ALWAYS return false.
+ */
 export function isLocalSandboxAllowed(): boolean {
   const isDev = Boolean(import.meta.env.DEV) && !import.meta.env.PROD
   return isDev && !isGasConnected()
@@ -203,6 +215,10 @@ function formatModeLabel(mode: CartTermMode): string {
   return '미선택'
 }
 
+/**
+ * Mandatory GAS CORS-safe POST helper.
+ * Uses Content-Type: text/plain;charset=utf-8 and redirect: 'follow'.
+ */
 async function postGasAction<T = unknown>(
   action: GasPostAction,
   token: string | undefined,
@@ -264,13 +280,21 @@ async function postGasAction<T = unknown>(
   return data
 }
 
-function inferIsLargeAppliance(category: string): boolean {
+/* ==================== GAS SCHEMA MAPPERS (READ & WRITE) ==================== */
+
+function inferIsLargeAppliance(category: string, name = ''): boolean {
+  const hay = `${category} ${name}`
   return (
     LARGE_APPLIANCE_CATEGORIES.includes(category) ||
-    category.includes('에어컨') ||
-    category.includes('냉장') ||
-    category.includes('세탁') ||
-    category.includes('TV')
+    hay.includes('에어컨') ||
+    hay.includes('냉장') ||
+    hay.includes('냉동') ||
+    hay.includes('김치') ||
+    hay.includes('세탁') ||
+    hay.includes('건조') ||
+    hay.includes('의류') ||
+    hay.includes('안마의자') ||
+    hay.includes('TV')
   )
 }
 
@@ -523,8 +547,8 @@ function normalizeRemoteProduct(raw: unknown, idx: number): ProductItem | null {
     category,
     isLargeAppliance:
       r.isLargeAppliance !== undefined
-        ? toBool(r.isLargeAppliance, inferIsLargeAppliance(category))
-        : inferIsLargeAppliance(category),
+        ? toBool(r.isLargeAppliance, inferIsLargeAppliance(category, name))
+        : inferIsLargeAppliance(category, name),
     imageUrl: sanitizeImageUrl(String(r.imageUrl || '')),
     monthly36: toPositiveNumOrNull(r.price36 ?? r.monthly36),
     monthly60: toPositiveNumOrNull(r.price60 ?? r.monthly60),
@@ -632,6 +656,7 @@ function extractCatalogSnapshot(rawResponse: GasApiResponse): CatalogSnapshot | 
   const heroFromSets = parsedSets.filter((b) => b.slotType === 'hero')
   const regularBundles = parsedSets.filter((b) => b.slotType !== 'hero')
 
+  // Merge explicit HeroPresets sheet rows with any Sets-bridge rows (deduped by id)
   const heroMap = new Map<string, RecommendedBundle>()
   for (const h of [...explicitHeroPresets, ...heroFromSets]) {
     heroMap.set(h.id, { ...h, slotType: 'hero' })
@@ -676,6 +701,8 @@ function readLocalCatalog(): CatalogSnapshot {
     return INITIAL_CATALOG_SNAPSHOT
   }
 }
+
+/* ==================== PUBLIC CATALOG & WRITE-ONLY LEADS ==================== */
 
 export async function fetchCatalogSnapshot(): Promise<{
   snapshot: CatalogSnapshot
@@ -735,6 +762,9 @@ export async function fetchCatalogSnapshot(): Promise<{
   }
 }
 
+/**
+ * Write-Only Lead Submission (`submitLead`).
+ */
 export async function submitConsultationWriteOnly(
   rawPayload: ConsultationPayload,
 ): Promise<{ ok: boolean; deliveryMode: 'gas' | 'local-preview'; referenceCode: string }> {
@@ -866,6 +896,8 @@ export async function submitConsultationWriteOnly(
   }
 }
 
+/* ==================== ADMIN AUTHENTICATION (ZERO-SECRET) ==================== */
+
 export async function authenticateAdminViaServer(
   password: string,
   unlockCode?: string,
@@ -918,6 +950,8 @@ export function enterLocalSandboxAdminSession(): AdminSession {
   storeAdminSession(session)
   return session
 }
+
+/* ==================== ADMIN CMS ACTIONS ==================== */
 
 function assertValidAdminMode(session: AdminSession): 'gas' | 'local-sandbox' {
   if (session.mode === 'local-sandbox') {
@@ -1037,6 +1071,11 @@ export async function deleteSetRemote(
   await postGasAction('deleteSet', session.token, { id: bundleId })
 }
 
+/**
+ * Saves a Main Screen One-Click Hero Preset (`slotType: 'hero'`).
+ * Uses `saveSet` with `setCategory: '메인원클릭'` so BOTH the existing deployed Code.gs
+ * AND the upgraded v2.0 Code.gs (which routes `메인원클릭` into `HeroPresets` sheet) work seamlessly.
+ */
 export async function saveHeroPresetRemote(
   preset: RecommendedBundle,
   session: AdminSession,

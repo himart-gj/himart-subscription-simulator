@@ -2,8 +2,11 @@ import { useState } from 'react'
 import {
   AirVent,
   CookingPot,
+  Droplets,
+  Laptop,
   Package,
   Refrigerator,
+  Sparkles,
   Tv,
   WashingMachine,
   Wind,
@@ -25,9 +28,18 @@ function getCategoryIcon(category: string | undefined, size: number) {
   const props = { size, strokeWidth: 1.5, className: 'text-muted', 'aria-hidden': true as const }
   if (!category) return <Package {...props} />
   if (category.includes('TV') || category.includes('영상')) return <Tv {...props} />
-  if (category.includes('냉장고') || category.includes('김치')) return <Refrigerator {...props} />
-  if (category.includes('세탁') || category.includes('건조')) return <WashingMachine {...props} />
-  if (category.includes('밥솥') || category.includes('주방')) return <CookingPot {...props} />
+  if (category.includes('냉장') || category.includes('김치')) return <Refrigerator {...props} />
+  if (category.includes('세탁') || category.includes('건조') || category.includes('의류')) {
+    return <WashingMachine {...props} />
+  }
+  if (category.includes('정수기')) return <Droplets {...props} />
+  if (category.includes('주방') || category.includes('밥솥')) return <CookingPot {...props} />
+  if (category.includes('노트북') || category.includes('태블릿') || category.includes('IT')) {
+    return <Laptop {...props} />
+  }
+  if (category.includes('욕실') || category.includes('안마') || category.includes('생활')) {
+    return <Sparkles {...props} />
+  }
   if (category.includes('청소') || category.includes('공기')) return <Wind {...props} />
   if (category.includes('에어컨') || category.includes('대형')) return <AirVent {...props} />
   return <Package {...props} />
@@ -54,9 +66,13 @@ export function ProductThumbnail({
         ? fallbackStudioSrc
         : ''
 
+  const isExternalStudioImg = activeSrc.startsWith('https://')
+
   return (
     <div
-      className={`relative overflow-hidden bg-field flex items-center justify-center ${className}`}
+      className={`relative overflow-hidden flex items-center justify-center ${
+        isExternalStudioImg ? 'bg-white' : 'bg-field'
+      } ${className}`}
     >
       {!activeSrc ? (
         <div className="flex flex-col items-center justify-center gap-1 text-subtle select-none p-3">
@@ -80,7 +96,9 @@ export function ProductThumbnail({
               setFailedFallback(fallbackStudioSrc)
             }
           }}
-          className="h-full w-full object-cover object-center"
+          className={`h-full w-full object-center ${
+            isExternalStudioImg ? 'object-contain p-2.5' : 'object-cover'
+          }`}
         />
       )}
     </div>

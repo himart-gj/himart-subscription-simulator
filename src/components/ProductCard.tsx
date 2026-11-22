@@ -37,6 +37,7 @@ export function ProductCard({
 }: ProductCardProps) {
   const supports36 = product.monthly36 !== null && product.monthly36 > 0
   const supports60 = product.monthly60 !== null && product.monthly60 > 0
+  const supportsBothTerms = supports36 && supports60
 
   const defaultTerm: SubscriptionTerm = supports60 ? 60 : 36
   const [selectedTerm, setSelectedTerm] = useState<SubscriptionTerm>(defaultTerm)
@@ -54,6 +55,9 @@ export function ProductCard({
   const totalContractAmount = activePrice * activeTerm
   const empathy = useMemo(() => getProductEmpathyDetail(product), [product])
   const currentColor = selectedColor || empathy.colors[0]?.name || ''
+
+  const careBadge = product.careTags.find((t) => t.includes('구독'))
+  const highlightTags = product.careTags.filter((t) => t !== careBadge).slice(0, 2)
 
   const singleSim = useMemo(() => {
     if (!supports36 && !supports60) return null
@@ -108,10 +112,15 @@ export function ProductCard({
           brand={product.brand}
           className="aspect-[4/3] w-full border-b border-rule"
         />
-        <div className="absolute top-2.5 left-2.5 flex items-center gap-1.5">
-          <span className="inline-flex items-center px-2 py-0.5 rounded bg-surface border border-rule text-[11px] font-bold text-ink">
+        <div className="absolute top-2.5 left-2.5 flex flex-wrap items-center gap-1.5">
+          <span className="inline-flex items-center px-2 py-0.5 rounded bg-surface/95 border border-rule text-[11px] font-bold text-ink">
             {product.brand}
           </span>
+          {careBadge && (
+            <span className="inline-flex items-center px-2 py-0.5 rounded bg-field/95 border border-rule text-[10px] font-semibold text-ink-2">
+              {careBadge}
+            </span>
+          )}
           {inCartCount > 0 && (
             <span className="inline-flex items-center px-2 py-0.5 rounded bg-accent text-accent-ink text-[11px] font-bold tabular-nums">
               선택됨 {inCartCount}대
@@ -130,7 +139,7 @@ export function ProductCard({
       <div className="flex flex-col flex-1 p-4">
         <div className="text-[11px] font-medium text-muted mb-1 flex items-center justify-between gap-2">
           <span className="truncate">{product.category}</span>
-          <span className="font-mono text-[11px] text-subtle shrink-0">
+          <span className="font-mono text-[11px] text-subtle shrink-0 truncate max-w-[140px]">
             {product.modelCode}
           </span>
         </div>
@@ -144,9 +153,22 @@ export function ProductCard({
           {product.name}
         </h3>
 
-        <p className="mt-1 text-xs text-muted line-clamp-2 leading-relaxed">
-          {empathy.headline}
-        </p>
+        {highlightTags.length > 0 ? (
+          <div className="mt-1.5 flex flex-wrap gap-1">
+            {highlightTags.map((tag) => (
+              <span
+                key={tag}
+                className="inline-flex items-center px-2 py-0.5 rounded bg-field text-[11px] font-medium text-ink-2"
+              >
+                {tag}
+              </span>
+            ))}
+          </div>
+        ) : (
+          <p className="mt-1 text-xs text-muted line-clamp-2 leading-relaxed">
+            {empathy.headline}
+          </p>
+        )}
 
         {/* Color Swatches + Empathy Detail Link */}
         <div className="mt-2 flex flex-wrap items-center justify-between gap-1.5">
@@ -180,55 +202,58 @@ export function ProductCard({
               onClick={() => onOpenDetail(product)}
               className="text-[11px] font-bold text-ink-2 underline underline-offset-2 hover:text-ink cursor-pointer"
             >
-              추천 이유 보기
+              케어·추천 상세
             </button>
           )}
         </div>
 
         <div className="mt-auto pt-3 space-y-2.5">
-          <div className="grid grid-cols-2 gap-1 p-1 rounded-lg bg-field border border-rule">
-            <button
-              type="button"
-              disabled={!supports36}
-              onClick={() => supports36 && setSelectedTerm(36)}
-              className={`py-1.5 px-2 rounded-md text-xs transition-colors duration-150 tabular-nums ${
-                !supports36
-                  ? 'text-subtle cursor-not-allowed'
-                  : activeTerm === 36
+          {supportsBothTerms ? (
+            <div className="grid grid-cols-2 gap-1 p-1 rounded-lg bg-field border border-rule">
+              <button
+                type="button"
+                onClick={() => setSelectedTerm(36)}
+                className={`py-1.5 px-2 rounded-md text-xs transition-colors duration-150 tabular-nums cursor-pointer ${
+                  activeTerm === 36
                     ? 'bg-surface text-ink font-bold border border-rule'
-                    : 'text-muted hover:text-ink font-medium cursor-pointer'
-              }`}
-            >
-              <span className="block text-[11px]">36개월 약정</span>
-              <span className="block text-[11px] mt-0.5">
-                {supports36 ? `원 구독료 ${formatKRW(product.monthly36!)}` : '미지원'}
-              </span>
-            </button>
-            <button
-              type="button"
-              disabled={!supports60}
-              onClick={() => supports60 && setSelectedTerm(60)}
-              className={`py-1.5 px-2 rounded-md text-xs transition-colors duration-150 tabular-nums ${
-                !supports60
-                  ? 'text-subtle cursor-not-allowed'
-                  : activeTerm === 60
+                    : 'text-muted hover:text-ink font-medium'
+                }`}
+              >
+                <span className="block text-[11px]">36개월 약정</span>
+                <span className="block text-[11px] mt-0.5">
+                  원 구독료 {formatKRW(product.monthly36!)}
+                </span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setSelectedTerm(60)}
+                className={`py-1.5 px-2 rounded-md text-xs transition-colors duration-150 tabular-nums cursor-pointer ${
+                  activeTerm === 60
                     ? 'bg-surface text-ink font-bold border border-rule'
-                    : 'text-muted hover:text-ink font-medium cursor-pointer'
-              }`}
-            >
-              <span className="block text-[11px]">60개월 약정</span>
-              <span className="block text-[11px] mt-0.5">
-                {supports60 ? `원 구독료 ${formatKRW(product.monthly60!)}` : '미지원'}
+                    : 'text-muted hover:text-ink font-medium'
+                }`}
+              >
+                <span className="block text-[11px]">60개월 약정</span>
+                <span className="block text-[11px] mt-0.5">
+                  원 구독료 {formatKRW(product.monthly60!)}
+                </span>
+              </button>
+            </div>
+          ) : (supports36 || supports60) ? (
+            <div className="flex items-center justify-between px-3 py-2 rounded-lg bg-surface border border-rule text-xs tabular-nums">
+              <span className="font-bold text-ink">{activeTerm}개월 공식 구독</span>
+              <span className="font-semibold text-ink-2">
+                원 구독료 월 {formatKRW(activePrice)}
               </span>
-            </button>
-          </div>
+            </div>
+          ) : null}
 
           {singleSim ? (
             <div className="rounded-lg bg-field border border-rule p-3 space-y-2 tabular-nums">
               <div className="flex items-center justify-between gap-2 text-[11px] text-muted">
-                <span>원 구독료 (총 {totalContractAmount.toLocaleString('ko-KR')}원)</span>
-                <span className="line-through">
-                  월 {activePrice.toLocaleString('ko-KR')}원
+                <span>구독 총액 ({activeTerm}개월 분할)</span>
+                <span className="font-medium">
+                  총 {totalContractAmount.toLocaleString('ko-KR')}원
                 </span>
               </div>
 
