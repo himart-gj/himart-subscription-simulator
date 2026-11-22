@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react'
 import { Check, GripVertical, Plus } from 'lucide-react'
+import { getProductEmpathyDetail } from '../data/productEmpathyDetails'
 import type { PolicyConfig, ProductItem, SubscriptionTerm } from '../types/domain'
 import {
   DEFAULT_POLICY_CONFIG,
@@ -13,6 +14,9 @@ interface ProductCardProps {
   product: ProductItem
   policy?: PolicyConfig
   inCartCount: number
+  selectedColor?: string
+  onSelectColor?: (productId: string, colorName: string) => void
+  onOpenDetail?: (product: ProductItem) => void
   onAdd: (productId: string, term: SubscriptionTerm) => void
   onSelectSingle?: (productId: string, term: SubscriptionTerm) => void
   onDragStartProduct?: (productId: string, term: SubscriptionTerm) => void
@@ -23,6 +27,9 @@ export function ProductCard({
   product,
   policy = DEFAULT_POLICY_CONFIG,
   inCartCount,
+  selectedColor,
+  onSelectColor,
+  onOpenDetail,
   onAdd,
   onSelectSingle,
   onDragStartProduct,
@@ -45,8 +52,9 @@ export function ProductCard({
   const activePrice =
     activeTerm === 36 ? (product.monthly36 ?? 0) : (product.monthly60 ?? 0)
   const totalContractAmount = activePrice * activeTerm
+  const empathy = useMemo(() => getProductEmpathyDetail(product), [product])
+  const currentColor = selectedColor || empathy.colors[0]?.name || ''
 
-  // Real-time single-product effective monthly price simulation (천원단위 상조 + 제휴카드 혜택 반영)
   const singleSim = useMemo(() => {
     if (!supports36 && !supports60) return null
     const singleCart = [{ productId: product.id, term: activeTerm, quantity: 1 }]
@@ -85,8 +93,10 @@ export function ProductCard({
       onDragEnd={() => onDragEndProduct?.()}
       className="group flex flex-col h-full rounded-xl bg-surface border border-rule hover:border-rule-strong transition-colors duration-150 overflow-hidden"
     >
-      {/* Product Studio Image */}
-      <div className="relative">
+      <div
+        onClick={() => onOpenDetail?.(product)}
+        className={`relative ${onOpenDetail ? 'cursor-pointer' : ''}`}
+      >
         <ProductThumbnail
           src={product.imageUrl}
           alt={product.name}
@@ -113,7 +123,6 @@ export function ProductCard({
         </div>
       </div>
 
-      {/* Editorial Product Details */}
       <div className="flex flex-col flex-1 p-4">
         <div className="text-[11px] font-medium text-muted mb-1 flex items-center justify-between gap-2">
           <span className="truncate">{product.category}</span>
@@ -122,24 +131,57 @@ export function ProductCard({
           </span>
         </div>
 
-        <h3 className="text-[15px] font-bold text-ink leading-snug line-clamp-2 min-h-[2.625rem] break-keep">
+        <h3
+          onClick={() => onOpenDetail?.(product)}
+          className={`text-[15px] font-bold text-ink leading-snug line-clamp-2 min-h-[2.625rem] break-keep ${
+            onOpenDetail ? 'cursor-pointer hover:underline' : ''
+          }`}
+        >
           {product.name}
         </h3>
 
-        {/* Quiet Specification Tags */}
-        <div className="mt-2 flex flex-wrap gap-1 min-h-[1.5rem]">
-          {product.careTags.slice(0, 3).map((tag) => (
-            <span
-              key={tag}
-              className="inline-flex items-center px-2 py-0.5 rounded bg-field text-[11px] font-medium text-ink-2"
+        <p className="mt-1 text-xs text-muted line-clamp-2 leading-relaxed">
+          {empathy.headline}
+        </p>
+
+        {/* Color Swatches + Empathy Detail Link */}
+        <div className="mt-2 flex flex-wrap items-center justify-between gap-1.5">
+          <div className="flex flex-wrap gap-1">
+            {empathy.colors.slice(0, 2).map((cl) => {
+              const isSel = currentColor === cl.name
+              return (
+                <button
+                  key={cl.name}
+                  type="button"
+                  onClick={() => onSelectColor?.(product.id, cl.name)}
+                  className={`inline-flex items-center gap-1 h-6 px-2 rounded-full text-[11px] border cursor-pointer ${
+                    isSel
+                      ? 'bg-field border-ink font-bold text-ink'
+                      : 'bg-surface border-rule text-muted'
+                  }`}
+                >
+                  <span
+                    aria-hidden="true"
+                    className={`w-2.5 h-2.5 rounded-full border border-rule-strong ${cl.swatchClass}`}
+                  />
+                  <span>{cl.name}</span>
+                </button>
+              )
+            })}
+          </div>
+
+          {onOpenDetail && (
+            <button
+              type="button"
+              onClick={() => onOpenDetail(product)}
+              className="text-[11px] font-bold text-ink-2 underline underline-offset-2 hover:text-ink cursor-pointer"
             >
-              {tag}
-            </span>
-          ))}
+              추천 이유 보기
+            </button>
+          )}
         </div>
 
-        {/* Term Switcher + Real-Time Effective Monthly Price Breakdown */}
-        <div className="mt-auto pt-3.5 space-y-2.5">
+        <div className="mt-auto pt-3 space-y-2.5">
           <div className="grid grid-cols-2 gap-1 p-1 rounded-lg bg-field border border-rule">
             <button
               type="button"
@@ -155,7 +197,7 @@ export function ProductCard({
             >
               <span className="block text-[11px]">36개월 약정</span>
               <span className="block text-[11px] mt-0.5">
-                {supports36 ? `원금 월 ${formatKRW(product.monthly36!)}` : '미지원'}
+                {supports36 ? `원 구독료 ${formatKRW(product.monthly36!)}` : '미지원'}
               </span>
             </button>
             <button
@@ -172,14 +214,13 @@ export function ProductCard({
             >
               <span className="block text-[11px]">60개월 약정</span>
               <span className="block text-[11px] mt-0.5">
-                {supports60 ? `원금 월 ${formatKRW(product.monthly60!)}` : '미지원'}
+                {supports60 ? `원 구독료 ${formatKRW(product.monthly60!)}` : '미지원'}
               </span>
             </button>
           </div>
 
-          {/* Real-Time Effective Price Ledger (solves raw-principal confusion) */}
           {singleSim ? (
-            <div className="rounded-lg bg-field border border-rule p-3 space-y-1.5 tabular-nums">
+            <div className="rounded-lg bg-field border border-rule p-3 space-y-2 tabular-nums">
               <div className="flex items-center justify-between gap-2 text-[11px] text-muted">
                 <span>원 구독료 (총 {totalContractAmount.toLocaleString('ko-KR')}원)</span>
                 <span className="line-through">
@@ -187,30 +228,31 @@ export function ProductCard({
                 </span>
               </div>
 
-              <div className="flex items-center justify-between gap-2 text-xs">
-                <span className="font-medium text-ink-2">
-                  상조 결합 1차 체감가 ({singleSim.totalLifeCareUnits}구좌)
-                </span>
-                <span className="font-bold text-ink">
-                  월 {singleSim.phaseA.afterLifeCareEffective.toLocaleString('ko-KR')}원
+              <div className="flex items-end justify-between gap-2">
+                <div>
+                  <span className="block text-xs font-bold text-ink">
+                    추천 혜택 체감가
+                  </span>
+                  <span className="block text-[10px] font-bold text-positive">
+                    만기 100% 환급형 ({singleSim.totalLifeCareUnits}구좌)
+                  </span>
+                </div>
+                <span className="text-[20px] font-black text-ink tracking-tight whitespace-nowrap leading-none">
+                  월 {singleSim.phaseA.afterLifeCareEffective.toLocaleString('ko-KR')}
+                  <span className="text-xs font-bold ml-0.5">원</span>
                 </span>
               </div>
 
-              <div className="pt-1.5 border-t border-rule flex items-baseline justify-between gap-2">
-                <span className="text-[11px] font-bold text-ink">
-                  제휴카드 캐시백 포함
-                </span>
-                <div className="text-right">
-                  <span className="text-[18px] font-black text-accent tracking-tight whitespace-nowrap">
-                    월 체감 {singleSim.phaseA.effectiveMonthlyPay.toLocaleString('ko-KR')}
-                    <span className="text-xs font-bold ml-0.5">원</span>
-                  </span>
+              <div className="pt-2 border-t border-rule flex items-center justify-between gap-2 text-xs">
+                <span className="font-semibold text-ink-2">카드 사용 시</span>
+                <span className="font-bold text-accent whitespace-nowrap">
+                  월 {singleSim.phaseA.effectiveMonthlyPay.toLocaleString('ko-KR')}원
                   {singleSim.phaseA.monthlySurplusCash > 0 && (
-                    <span className="block text-[11px] font-bold text-positive">
-                      매월 +{singleSim.phaseA.monthlySurplusCash.toLocaleString('ko-KR')}원 현금 입금
+                    <span className="ml-1 text-[11px] font-bold text-positive">
+                      (+{singleSim.phaseA.monthlySurplusCash.toLocaleString('ko-KR')}원)
                     </span>
                   )}
-                </div>
+                </span>
               </div>
             </div>
           ) : (
@@ -219,7 +261,6 @@ export function ProductCard({
             </div>
           )}
 
-          {/* Action Row: 1 Filled Primary + 1 Outlined Secondary (Zero AI Sparkles) */}
           <div className={`grid gap-2 ${onSelectSingle ? 'grid-cols-2' : 'grid-cols-1'}`}>
             {onSelectSingle && (
               <button

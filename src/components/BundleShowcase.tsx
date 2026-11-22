@@ -79,12 +79,12 @@ export function BundleShowcase({
                 <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-field text-ink-2 text-xs font-semibold tabular-nums">
                   <Layers size={12} aria-hidden="true" />
                   {isMixed
-                    ? '36+60개월 혼합 패키지'
-                    : `${optimalCalc.durationMonths}개월 단일 패키지`}
+                    ? '36+60개월 혼합 구성'
+                    : `${optimalCalc.durationMonths}개월 구성`}
                 </span>
                 {activeTierSummary && (
                   <span className="inline-flex items-center px-2 py-0.5 rounded bg-positive-soft border border-positive-rule text-positive text-[11px] font-bold tabular-nums">
-                    자동 맞춤: {activeTierSummary}
+                    추천상품 자동맞춤: {activeTierSummary}
                   </span>
                 )}
               </div>
@@ -96,7 +96,6 @@ export function BundleShowcase({
               </p>
             </div>
 
-            {/* Included Products List */}
             <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-2.5">
               {bundle.items.map((item, idx) => {
                 const prod = productMap.get(item.productId)
@@ -140,18 +139,17 @@ export function BundleShowcase({
               })}
             </div>
 
-            {/* Footer Step-by-Step Comparison + Apply CTA */}
             <div className="mt-5 pt-4 border-t border-rule flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
               <div className="flex flex-wrap items-center gap-x-5 gap-y-2">
                 <div>
-                  <div className="text-[11px] font-medium text-muted">
-                    원 구독료 대비 1차 상조 체감가
+                  <div className="text-[11px] font-bold text-ink-2">
+                    추천 혜택 체감가 (만기 100% 환급형)
                   </div>
                   <div className="flex items-baseline gap-1.5 tabular-nums">
                     <span className="text-xs text-subtle line-through">
                       월 {optimalCalc.phaseA.grossSubscription.toLocaleString('ko-KR')}원
                     </span>
-                    <span className="text-base font-bold text-ink">
+                    <span className="text-xl font-black text-ink">
                       월 {optimalCalc.phaseA.afterLifeCareEffective.toLocaleString('ko-KR')}원
                     </span>
                   </div>
@@ -160,16 +158,16 @@ export function BundleShowcase({
                 <div className="h-8 w-px bg-rule hidden sm:block" />
 
                 <div>
-                  <div className="text-[11px] font-bold text-ink-2">
-                    제휴카드 캐시백(조건 충족 시) 최종 체감가
+                  <div className="text-[11px] font-semibold text-muted">
+                    제휴카드 사용 시 (전월 30만 원 기준)
                   </div>
                   <div className="flex flex-wrap items-baseline gap-1.5 tabular-nums">
-                    <span className="text-lg font-black text-accent">
-                      월 체감 {optimalCalc.phaseA.effectiveMonthlyPay.toLocaleString('ko-KR')}원
+                    <span className="text-sm font-extrabold text-accent">
+                      월 {optimalCalc.phaseA.effectiveMonthlyPay.toLocaleString('ko-KR')}원
                     </span>
                     {optimalCalc.phaseA.monthlySurplusCash > 0 && (
                       <span className="text-xs font-bold text-positive bg-positive-soft border border-positive-rule px-2 py-0.5 rounded">
-                        매월 +{optimalCalc.phaseA.monthlySurplusCash.toLocaleString('ko-KR')}원 현금 입금
+                        매월 +{optimalCalc.phaseA.monthlySurplusCash.toLocaleString('ko-KR')}원 입금
                       </span>
                     )}
                   </div>
@@ -177,7 +175,7 @@ export function BundleShowcase({
                     <div className="mt-0.5 inline-flex items-center gap-1 text-[11px] font-medium text-muted tabular-nums">
                       <ShieldCheck size={12} aria-hidden="true" className="text-positive" />
                       <span>
-                        120회 만기 시 상조 원금 {formatKRW(optimalCalc.lifeCareMaturityRefundTotal)} 100% 환급
+                        120회 만기 시 납입금 {formatKRW(optimalCalc.lifeCareMaturityRefundTotal)} 100% 환급
                       </span>
                     </div>
                   )}

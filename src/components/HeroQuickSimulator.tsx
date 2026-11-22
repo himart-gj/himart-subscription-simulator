@@ -1,7 +1,6 @@
 import {
   ArrowRight,
   Check,
-  Info,
   MessageSquare,
   ShieldCheck,
   SlidersHorizontal,
@@ -31,6 +30,7 @@ interface HeroQuickSimulatorProps {
   onSelectPreset: (preset: QuickScenarioPreset) => void
   onToggleCoverShortfall: (cover: boolean) => void
   onOpenConsultModal: () => void
+  onOpenProductDetail?: (product: ProductItem) => void
   onOpenCustomizer: (mode?: 'products' | 'bundles') => void
 }
 
@@ -44,30 +44,35 @@ export function HeroQuickSimulator({
   onSelectPreset,
   onToggleCoverShortfall,
   onOpenConsultModal,
+  onOpenProductDetail,
   onOpenCustomizer,
 }: HeroQuickSimulatorProps) {
   const isEmpty = result.mode === 'empty'
   const isMixed = result.mode === 'mixed'
   const phaseA = result.phaseA
   const hasExtraCashback = phaseA.monthlySurplusCash > 0
-  const isZeroEffective = phaseA.effectiveMonthlyPay === 0
   const productMap = new Map(products.map((p) => [p.id, p]))
 
   const activeTiers = result.lifeCarePerTier.filter((t) => t.quantity > 0)
   const freedSummaryLabel =
     activeTiers.length > 0
       ? activeTiers.map((t) => `${t.label} × ${t.quantity}구좌`).join(' + ')
-      : '구독프리드 미선택'
+      : '구독플러스 미선택'
+
+  const payYearsText =
+    result.lifeCarePayMonths % 12 === 6
+      ? `${Math.floor(result.lifeCarePayMonths / 12)}년 6개월`
+      : `${(result.lifeCarePayMonths / 12).toFixed(0)}년`
+  const maturityYearsText = `${Math.round(result.lifeCareMaturityMonths / 12)}년`
 
   return (
-    <div className="space-y-8">
-      {/* 1. EDITORIAL SHOWROOM MASTHEAD (Natural-light photography + quiet Swiss/Korean typography) */}
+    <div className="space-y-7">
+      {/* 1. EDITORIAL SHOWROOM MASTHEAD */}
       <section
         aria-label="롯데하이마트 경기광주점 가전구독 쇼룸 안내"
         className="rounded-xl bg-surface border border-rule overflow-hidden"
       >
         <div className="grid grid-cols-1 lg:grid-cols-12 items-stretch">
-          {/* Natural Sunlit Showroom Photograph (No dark gradient wash or floating badges) */}
           <figure className="lg:col-span-7 lg:order-2 relative bg-field border-b lg:border-b-0 lg:border-l border-rule">
             <img
               src={HERO_SHOWROOM_DATA_URI}
@@ -76,34 +81,34 @@ export function HeroQuickSimulator({
               className="w-full aspect-[16/9] sm:aspect-[21/9] lg:aspect-auto lg:h-full object-cover object-center"
             />
             <figcaption className="px-3.5 py-2 bg-surface border-t border-rule text-[11px] text-muted flex items-center justify-between gap-2">
-              <span className="truncate">경기광주점 빌트인 구독 쇼룸 예시</span>
-              <span className="tabular-nums whitespace-nowrap shrink-0">이배재로 8 · 무료주차</span>
+              <span className="truncate">경기광주점 가전구독 쇼룸</span>
+              <span className="tabular-nums whitespace-nowrap shrink-0">이배재로 8 · 전용주차</span>
             </figcaption>
           </figure>
 
-          {/* Editorial Headline & Primary Navigation */}
           <div className="lg:col-span-5 lg:order-1 p-5 sm:p-7 lg:p-8 flex flex-col justify-between gap-5">
-            <div className="space-y-3">
+            <div className="space-y-2.5">
               <div className="flex flex-wrap items-center gap-2 text-xs">
                 <span className="font-bold text-accent">
-                  롯데하이마트 경기광주점 공식 가전구독
+                  롯데하이마트 경기광주점 공식 혜택관
                 </span>
                 <span className="text-rule-strong" aria-hidden="true">|</span>
                 <span className="font-medium text-muted">
-                  {autoOptimizeFreed ? '천원단위 상조 자동 맞춤' : '구좌 직접 조정 중'}
+                  {autoOptimizeFreed ? '추천상품 자동맞춤' : '구좌 직접 설정 중'}
                 </span>
               </div>
 
-              <h2 className="text-[22px] sm:text-[27px] font-bold text-ink tracking-[-0.03em] leading-[1.3]">
-                원하는 가전 구독료, 상조 캐시백과 제휴카드로 매달 가볍게
+              <h2 className="text-[21px] sm:text-[26px] font-bold text-ink tracking-[-0.03em] leading-[1.34] break-keep">
+                <span className="block">원하는 새 가전은 월 천원대로,</span>
+                <span className="block">만기엔 납입금 100% 돌려받으세요</span>
               </h2>
 
-              <p className="text-[13px] sm:text-sm text-ink-2 leading-[1.65] break-keep">
-                전체 구독 총액을 약정 개월수(36·60개월)로 제휴카드 분할 결제하고, 매달 계좌로 현금 입금되는 상조 지원금과 제휴카드 캐시백을 반영한 실제 월 체감가를 투명하게 비교해 보세요.
+              <p className="text-[13px] sm:text-sm text-ink-2 leading-[1.6] break-keep">
+                구독플러스 현금 지원으로 월 부담을 천원대까지 낮추고, 제휴카드 사용 시 매달 추가 캐시백까지 더해지는 맞춤 혜택을 바로 확인해 보세요.
               </p>
             </div>
 
-            <div className="flex flex-wrap items-center gap-3 pt-1">
+            <div className="flex flex-wrap items-center gap-2.5 pt-1">
               <button
                 type="button"
                 onClick={() => onOpenCustomizer('products')}
@@ -119,14 +124,14 @@ export function HeroQuickSimulator({
                 onClick={() => onOpenCustomizer('bundles')}
                 className="inline-flex items-center justify-center h-11 px-4 rounded-lg bg-surface hover:bg-field border border-rule-strong text-ink text-[13px] font-semibold transition-colors cursor-pointer"
               >
-                <span>추천 세트 보기</span>
+                <span>인기 세트 보기</span>
               </button>
             </div>
           </div>
         </div>
       </section>
 
-      {/* 2. ONE-CLICK RECOMMENDED PRESETS (Strictly 1-column full-width rows on Fold & below: grid-cols-1 xl:grid-cols-2) */}
+      {/* 2. ONE-CLICK RECOMMENDED PRESETS */}
       {presets.length > 0 && (
         <section
           aria-label="인기 추천 구성 바로 선택"
@@ -138,7 +143,7 @@ export function HeroQuickSimulator({
                 인기 추천 구성 원클릭 비교
               </h3>
               <span className="text-xs text-muted">
-                항목을 선택하면 아래 명세서가 즉시 바뀝니다
+                눌러보시면 아래 맞춤 혜택표가 바로 바뀝니다
               </span>
             </div>
             {!activePresetId && !isEmpty && (
@@ -187,7 +192,6 @@ export function HeroQuickSimulator({
                       : 'bg-surface hover:bg-field/60 border-rule hover:border-rule-strong'
                   }`}
                 >
-                  {/* Radio Selection Indicator */}
                   <span
                     aria-hidden="true"
                     className={`w-4.5 h-4.5 rounded-full border flex items-center justify-center shrink-0 transition-colors ${
@@ -199,7 +203,6 @@ export function HeroQuickSimulator({
                     {isSelected && <Check size={11} strokeWidth={3} aria-hidden="true" />}
                   </span>
 
-                  {/* Studio Appliance Thumbnail */}
                   <ProductThumbnail
                     src={leadProd?.imageUrl}
                     alt={preset.shortTitle}
@@ -209,7 +212,6 @@ export function HeroQuickSimulator({
                     iconSize={18}
                   />
 
-                  {/* Full Single-Row Layout (No Truncated Ellipsis on Fold or Mobile) */}
                   <div className="min-w-0 flex-1 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1.5 sm:gap-4">
                     <div className="min-w-0">
                       <div className="flex flex-wrap items-center gap-1.5 mb-0.5">
@@ -217,7 +219,7 @@ export function HeroQuickSimulator({
                           {preset.badge}
                         </span>
                         <span className="text-[11px] text-muted tabular-nums">
-                          {termLabel}
+                          {termLabel} · 만기 100% 환급형
                         </span>
                       </div>
                       <div className="text-[14px] sm:text-[15px] font-bold text-ink leading-snug break-keep">
@@ -225,17 +227,22 @@ export function HeroQuickSimulator({
                       </div>
                     </div>
 
-                    <div className="sm:text-right tabular-nums shrink-0 flex flex-wrap sm:flex-col items-baseline sm:items-end gap-x-2 gap-y-0.5 pt-0.5 sm:pt-0 border-t sm:border-t-0 border-rule/70">
-                      <span className="text-[11px] text-muted">
-                        원금 {formatKRW(sim.phaseA.grossSubscription)} / 상조체감 {formatKRW(sim.phaseA.afterLifeCareEffective)}
-                      </span>
-                      <span className="text-[13px] sm:text-[14px] font-extrabold text-ink">
-                        카드 반영 시 월 {formatKRW(sim.phaseA.effectiveMonthlyPay)}
-                        {sim.phaseA.monthlySurplusCash > 0 && (
-                          <span className="ml-1 text-[12px] font-bold text-positive">
-                            (+{sim.phaseA.monthlySurplusCash.toLocaleString('ko-KR')}원)
-                          </span>
-                        )}
+                    <div className="sm:text-right tabular-nums shrink-0 flex flex-col sm:items-end gap-0.5 pt-1 sm:pt-0 border-t sm:border-t-0 border-rule/70">
+                      <div className="flex flex-wrap items-baseline gap-1.5 sm:justify-end">
+                        <span className="text-[11px] text-subtle line-through">
+                          월 {formatKRW(sim.phaseA.grossSubscription)}
+                        </span>
+                        <span className="text-[11px] font-bold text-ink-2">
+                          추천 혜택가
+                        </span>
+                        <span className="text-[16px] sm:text-[17px] font-black text-ink tracking-tight">
+                          월 {formatKRW(sim.phaseA.afterLifeCareEffective)}
+                        </span>
+                      </div>
+                      <span className="text-[11px] sm:text-xs font-bold text-positive">
+                        카드 사용 시 월 {formatKRW(sim.phaseA.effectiveMonthlyPay)}
+                        {sim.phaseA.monthlySurplusCash > 0 &&
+                          ` (+${sim.phaseA.monthlySurplusCash.toLocaleString('ko-KR')}원 캐시백)`}
                       </span>
                     </div>
                   </div>
@@ -246,17 +253,18 @@ export function HeroQuickSimulator({
         </section>
       )}
 
-      {/* 3. MAIN 12-COL EDITORIAL STATEMENT & APPLIANCE DETAIL (Paper Ledger, Zero Neon/Dark-Slate Slop) */}
+      {/* 3. MAIN 2-STEP BENEFIT COMPARISON & SELECTED APPLIANCES */}
       <section
-        aria-label="선택 구성 및 월별 체감가 명세서"
+        aria-label="내 맞춤 혜택 설계표 및 선택 가전"
         className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start"
       >
-        {/* RIGHT ON DESKTOP / FIRST ON MOBILE: Clean Paper Financial Statement */}
-        <div className="order-1 lg:order-2 lg:col-span-6 rounded-xl bg-surface border border-ink overflow-hidden">
-          {/* Statement Top Band */}
+        <div
+          id="benefit-statement-card"
+          className="order-1 lg:order-2 lg:col-span-6 rounded-xl bg-surface border border-ink overflow-hidden scroll-mt-20"
+        >
           <div className="px-5 py-3.5 bg-ink text-on-ink flex items-center justify-between gap-2">
             <span className="text-[14px] font-bold tracking-tight">
-              월별 납부 및 캐시백 명세서
+              내 맞춤 혜택 설계표
             </span>
             <span className="text-xs font-medium text-on-ink/80 tabular-nums">
               {isEmpty
@@ -267,183 +275,194 @@ export function HeroQuickSimulator({
             </span>
           </div>
 
-          <div className="p-5 sm:p-6 space-y-5">
-            {/* 3-Step Paper Ledger */}
-            <div className="divide-y divide-rule text-xs sm:text-[13px] tabular-nums">
-              {/* Row 1: Subscription Gross */}
-              <div className="pb-3.5 flex items-start justify-between gap-3">
-                <div className="min-w-0 space-y-0.5">
-                  <div className="font-bold text-ink">
-                    1. 가전 구독 월 결제액 (제휴카드 약정개월 분할)
-                  </div>
-                  <div className="text-[11px] text-muted">
-                    총 구독액 {result.overallTotalGross.toLocaleString('ko-KR')}원 ÷ 약정기간 분할 결제 ({phaseA.label})
-                  </div>
-                </div>
-                <span className="font-extrabold text-ink text-sm whitespace-nowrap shrink-0">
-                  월 {phaseA.grossSubscription.toLocaleString('ko-KR')}원
+          <div className="p-5 sm:p-6 space-y-4">
+            {/* STEP 1 HERO: Recommended Benefit Price */}
+            <div className="rounded-xl bg-field border border-ink p-4 sm:p-5 space-y-3.5 tabular-nums">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <span className="text-xs font-bold text-ink">
+                  {autoOptimizeFreed ? '추천상품 자동맞춤 혜택가' : '선택 구좌 적용 혜택가'}
+                </span>
+                <span className="px-2 py-0.5 rounded bg-positive-soft border border-positive-rule text-[11px] font-bold text-positive">
+                  만기 시 납입금 100% 환급형
                 </span>
               </div>
 
-              {/* Row 2: Freed Cash Deposit */}
-              <div className="py-3.5 space-y-2">
-                <div className="flex items-start justify-between gap-3">
-                  <div className="min-w-0 space-y-0.5">
-                    <div className="font-bold text-ink">
-                      2. 구독프리드 상조 지원금 (매월 현금 캐시백 입금)
-                    </div>
-                    <div className="text-[11px] text-muted">
-                      상조 월 회비 {result.lifeCareMonthlyDues.toLocaleString('ko-KR')}원은 제휴카드 납부, 지원금은 계좌 현금 입금
-                    </div>
-                  </div>
-                  <span className="font-extrabold text-accent text-sm whitespace-nowrap shrink-0">
-                    -월 {phaseA.lifeCareCashback.toLocaleString('ko-KR')}원
+              <div className="space-y-1 text-xs border-b border-rule pb-3">
+                <div className="flex items-center justify-between gap-2 text-ink-2">
+                  <span>가전 원 구독료 ({phaseA.label} 약정 분할)</span>
+                  <span className="font-semibold text-ink">
+                    월 {phaseA.grossSubscription.toLocaleString('ko-KR')}원
                   </span>
                 </div>
-
-                <div className="rounded-lg bg-field px-3 py-2 flex items-center justify-between gap-2">
-                  <span className="text-[11px] font-semibold text-ink-2">
-                    제휴카드 혜택 제외, 상조 결합 1차 월 체감가
-                  </span>
-                  <span className="text-[13px] font-extrabold text-ink whitespace-nowrap shrink-0">
-                    월 {phaseA.afterLifeCareEffective.toLocaleString('ko-KR')}원
-                  </span>
+                <div className="flex items-center justify-between gap-2 text-accent font-semibold">
+                  <span>구독플러스 현금 지원 (매월 내 계좌 입금)</span>
+                  <span>-월 {phaseA.lifeCareCashback.toLocaleString('ko-KR')}원</span>
                 </div>
-              </div>
-
-              {/* Row 3: Affiliate Card Cashback */}
-              <div className="pt-3.5 space-y-2">
-                <div className="flex items-center justify-between gap-3">
-                  <span className="font-bold text-ink">
-                    3. Hi-Class 제휴카드 캐시백 (조건 충족 시)
-                  </span>
-                  <span className="font-extrabold text-accent text-sm whitespace-nowrap shrink-0">
-                    {result.cardBenefitActive
-                      ? `-월 ${policy.cardMonthlyCashback.toLocaleString('ko-KR')}원`
-                      : '미적용 (0원)'}
-                  </span>
-                </div>
-
-                {result.cardAutoMetByLifeCare ? (
-                  <p className="text-[11px] font-semibold text-positive">
-                    상조 월 회비({formatKRW(result.cardRecognizedSpend)}) 카드 납부만으로 전월 실적 30만 원 자동 충족 (추가 지출 0원)
-                  </p>
-                ) : (
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 rounded-lg bg-field px-3 py-2">
-                    <div className="text-[11px] text-ink-2 leading-snug">
-                      상조회비 실적 {formatKRW(result.cardRecognizedSpend)} 외{' '}
-                      <strong className="font-bold text-ink">
-                        생활비 월 {formatKRW(result.cardShortfall)} 추가 사용 시
-                      </strong>{' '}
-                      월 {formatKRW(policy.cardMonthlyCashback)} 캐시백 적용
-                    </div>
-                    <button
-                      type="button"
-                      role="switch"
-                      aria-checked={result.cardCoverShortfall}
-                      onClick={() => onToggleCoverShortfall(!result.cardCoverShortfall)}
-                      className={`self-start sm:self-auto px-2.5 py-1 rounded text-[11px] font-bold transition-colors whitespace-nowrap shrink-0 cursor-pointer border ${
-                        result.cardCoverShortfall
-                          ? 'bg-ink border-ink text-on-ink'
-                          : 'bg-surface border-rule-strong text-ink-2'
-                      }`}
-                    >
-                      {result.cardCoverShortfall ? '추가실적 반영 ON' : '상조회비만 반영'}
-                    </button>
-                  </div>
-                )}
-              </div>
-            </div>
-
-            {/* Final Customer Effective Price Box */}
-            <div className="rounded-xl bg-field border border-rule-strong p-4 sm:p-5 space-y-2">
-              <div className="flex items-center justify-between gap-2">
-                <span className="text-xs font-bold text-ink-2">
-                  {isMixed
-                    ? '1~36개월차 최종 고객 월 체감가'
-                    : `${result.durationMonths || 60}개월 최종 고객 월 체감가`}
-                </span>
-                {isZeroEffective && !isEmpty && (
-                  <span className="px-2 py-0.5 rounded bg-surface border border-rule text-[11px] font-bold text-ink whitespace-nowrap shrink-0">
-                    구독료 전액 상쇄
-                  </span>
-                )}
               </div>
 
               <div className="flex flex-wrap items-baseline justify-between gap-2">
-                <div className="flex items-baseline gap-1.5 whitespace-nowrap">
-                  <span className="text-sm font-bold text-ink-2">월 체감</span>
+                <span className="text-xs sm:text-[13px] font-bold text-ink-2">
+                  카드 실적 전 기본 월 체감가
+                </span>
+                <div className="flex items-baseline gap-1 whitespace-nowrap">
+                  <span className="text-sm font-bold text-ink">월</span>
                   <SpringNumber
-                    value={isEmpty ? 0 : phaseA.effectiveMonthlyPay}
+                    value={isEmpty ? 0 : phaseA.afterLifeCareEffective}
                     suffix="원"
-                    className="text-[30px] sm:text-[34px] font-black tracking-tight tabular-nums text-ink"
+                    className="text-[30px] sm:text-[34px] font-black tracking-tight text-ink"
                   />
                 </div>
-                {hasExtraCashback && !isEmpty && (
-                  <span className="inline-flex items-center px-2.5 py-1 rounded-md bg-positive-soft border border-positive-rule text-positive text-xs font-bold tabular-nums whitespace-nowrap">
-                    매월 +{phaseA.monthlySurplusCash.toLocaleString('ko-KR')}원 현금 입금
-                  </span>
-                )}
               </div>
 
+              {phaseA.afterLifeCareSurplus > 0 && !isEmpty && (
+                <div className="text-right text-xs font-bold text-positive">
+                  매월 +{phaseA.afterLifeCareSurplus.toLocaleString('ko-KR')}원 계좌 입금
+                </div>
+              )}
+
               {isMixed && result.phaseB && (
-                <div className="pt-2 border-t border-rule flex items-center justify-between gap-2 text-xs text-ink-2 tabular-nums">
-                  <span>37~60개월차 최종 체감가</span>
+                <div className="pt-2 border-t border-rule flex items-center justify-between gap-2 text-xs text-ink-2">
+                  <span>37~60개월차 기본 월 체감가</span>
                   <span className="font-bold text-ink">
-                    {result.phaseB.monthlySurplusCash > 0
-                      ? `체감 0원 (+${result.phaseB.monthlySurplusCash.toLocaleString('ko-KR')}원/월 입금)`
-                      : `월 ${result.phaseB.effectiveMonthlyPay.toLocaleString('ko-KR')}원`}
+                    {result.phaseB.afterLifeCareSurplus > 0
+                      ? `월 0원 (+${result.phaseB.afterLifeCareSurplus.toLocaleString('ko-KR')}원/월)`
+                      : `월 ${result.phaseB.afterLifeCareEffective.toLocaleString('ko-KR')}원`}
                   </span>
                 </div>
               )}
             </div>
 
-            {/* 120-Month Maturity Principal Refund Summary */}
+            {/* 100% PRINCIPAL REFUND VISUAL FLOW (FTC-verified self-anchored short maturity highlight) */}
             {result.totalLifeCareUnits > 0 && (
-              <div className="rounded-lg bg-surface border border-rule px-3.5 py-3 space-y-1 tabular-nums">
-                <div className="flex items-center justify-between gap-2 text-xs">
-                  <span className="inline-flex items-center gap-1.5 font-bold text-ink">
-                    <ShieldCheck size={14} aria-hidden="true" className="text-positive shrink-0" />
-                    <span>{result.lifeCareMaturityMonths}회 만기 시 상조 납입 원금 100% 환급</span>
+              <div className="rounded-xl bg-surface border border-rule p-3.5 sm:p-4 space-y-2.5 tabular-nums">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <span className="inline-flex items-center gap-1.5 text-xs font-bold text-ink">
+                    <ShieldCheck size={15} aria-hidden="true" className="text-positive shrink-0" />
+                    <span>사라지는 비용이 아닌 100% 원금 환급 구조</span>
                   </span>
-                  <span className="font-extrabold text-ink text-sm whitespace-nowrap shrink-0">
-                    <SpringNumber value={result.lifeCareMaturityRefundTotal} suffix="원" />
+                  <span className="text-xs font-extrabold text-positive">
+                    만기 수령 <SpringNumber value={result.lifeCareMaturityRefundTotal} suffix="원" />
                   </span>
                 </div>
-                <p className="text-[11px] text-muted leading-snug">
-                  제휴카드 월 {result.lifeCareMonthlyDues.toLocaleString('ko-KR')}원 × {result.lifeCarePayMonths}회 납입 후 {result.lifeCareDeferMonths}회 거치(0원), 만기 미이용 해지 시 전액 환급
+
+                <div className="grid grid-cols-3 gap-1.5 text-center">
+                  <div className="rounded-lg bg-field px-2 py-2 border border-rule">
+                    <div className="text-[10px] font-medium text-muted">
+                      1~{result.lifeCarePayMonths}회 ({payYearsText})
+                    </div>
+                    <div className="text-xs font-bold text-ink mt-0.5">
+                      월 {result.lifeCareMonthlyDues.toLocaleString('ko-KR')}원
+                    </div>
+                    <div className="text-[10px] text-muted mt-0.5">실납입 마감</div>
+                  </div>
+                  <div className="rounded-lg bg-field px-2 py-2 border border-rule">
+                    <div className="text-[10px] font-medium text-muted">
+                      {result.lifeCarePayMonths + 1}~{result.lifeCareMaturityMonths}회 거치
+                    </div>
+                    <div className="text-xs font-bold text-ink mt-0.5">월 0원</div>
+                    <div className="text-[10px] text-muted mt-0.5">추가 납입 없음</div>
+                  </div>
+                  <div className="rounded-lg bg-positive-soft px-2 py-2 border border-positive-rule">
+                    <div className="text-[10px] font-bold text-positive">
+                      {result.lifeCareMaturityMonths}회 ({maturityYearsText}) 만기
+                    </div>
+                    <div className="text-xs font-extrabold text-positive mt-0.5">
+                      100% 전액 환급
+                    </div>
+                    <div className="text-[10px] text-positive/85 mt-0.5">미이용 해지 기준</div>
+                  </div>
+                </div>
+
+                <p className="text-[11px] font-semibold text-ink-2 leading-snug pt-0.5">
+                  실납입은 {payYearsText}({result.lifeCarePayMonths}회)로 끝나며, 잔여 {result.lifeCareDeferMonths}회 0원 거치 후 {maturityYearsText}({result.lifeCareMaturityMonths}회) 만기 시 원금 전액을 돌려받습니다.
                 </p>
               </div>
             )}
 
-            {/* Primary Consultation CTA + Monthly Price Variability Note */}
-            <div className="space-y-2.5">
+            {/* STEP 2 BONUS: Affiliate Card */}
+            <div className="rounded-xl bg-surface border border-rule-strong p-4 space-y-2.5 tabular-nums">
+              <div className="flex items-center justify-between gap-2">
+                <span className="text-xs font-bold text-ink">
+                  + 제휴카드 사용 시 추가 혜택
+                </span>
+                <span className="text-xs font-bold text-accent">
+                  {result.cardBenefitActive
+                    ? `-월 ${policy.cardMonthlyCashback.toLocaleString('ko-KR')}원 캐시백`
+                    : '미적용'}
+                </span>
+              </div>
+
+              {result.cardAutoMetByLifeCare ? (
+                <p className="text-[11px] font-semibold text-positive">
+                  월 납입금({formatKRW(result.cardRecognizedSpend)}) 카드 자동납부만으로 전월 30만 원 실적 자동 충족 (추가 지출 0원)
+                </p>
+              ) : (
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 rounded-lg bg-field px-3 py-2">
+                  <span className="text-[11px] text-ink-2 leading-snug">
+                    납입금 외 평소 생활비{' '}
+                    <strong className="font-bold text-ink">
+                      월 {formatKRW(result.cardShortfall)} 카드 사용 시
+                    </strong>{' '}
+                    (전월 30만 원 조건 충족)
+                  </span>
+                  <button
+                    type="button"
+                    role="switch"
+                    aria-checked={result.cardCoverShortfall}
+                    onClick={() => onToggleCoverShortfall(!result.cardCoverShortfall)}
+                    className={`self-start sm:self-auto px-2.5 py-1 rounded text-[11px] font-bold transition-colors whitespace-nowrap shrink-0 cursor-pointer border ${
+                      result.cardCoverShortfall
+                        ? 'bg-ink border-ink text-on-ink'
+                        : 'bg-surface border-rule-strong text-ink-2'
+                    }`}
+                  >
+                    {result.cardCoverShortfall ? '카드 사용 ON' : '카드 미사용'}
+                  </button>
+                </div>
+              )}
+
+              <div className="pt-2.5 border-t border-rule flex flex-wrap items-baseline justify-between gap-2">
+                <span className="text-xs font-bold text-ink-2">
+                  제휴카드 사용 시 체감가
+                </span>
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="text-lg sm:text-xl font-black text-accent">
+                    월 <SpringNumber value={isEmpty ? 0 : phaseA.effectiveMonthlyPay} suffix="원" />
+                  </span>
+                  {hasExtraCashback && !isEmpty && (
+                    <span className="inline-flex items-center px-2 py-0.5 rounded bg-positive-soft border border-positive-rule text-positive text-xs font-bold">
+                      매월 +{phaseA.monthlySurplusCash.toLocaleString('ko-KR')}원 통장 입금
+                    </span>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* PRIMARY RESERVATION CTA */}
+            <div className="space-y-2 pt-0.5">
               <button
                 type="button"
                 onClick={onOpenConsultModal}
                 className="w-full h-12 px-4 rounded-lg bg-accent hover:bg-accent-hover text-accent-ink text-sm sm:text-[15px] font-bold flex items-center justify-center gap-2 transition-colors cursor-pointer whitespace-nowrap"
               >
                 <MessageSquare size={16} aria-hidden="true" className="shrink-0" />
-                <span>이 구성 상세 견적 및 환급표 카톡으로 받기</span>
+                <span>내 맞춤 견적 · 100% 환급 일정표 카톡 받기</span>
               </button>
 
-              <p className="text-[11px] text-muted leading-snug flex items-start gap-1.5">
-                <Info size={13} aria-hidden="true" className="shrink-0 mt-0.5 text-subtle" />
-                <span>
-                  표시 구독료는 당월 업로드 기준이며 월별 프로모션 및 행사 일정에 따라 일부 변동될 수 있습니다(상담 시 당일 행사 혜택가 안내).
-                </span>
+              <p className="text-[11px] text-muted text-center leading-snug">
+                신청만으로 가입·결제되지 않으며, 당월 경기광주점 추가 행사가까지 확인해 보내드립니다.
               </p>
             </div>
           </div>
         </div>
 
-        {/* LEFT ON DESKTOP / SECOND ON MOBILE: Selected Appliance Breakdown & Freed Summary */}
-        <div className="order-2 lg:order-1 lg:col-span-6 space-y-4">
+        {/* LEFT ON DESKTOP / SECOND ON MOBILE: Selected Appliance Card */}
+        <div className="order-2 lg:order-1 lg:col-span-6">
           <div className="rounded-xl bg-surface border border-rule p-5 sm:p-6 space-y-4">
             <div className="flex items-center justify-between gap-2 pb-3 border-b border-rule">
               <div className="flex items-center gap-2 min-w-0">
                 <h3 className="text-[15px] font-bold text-ink whitespace-nowrap">
-                  선택된 구독 가전 내역
+                  선택한 구독 가전
                 </h3>
                 {!isEmpty && (
                   <span className="px-2 py-0.5 rounded bg-field text-[11px] font-bold text-ink-2 tabular-nums whitespace-nowrap">
@@ -456,7 +475,7 @@ export function HeroQuickSimulator({
                 onClick={() => onOpenCustomizer('products')}
                 className="inline-flex items-center gap-1 text-xs font-bold text-accent hover:underline whitespace-nowrap shrink-0 cursor-pointer"
               >
-                <span>품목 변경하기</span>
+                <span>품목 바꾸기</span>
                 <ArrowRight size={13} aria-hidden="true" />
               </button>
             </div>
@@ -464,14 +483,14 @@ export function HeroQuickSimulator({
             {isEmpty ? (
               <div className="rounded-lg border border-dashed border-rule-strong bg-field/50 p-8 text-center space-y-3">
                 <p className="text-sm font-bold text-ink-2">
-                  위 추천 구성을 선택하거나 원하는 가전을 직접 담아보세요
+                  위 인기 구성을 누르거나 원하는 가전을 골라보세요
                 </p>
                 <button
                   type="button"
                   onClick={() => onOpenCustomizer('products')}
                   className="inline-flex items-center gap-1.5 h-10 px-4 rounded-lg bg-ink text-on-ink text-xs font-bold cursor-pointer"
                 >
-                  <span>가전 선택 화면 열기</span>
+                  <span>가전 골라 담기</span>
                   <ArrowRight size={14} aria-hidden="true" />
                 </button>
               </div>
@@ -480,7 +499,10 @@ export function HeroQuickSimulator({
                 const line = result.lines[0]
                 return (
                   <div className="grid grid-cols-1 sm:grid-cols-12 gap-4 items-center">
-                    <div className="sm:col-span-5">
+                    <div
+                      onClick={() => onOpenProductDetail?.(line.product)}
+                      className={`sm:col-span-5 ${onOpenProductDetail ? 'cursor-pointer' : ''}`}
+                    >
                       <ProductThumbnail
                         src={line.product.imageUrl}
                         alt={line.product.name}
@@ -496,10 +518,15 @@ export function HeroQuickSimulator({
                           {line.product.brand}
                         </span>
                         <span className="px-2 py-0.5 rounded bg-field border border-rule font-semibold text-ink-2 tabular-nums">
-                          {line.term}개월 제휴카드 분할결제
+                          {line.term}개월 분할결제
                         </span>
                       </div>
-                      <h4 className="text-base sm:text-[17px] font-bold text-ink leading-snug break-keep">
+                      <h4
+                        onClick={() => onOpenProductDetail?.(line.product)}
+                        className={`text-base sm:text-[17px] font-bold text-ink leading-snug break-keep ${
+                          onOpenProductDetail ? 'cursor-pointer hover:underline' : ''
+                        }`}
+                      >
                         {line.product.name}
                       </h4>
                       <div className="flex flex-wrap gap-1">
@@ -512,6 +539,15 @@ export function HeroQuickSimulator({
                           </span>
                         ))}
                       </div>
+                      {onOpenProductDetail && (
+                        <button
+                          type="button"
+                          onClick={() => onOpenProductDetail(line.product)}
+                          className="text-xs font-bold text-ink-2 underline underline-offset-2 hover:text-ink cursor-pointer"
+                        >
+                          이런 집 추천 · 색상 보기
+                        </button>
+                      )}
                       <div className="pt-2.5 border-t border-rule flex items-baseline justify-between gap-2 tabular-nums">
                         <span className="text-xs text-muted">
                           총 구독액 {line.contractTotal.toLocaleString('ko-KR')}원
@@ -529,7 +565,10 @@ export function HeroQuickSimulator({
                 {result.lines.map((line) => (
                   <div
                     key={`hero-${line.product.id}-${line.term}`}
-                    className="py-3 first:pt-0 last:pb-0 flex items-center gap-3"
+                    onClick={() => onOpenProductDetail?.(line.product)}
+                    className={`py-3 first:pt-0 last:pb-0 flex items-center gap-3 ${
+                      onOpenProductDetail ? 'cursor-pointer' : ''
+                    }`}
                   >
                     <ProductThumbnail
                       src={line.product.imageUrl}
@@ -545,7 +584,7 @@ export function HeroQuickSimulator({
                           {line.product.brand}
                         </span>
                         <span className="text-muted tabular-nums">
-                          {line.term}개월 약정
+                          {line.term}개월
                         </span>
                         {line.quantity > 1 && (
                           <span className="font-bold text-accent tabular-nums">
@@ -553,7 +592,7 @@ export function HeroQuickSimulator({
                           </span>
                         )}
                       </div>
-                      <div className="text-[13px] sm:text-sm font-bold text-ink leading-snug break-keep mt-0.5">
+                      <div className="text-[13px] sm:text-sm font-bold text-ink leading-snug break-keep mt-0.5 hover:underline">
                         {line.product.name}
                       </div>
                       <div className="text-[11px] text-muted tabular-nums mt-0.5">
@@ -565,27 +604,22 @@ export function HeroQuickSimulator({
               </div>
             )}
 
-            {/* Auto-Matched Freed Breakdown */}
             {!isEmpty && (
-              <div className="rounded-lg bg-field border border-rule p-3.5 space-y-1.5">
-                <div className="flex items-center justify-between gap-2">
-                  <span className="text-xs font-bold text-ink">
-                    자동 맞춤 결합 구좌 ({result.totalLifeCareUnits}구좌)
-                  </span>
-                  <span className="text-xs font-bold text-positive tabular-nums">
-                    현금 캐시백 월 {formatKRW(result.lifeCareMonthlyCashback)}
-                  </span>
+              <div className="rounded-lg bg-field border border-rule px-3.5 py-3 flex flex-wrap items-center justify-between gap-2">
+                <div className="space-y-0.5">
+                  <div className="text-[11px] font-bold text-muted">
+                    추천상품 자동맞춤 ({result.totalLifeCareUnits}구좌)
+                  </div>
+                  <div className="text-xs font-bold text-ink">
+                    {freedSummaryLabel}
+                  </div>
                 </div>
-                <div className="text-xs font-semibold text-ink-2">
-                  {freedSummaryLabel}
-                </div>
-                <p className="text-[11px] text-muted leading-relaxed">
-                  상조 혜택만으로 무리하게 0원을 맞추지 않고 천원 단위 잔액({formatKRW(phaseA.afterLifeCareEffective)})만 남긴 뒤, 필수 발급 제휴카드 캐시백으로 0원 이하가 되도록 설계한 추천안입니다.
-                </p>
+                <span className="text-xs font-extrabold text-positive tabular-nums">
+                  매월 {formatKRW(result.lifeCareMonthlyCashback)} 현금 입금
+                </span>
               </div>
             )}
 
-            {/* Dedicated Page-Switch Action Row */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-1">
               <button
                 type="button"
@@ -593,52 +627,18 @@ export function HeroQuickSimulator({
                 className="h-11 px-4 rounded-lg bg-ink hover:bg-ink-hover text-on-ink text-xs sm:text-[13px] font-bold flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
               >
                 <SlidersHorizontal size={14} aria-hidden="true" />
-                <span>원하는 가전 직접 골라 담기</span>
+                <span>다른 가전 골라 담기</span>
               </button>
               <button
                 type="button"
                 onClick={() => onOpenCustomizer('bundles')}
                 className="h-11 px-4 rounded-lg bg-surface hover:bg-field border border-rule-strong text-ink text-xs sm:text-[13px] font-semibold flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
               >
-                <span>추천 세트 보기 및 구좌 조정</span>
+                <span>인기 세트 · 구좌 변경</span>
                 <ArrowRight size={14} aria-hidden="true" />
               </button>
             </div>
           </div>
-
-          <p className="px-1 text-[11px] text-muted leading-relaxed">
-            <strong className="font-bold text-ink-2">필수 안내:</strong> 롯데하이마트 가전 구독(제휴카드 약정개월 분할결제)과 선불식 할부거래(구독프리드 상조, 120회 만기)는 별개 계약이며, 상조 서비스 미이용 후 120회 만기 완료 익월 해지 신청 시 납입 원금 100%가 환급됩니다.
-          </p>
-        </div>
-      </section>
-
-      {/* 4. QUIET EDITORIAL 3-COLUMN SPECIFICATION STRIP (Replaces AI Colored Icon Tiles) */}
-      <section
-        aria-label="하이마트 가전구독 진행 구조 요약"
-        className="pt-6 border-t border-rule grid grid-cols-1 md:grid-cols-3 gap-5 md:gap-8"
-      >
-        <div className="space-y-1">
-          <div className="text-xs font-mono font-bold text-accent tabular-nums">01</div>
-          <h3 className="text-sm font-bold text-ink">약정 개월수 총액 분할결제</h3>
-          <p className="text-xs text-muted leading-relaxed">
-            하이마트 가전 구독은 필수 발급 제휴카드를 통해 전체 구독 총액을 선택하신 36개월 또는 60개월 기간대로 나누어 결제합니다.
-          </p>
-        </div>
-
-        <div className="space-y-1 md:border-l md:border-rule md:pl-6">
-          <div className="text-xs font-mono font-bold text-accent tabular-nums">02</div>
-          <h3 className="text-sm font-bold text-ink">상조회비 카드납부 및 현금 캐시백</h3>
-          <p className="text-xs text-muted leading-relaxed">
-            상조 월 회비는 제휴카드로 납부하여 전월 실적에 100% 합산되고, 결합 지원금은 매월 고객님 계좌로 현금 입금됩니다.
-          </p>
-        </div>
-
-        <div className="space-y-1 md:border-l md:border-rule md:pl-6">
-          <div className="text-xs font-mono font-bold text-accent tabular-nums">03</div>
-          <h3 className="text-sm font-bold text-ink">90회 납입 후 120회 만기 원금 환급</h3>
-          <p className="text-xs text-muted leading-relaxed">
-            90회 납입 완료 후 91~120회차는 납입 없이 거치하며, 상조 미이용 시 만기 익월 해지 신청으로 납입 원금 전액을 돌려받습니다.
-          </p>
         </div>
       </section>
     </div>

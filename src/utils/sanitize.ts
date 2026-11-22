@@ -84,6 +84,10 @@ export function sanitizeImageUrl(raw: string): string {
   const trimmed = stripControlChars(raw).trim()
   if (!trimmed) return ''
 
+  if (/^data:image\/(?:jpeg|png|webp);base64,[A-Za-z0-9+/=]+$/.test(trimmed)) {
+    return trimmed
+  }
+
   if (trimmed.startsWith('./') || (trimmed.startsWith('/') && !trimmed.startsWith('//'))) {
     if (trimmed.includes('..')) return ''
     return trimmed.replace(/[<>"'`\s\\]/g, '')
