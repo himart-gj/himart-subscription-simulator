@@ -66,28 +66,29 @@ export function SimulatorPage({
   dataSource,
 }: SimulatorPageProps) {
   const presets = useMemo(() => buildQuickScenarioPresets(catalog), [catalog])
-  const urlPresetKey = useMemo(
-    () =>
-      typeof window !== 'undefined'
-        ? readPresetKeyFromUrl(window.location.search, window.location.hash)
-        : null,
-    [],
+  const [locationKey, setLocationKey] = useState<string>(() =>
+    typeof window !== 'undefined' ? `${window.location.search}|${window.location.hash}` : '',
   )
-  const attribution = useMemo(
-    () =>
-      typeof window !== 'undefined'
-        ? resolveMarketingAttribution(window.location.search, window.location.hash)
-        : {
-            utmSource: '',
-            utmMedium: '',
-            utmCampaign: '',
-            utmContent: '',
-            utmTerm: '',
-            fbclid: '',
-            adMode: false,
-          },
-    [],
-  )
+  const urlPresetKey = useMemo(() => {
+    void locationKey
+    return typeof window !== 'undefined'
+      ? readPresetKeyFromUrl(window.location.search, window.location.hash)
+      : null
+  }, [locationKey])
+  const attribution = useMemo(() => {
+    void locationKey
+    return typeof window !== 'undefined'
+      ? resolveMarketingAttribution(window.location.search, window.location.hash)
+      : {
+          utmSource: '',
+          utmMedium: '',
+          utmCampaign: '',
+          utmContent: '',
+          utmTerm: '',
+          fbclid: '',
+          adMode: false,
+        }
+  }, [locationKey])
 
   /* ==================== 1. MAIN HOME STATE (EXCLUSIVELY 4 ONE-CLICK PRESETS) ==================== */
   const [selectedPresetId, setSelectedPresetId] = useState<string | null>(() => {
@@ -143,6 +144,20 @@ export function SimulatorPage({
   const [adShowroomOpen, setAdShowroomOpen] = useState<boolean>(
     Boolean(attribution.adMode && !urlPresetKey),
   )
+  useEffect(() => {
+    const syncHashUrl = () => {
+      const nextPreset = readPresetKeyFromUrl(window.location.search, window.location.hash)
+      const nextAttr = resolveMarketingAttribution(window.location.search, window.location.hash)
+      setLocationKey(`${window.location.search}|${window.location.hash}`)
+      setAdShowroomOpen(Boolean(nextAttr.adMode && !nextPreset))
+      if (nextPreset) {
+        const matched = resolveInitialPreset(presets, nextPreset)
+        if (matched) setSelectedPresetId(matched.id)
+      }
+    }
+    window.addEventListener('hashchange', syncHashUrl)
+    return () => window.removeEventListener('hashchange', syncHashUrl)
+  }, [presets])
   const [browseMode, setBrowseMode] = useState<BrowseMode>('products')
   const [selectedCategory, setSelectedCategory] = useState<string>('전체')
   const [selectedBrand, setSelectedBrand] = useState<string>('전체')

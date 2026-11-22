@@ -41,7 +41,10 @@ function collectSearchParams(search: string, hash: string): URLSearchParams {
 
 /**
  * Parses UTM / Meta Ad parameters (`?ad=meta`, `utm_source=meta`, `fbclid`, etc.)
- * from standard search and HashRouter URLs, persisting campaign attribution in sessionStorage.
+ * from standard search and HashRouter URLs.
+ * - `adMode` is strictly evaluated from the CURRENT URL so direct visits to `#/`
+ *   always render the clean 4-Preset Main Home without showroom stickiness.
+ * - Campaign UTM fields persist in `sessionStorage` so lead submissions retain attribution.
  */
 export function resolveMarketingAttribution(
   search: string,
@@ -63,6 +66,8 @@ export function resolveMarketingAttribution(
     Boolean(fbclid) ||
     /^(meta|fb|facebook|ig|instagram)$/i.test(utmSource)
 
+  const currentAdMode = explicitView === 'classic' ? false : isMetaTraffic
+
   const current: MarketingAttribution = {
     utmSource,
     utmMedium,
@@ -70,15 +75,16 @@ export function resolveMarketingAttribution(
     utmContent,
     utmTerm,
     fbclid: fbclid ? fbclid.slice(0, 60) : '',
-    adMode: explicitView === 'classic' ? false : isMetaTraffic,
+    adMode: currentAdMode,
   }
 
-  const hasAnyFreshSignal =
-    Boolean(utmSource || utmMedium || utmCampaign || utmContent || utmTerm || fbclid || adParam)
+  const hasUtmOrClickSignal = Boolean(
+    utmSource || utmMedium || utmCampaign || utmContent || utmTerm || fbclid,
+  )
 
   try {
     if (typeof sessionStorage !== 'undefined') {
-      if (hasAnyFreshSignal) {
+      if (hasUtmOrClickSignal) {
         sessionStorage.setItem(UTM_STORAGE_KEY, JSON.stringify(current))
         return current
       }
@@ -92,7 +98,7 @@ export function resolveMarketingAttribution(
           utmContent: parsed.utmContent || '',
           utmTerm: parsed.utmTerm || '',
           fbclid: parsed.fbclid || '',
-          adMode: explicitView === 'classic' ? false : Boolean(parsed.adMode),
+          adMode: currentAdMode,
         }
       }
     }

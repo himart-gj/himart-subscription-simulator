@@ -268,7 +268,7 @@ export function ProductDetailModal({
           {sim && (
             <div className="rounded-xl bg-surface border border-ink p-4 space-y-3 tabular-nums">
               <div className="flex items-center justify-between gap-2">
-                <span className="text-xs font-bold text-ink">약정 기간별 맞춤 혜택가 미리보기</span>
+                <span className="text-xs font-bold text-ink">{supports36 && supports60 ? "약정 기간별 맞춤 혜택가 미리보기" : `${activeTerm}개월 공식 약정 혜택가 미리보기`}</span>
                 <div className="inline-flex rounded-md bg-field border border-rule p-0.5">
                   {supports36 && (
                     <button

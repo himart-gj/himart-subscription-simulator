@@ -159,7 +159,7 @@ export function PolicySyncTab({
             className="inline-flex items-center justify-center gap-1.5 h-10 px-4 rounded-xl bg-ink hover:bg-ink-hover disabled:opacity-50 text-on-ink text-xs font-extrabold shrink-0 cursor-pointer"
           >
             <Upload size={14} />
-            <span>초기 시드 10종 시트에 일괄 동기화</span>
+            <span>초기 시드 ({snapshot.products.length}종) 시트 일괄 동기화</span>
           </button>
         )}
       </div>

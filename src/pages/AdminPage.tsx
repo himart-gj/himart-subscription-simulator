@@ -866,7 +866,7 @@ export function AdminPage({
               <strong className="font-extrabold block mb-0.5">
                 연결된 구글 시트에 아직 등록된 상품이 없습니다
               </strong>
-              현재 화면의 초기 시드 데이터(메인 원클릭 4종 + 가전 10종 + 추천 세트 3종 + 기본 정책)를 구글 시트에
+              현재 화면의 초기 시드 데이터(메인 원클릭 4종 + 가전 147종 + 추천 세트 5종 + 기본 정책)를 구글 시트에
               한 번에 업로드하시겠습니까?
             </div>
             <button
@@ -875,7 +875,7 @@ export function AdminPage({
               onClick={() =>
                 void handleBulkSync(
                   INITIAL_CATALOG_SNAPSHOT,
-                  '초기 시드 데이터(원클릭 4종 + 10종 + 3세트 + 정책)가 구글 시트에 일괄 등록되었습니다.',
+                  '초기 시드 데이터(원클릭 4종 + 147종 + 5세트 + 정책)가 구글 시트에 일괄 등록되었습니다.',
                 )
               }
               className="h-10 px-4 rounded-xl bg-caution hover:opacity-90 text-on-ink text-xs font-extrabold shrink-0 cursor-pointer"
@@ -1016,7 +1016,7 @@ export function AdminPage({
             onSeedToRemote={async () => {
               await handleBulkSync(
                 INITIAL_CATALOG_SNAPSHOT,
-                '초기 시드(메인 원클릭 4종 + 가전 10종 + 추천 세트 3종 + 정책)가 시트에 동기화되었습니다.',
+                '초기 시드(메인 원클릭 4종 + 가전 147종 + 추천 세트 5종 + 정책)가 시트에 동기화되었습니다.',
               )
             }}
             onResetLocalSeed={handleResetLocalSeed}
