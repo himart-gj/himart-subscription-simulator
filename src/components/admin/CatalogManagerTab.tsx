@@ -227,7 +227,7 @@ export function CatalogManagerTab({
     <div className="space-y-4">
       {/* Monthly Promotional Price Update Hint */}
       <div className="rounded-2xl bg-paper border border-rule px-4 py-3 text-xs text-ink-2 leading-relaxed">
-        <strong className="font-extrabold text-ink">월별 행사 단가 업데이트 안내:</strong> 매월 프로모션·행사 일정에 맞춰 품목별 36·60개월 구독료를 수정 저장하시면 고객 화면(단품·복수·세트·원클릭 4종)의 <strong className="text-positive">천원단위 상조 결합 + 제휴카드 혜택</strong>에 즉시 자동 반영되며, 고객 화면에도 행사일 변동 가능 안내가 함께 표시됩니다.
+        <strong className="font-extrabold text-ink">월별 행사 단가 업데이트 안내:</strong> 매월 프로모션·행사 일정에 맞춰 품목별 36·60개월 구독료를 수정 저장하시면 고객 화면(단품·복수·세트·원클릭 4종)의 <strong className="text-positive">추천상품 자동맞춤 결합 + 제휴카드 혜택</strong>에 즉시 자동 반영되며, 고객 화면에도 행사일 변동 가능 안내가 함께 표시됩니다.
       </div>
 
       {/* Toolbar */}

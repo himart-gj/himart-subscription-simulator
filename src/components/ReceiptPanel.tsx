@@ -742,7 +742,7 @@ export function ReceiptPanel({
           }`}
         >
           <CalendarCheck2 size={17} aria-hidden="true" />
-          <span>내 맞춤 견적 · 100% 환급 일정표 받기</span>
+          <span>내 맞춤 견적 · 100% 환급 일정표 카톡·문자 받기</span>
           <Send size={14} aria-hidden="true" />
         </button>
       </div>

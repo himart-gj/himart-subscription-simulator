@@ -192,7 +192,7 @@ export function HeroPresetManagerTab({
             </h3>
           </div>
           <p className="text-xs text-muted mt-1">
-            첫 화면 상단에 노출되는 4개 원클릭 추천 구성(단품 1개 또는 다품목 세트)을 자유롭게 추가·수정·순서 변경할 수 있으며, 구글 시트(`HeroPresets` / `Sets`)에 즉시 저장됩니다.
+            기본 메인 주소(`#/`) 첫 화면 전용으로 노출되는 4개 원클릭 추천 슬롯입니다. 고객이 ‘가전 골라담기’에서 선택한 내역은 별도 결과 화면으로 분리되어 메인 4종과 섞이지 않으며, 수정 즉시 구글 시트 `HeroPresets` 탭에 동기화됩니다.
           </p>
         </div>
 

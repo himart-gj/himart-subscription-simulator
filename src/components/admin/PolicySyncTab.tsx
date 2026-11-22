@@ -101,6 +101,7 @@ export function PolicySyncTab({
       await onImportSnapshot({
         products: parsed.products,
         bundles: parsed.bundles,
+        heroPresets: Array.isArray(parsed.heroPresets) ? parsed.heroPresets : snapshot.heroPresets,
         policy: { ...DEFAULT_POLICY_CONFIG, ...parsed.policy },
         updatedAt: new Date().toISOString(),
       })

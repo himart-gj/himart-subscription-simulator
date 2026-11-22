@@ -53,6 +53,8 @@ export function HeroQuickSimulator({
   const hasExtraCashback = phaseA.monthlySurplusCash > 0
   const productMap = new Map(products.map((p) => [p.id, p]))
 
+  const activePreset = presets.find((p) => p.id === activePresetId) ?? presets[0]
+
   const activeTiers = result.lifeCarePerTier.filter((t) => t.quantity > 0)
   const freedSummaryLabel =
     activeTiers.length > 0
@@ -104,7 +106,7 @@ export function HeroQuickSimulator({
               </h2>
 
               <p className="text-[13px] sm:text-sm text-ink-2 leading-[1.6] break-keep">
-                구독플러스 현금 지원으로 월 부담을 천원대까지 낮추고, 제휴카드 사용 시 매달 추가 캐시백까지 더해지는 맞춤 혜택을 바로 확인해 보세요.
+                아래 인기 추천 4종을 원클릭으로 비교해 보시거나, 원하는 가전을 따로 골라 전용 맞춤 혜택표를 확인해 보세요.
               </p>
             </div>
 
@@ -131,10 +133,10 @@ export function HeroQuickSimulator({
         </div>
       </section>
 
-      {/* 2. ONE-CLICK RECOMMENDED PRESETS */}
+      {/* 2. ONE-CLICK 4 RECOMMENDED PRESETS (EXCLUSIVELY FOR MAIN HOME) */}
       {presets.length > 0 && (
         <section
-          aria-label="인기 추천 구성 바로 선택"
+          aria-label="인기 추천 4개 구성 원클릭 비교"
           className="space-y-3"
         >
           <div className="flex flex-wrap items-baseline justify-between gap-2 px-0.5">
@@ -143,14 +145,9 @@ export function HeroQuickSimulator({
                 인기 추천 구성 원클릭 비교
               </h3>
               <span className="text-xs text-muted">
-                눌러보시면 아래 맞춤 혜택표가 바로 바뀝니다
+                눌러보시면 아래 추천 구성 혜택표가 바로 바뀝니다
               </span>
             </div>
-            {!activePresetId && !isEmpty && (
-              <span className="text-xs font-bold text-accent tabular-nums">
-                직접 담은 구성 ({result.totalQuantity}대) 적용 중
-              </span>
-            )}
           </div>
 
           <div
@@ -159,7 +156,7 @@ export function HeroQuickSimulator({
             className="preset-tab-row grid grid-cols-1 xl:grid-cols-2 gap-2.5"
           >
             {presets.map((preset) => {
-              const isSelected = activePresetId === preset.id
+              const isSelected = (activePreset?.id ?? '') === preset.id
               const recUnits = recommendZeroCostLifeCare({
                 cart: preset.items,
                 products,
@@ -253,9 +250,9 @@ export function HeroQuickSimulator({
         </section>
       )}
 
-      {/* 3. MAIN 2-STEP BENEFIT COMPARISON & SELECTED APPLIANCES */}
+      {/* 3. MAIN HOME PRESET BENEFIT STATEMENT */}
       <section
-        aria-label="내 맞춤 혜택 설계표 및 선택 가전"
+        aria-label="원클릭 추천 구성 혜택 설계표"
         className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start"
       >
         <div
@@ -263,10 +260,10 @@ export function HeroQuickSimulator({
           className="order-1 lg:order-2 lg:col-span-6 rounded-xl bg-surface border border-ink overflow-hidden scroll-mt-20"
         >
           <div className="px-5 py-3.5 bg-ink text-on-ink flex items-center justify-between gap-2">
-            <span className="text-[14px] font-bold tracking-tight">
-              내 맞춤 혜택 설계표
+            <span className="text-[14px] font-bold tracking-tight truncate">
+              {activePreset ? `${activePreset.shortTitle} 혜택표` : '추천 구성 맞춤 혜택표'}
             </span>
-            <span className="text-xs font-medium text-on-ink/80 tabular-nums">
+            <span className="text-xs font-medium text-on-ink/80 tabular-nums shrink-0">
               {isEmpty
                 ? '품목 선택 대기'
                 : isMixed
@@ -290,13 +287,13 @@ export function HeroQuickSimulator({
               <div className="space-y-1 text-xs border-b border-rule pb-3">
                 <div className="flex items-center justify-between gap-2 text-ink-2">
                   <span>가전 원 구독료 ({phaseA.label} 약정 분할)</span>
-                  <span className="font-semibold text-ink">
+                  <span className="font-semibold text-ink whitespace-nowrap shrink-0">
                     월 {phaseA.grossSubscription.toLocaleString('ko-KR')}원
                   </span>
                 </div>
                 <div className="flex items-center justify-between gap-2 text-accent font-semibold">
                   <span>구독플러스 현금 지원 (매월 내 계좌 입금)</span>
-                  <span>-월 {phaseA.lifeCareCashback.toLocaleString('ko-KR')}원</span>
+                  <span className="whitespace-nowrap shrink-0">-월 {phaseA.lifeCareCashback.toLocaleString('ko-KR')}원</span>
                 </div>
               </div>
 
@@ -332,7 +329,7 @@ export function HeroQuickSimulator({
               )}
             </div>
 
-            {/* 100% PRINCIPAL REFUND VISUAL FLOW (FTC-verified self-anchored short maturity highlight) */}
+            {/* 100% PRINCIPAL REFUND VISUAL FLOW */}
             {result.totalLifeCareUnits > 0 && (
               <div className="rounded-xl bg-surface border border-rule p-3.5 sm:p-4 space-y-2.5 tabular-nums">
                 <div className="flex flex-wrap items-center justify-between gap-2">
@@ -446,7 +443,7 @@ export function HeroQuickSimulator({
                 className="w-full h-12 px-4 rounded-lg bg-accent hover:bg-accent-hover text-accent-ink text-sm sm:text-[15px] font-bold flex items-center justify-center gap-2 transition-colors cursor-pointer whitespace-nowrap"
               >
                 <MessageSquare size={16} aria-hidden="true" className="shrink-0" />
-                <span>내 맞춤 견적 · 100% 환급 일정표 카톡 받기</span>
+                <span>내 맞춤 견적 · 100% 환급 일정표 카톡·문자 받기</span>
               </button>
 
               <p className="text-[11px] text-muted text-center leading-snug">
@@ -456,13 +453,13 @@ export function HeroQuickSimulator({
           </div>
         </div>
 
-        {/* LEFT ON DESKTOP / SECOND ON MOBILE: Selected Appliance Card */}
+        {/* LEFT ON DESKTOP / SECOND ON MOBILE: Selected Preset Appliance Card */}
         <div className="order-2 lg:order-1 lg:col-span-6">
           <div className="rounded-xl bg-surface border border-rule p-5 sm:p-6 space-y-4">
             <div className="flex items-center justify-between gap-2 pb-3 border-b border-rule">
               <div className="flex items-center gap-2 min-w-0">
                 <h3 className="text-[15px] font-bold text-ink whitespace-nowrap">
-                  선택한 구독 가전
+                  선택된 추천 구성 품목
                 </h3>
                 {!isEmpty && (
                   <span className="px-2 py-0.5 rounded bg-field text-[11px] font-bold text-ink-2 tabular-nums whitespace-nowrap">
@@ -475,7 +472,7 @@ export function HeroQuickSimulator({
                 onClick={() => onOpenCustomizer('products')}
                 className="inline-flex items-center gap-1 text-xs font-bold text-accent hover:underline whitespace-nowrap shrink-0 cursor-pointer"
               >
-                <span>품목 바꾸기</span>
+                <span>다른 가전 골라담기</span>
                 <ArrowRight size={13} aria-hidden="true" />
               </button>
             </div>
@@ -627,14 +624,14 @@ export function HeroQuickSimulator({
                 className="h-11 px-4 rounded-lg bg-ink hover:bg-ink-hover text-on-ink text-xs sm:text-[13px] font-bold flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
               >
                 <SlidersHorizontal size={14} aria-hidden="true" />
-                <span>다른 가전 골라 담기</span>
+                <span>원하는 가전 직접 골라 담기</span>
               </button>
               <button
                 type="button"
                 onClick={() => onOpenCustomizer('bundles')}
                 className="h-11 px-4 rounded-lg bg-surface hover:bg-field border border-rule-strong text-ink text-xs sm:text-[13px] font-semibold flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
               >
-                <span>인기 세트 · 구좌 변경</span>
+                <span>인기 세트 묶음 보기</span>
                 <ArrowRight size={14} aria-hidden="true" />
               </button>
             </div>
