@@ -115,6 +115,27 @@
   word-break: keep-all;
 }
 
+/* Appliance Interior Finish Swatches (OKLCH tokens for Bespoke / Objet colors) */
+.swatch-ivory {
+  background-color: oklch(0.962 0.010 85);
+}
+
+.swatch-beige {
+  background-color: oklch(0.885 0.028 78);
+}
+
+.swatch-sage {
+  background-color: oklch(0.790 0.035 152);
+}
+
+.swatch-silver {
+  background-color: oklch(0.745 0.010 250);
+}
+
+.swatch-charcoal {
+  background-color: oklch(0.310 0.010 255);
+}
+
 /* Subtle refined scrollbars for desktop sticky receipt */
 .receipt-scroll::-webkit-scrollbar {
   width: 6px;
