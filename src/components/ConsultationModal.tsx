@@ -26,6 +26,7 @@ import { sanitizePhoneNumber } from '../utils/sanitize'
 interface ConsultationModalProps {
   open: boolean
   result: CalculationResult
+  entryContextLabel?: string
   initialUndecided?: boolean
   selectedColorByProduct?: Record<string, string>
   attribution?: MarketingAttribution
@@ -43,9 +44,9 @@ const CHANNELS: Array<{
   icon: typeof Store
 }> = [
   {
-    value: '카카오톡 상담',
-    label: '카톡으로 받기',
-    ctaLabel: '카톡으로 내 맞춤 견적·환급표 받기',
+    value: '카톡·문자',
+    label: '카톡 · 문자',
+    ctaLabel: '카톡·문자로 내 맞춤 견적·환급표 받기',
     icon: MessageSquare,
   },
   {
@@ -65,6 +66,7 @@ const CHANNELS: Array<{
 export function ConsultationModal({
   open,
   result,
+  entryContextLabel,
   initialUndecided = false,
   selectedColorByProduct = {},
   attribution,
@@ -72,7 +74,7 @@ export function ConsultationModal({
 }: ConsultationModalProps) {
   const [name, setName] = useState('')
   const [phone, setPhone] = useState('')
-  const [channel, setChannel] = useState<ConsultChannel>('카카오톡 상담')
+  const [channel, setChannel] = useState<ConsultChannel>('카톡·문자')
   const [preferredTime, setPreferredTime] = useState<PreferredTimeSlot>('상관없음')
   const [undecidedOverride, setUndecidedOverride] = useState<boolean | null>(null)
   const undecidedModel = undecidedOverride ?? (initialUndecided || result.lines.length === 0)
@@ -158,6 +160,7 @@ export function ConsultationModal({
 
     const attrTag = attribution ? formatAttributionTag(attribution) : ''
     const metaTags = [
+      entryContextLabel ? `[화면: ${entryContextLabel}]` : '',
       `[편한시간: ${preferredTime}]`,
       undecidedModel ? '[모델미결정·추천희망]' : '',
       attrTag ? `[유입: ${attrTag}]` : '',
@@ -230,6 +233,7 @@ export function ConsultationModal({
       setHoneypot('')
       setAgreed(false)
     }
+    setUndecidedOverride(null)
     setErrorMsg(null)
     onClose()
   }
@@ -248,7 +252,7 @@ export function ConsultationModal({
               내 맞춤 견적 · 100% 환급 일정표 받기
             </h2>
             <p className="text-xs text-muted">
-              경기광주점 전담 매니저가 당월 지점 추가 혜택까지 확인해 보내드립니다
+              카톡 · 문자 · 전화 중 편하신 방법으로 당월 추가 혜택까지 보내드립니다
             </p>
           </div>
           <button
@@ -275,7 +279,7 @@ export function ConsultationModal({
                 </h3>
                 <p className="mt-1 text-sm text-ink-2">
                   {completed.isDuplicateNotice ? (
-                    '곧 전담 매니저가 남겨주신 연락처로 안내해 드릴게요.'
+                    '곧 전담 매니저가 선택하신 방법으로 안내해 드릴게요.'
                   ) : (
                     <>
                       접수번호{' '}
@@ -288,13 +292,15 @@ export function ConsultationModal({
               </div>
               <div className="rounded-lg bg-field border border-rule p-3.5 text-left text-xs text-ink-2 space-y-1.5">
                 <div className="flex items-center justify-between gap-2">
-                  <span className="font-bold text-ink">{STORE_INFO.name} 전담 상담팀</span>
+                  <span className="font-bold text-ink">
+                    {STORE_INFO.name} ({channel})
+                  </span>
                   <span className="text-[11px] font-semibold text-positive">
                     연락 희망: {preferredTime}
                   </span>
                 </div>
                 <p>
-                  선택하신 방식으로 월별 체감가 비교표와 120회(10년) 만기 100% 환급 일정을 보내드립니다.
+                  선택하신 안내 방법({channel})으로 월별 체감가 비교표와 120회(10년) 만기 100% 환급 일정을 보내드립니다.
                 </p>
                 <p className="pt-1.5 border-t border-rule text-[11px] font-medium text-ink-2 tabular-nums">
                   {STORE_INFO.address} / 직통 {STORE_INFO.phone} ({STORE_INFO.hours})
@@ -400,7 +406,7 @@ export function ConsultationModal({
 
               <div>
                 <span className="block text-xs font-bold text-ink mb-1.5">
-                  받으실 방법 선택
+                  안내 연락받을 방법 선택
                 </span>
                 <div className="grid grid-cols-3 gap-2">
                   {CHANNELS.map((ch) => {
@@ -466,7 +472,7 @@ export function ConsultationModal({
                 </div>
               </div>
 
-              {/* 4-Chip 1-Tap Preferred Contact Time (Absorbed from dbcom.kr) */}
+              {/* 4-Chip 1-Tap Preferred Contact Time */}
               <fieldset className="space-y-1.5">
                 <legend className="flex items-center gap-1 text-xs font-bold text-ink">
                   <Clock size={13} aria-hidden="true" className="text-muted" />
@@ -577,7 +583,7 @@ export function ConsultationModal({
                   {submitting ? '안전하게 접수 중…' : activeChannelObj.ctaLabel}
                 </button>
 
-                {/* Bottom Visual Anchor Strip (Absorbed from dbcom.kr perk-strip) */}
+                {/* Bottom Visual Anchor Strip */}
                 <div className="rounded-lg bg-ink text-on-ink px-3.5 py-2.5 flex items-center justify-between gap-2 text-xs">
                   <span className="font-bold">
                     새 가전은 먼저 설치받고, 납입금은 10년(120회) 만기 시 100% 환급

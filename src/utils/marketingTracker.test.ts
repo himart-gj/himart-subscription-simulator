@@ -38,7 +38,7 @@ describe('Meta Ad Showroom Detection, UTM Attribution & Lead Pixel', () => {
     trackLeadConversion({
       referenceCode: 'GJ-ABC123',
       productIds: ['prod-robovac-roborock'],
-      consultChannel: '카카오톡 상담',
+      consultChannel: '카톡·문자',
       undecidedModel: false,
       attribution: attr,
     })

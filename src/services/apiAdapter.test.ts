@@ -278,7 +278,7 @@ describe('GAS API Adapter Schema, CORS & Production Security Hardening', () => {
     await submitConsultationWriteOnly({
       customerName: '=EVIL()',
       customerPhone: '01012345678',
-      consultChannel: '카카오톡 상담',
+      consultChannel: '카톡·문자',
       memo: '+test',
       agreedLegalAndPrivacy: true,
       honeypot: '',
@@ -296,7 +296,7 @@ describe('GAS API Adapter Schema, CORS & Production Security Hardening', () => {
     const leadBody = assertLastPostContract('submitLead', '')
     expect(leadBody.payload.name).toBe("'=EVIL()")
     expect(leadBody.payload.phone).toBe('010-1234-5678')
-    expect(leadBody.payload.contactMethod).toBe('카카오톡 상담')
+    expect(leadBody.payload.contactMethod).toBe('카톡·문자')
     expect(leadBody.payload.modeSummary).toBe('36개월 단일')
     expect(leadBody.payload.cardStatusSummary).toBe('자동충족')
     expect(leadBody.payload.period1Summary).toBe('월 체감 0원')

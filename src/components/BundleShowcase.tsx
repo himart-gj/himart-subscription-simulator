@@ -194,11 +194,11 @@ export function BundleShowcase({
                 {isApplied ? (
                   <>
                     <Check size={16} strokeWidth={2.5} aria-hidden="true" />
-                    <span>선택 완료</span>
+                    <span>결과 화면 열기</span>
                   </>
                 ) : (
                   <>
-                    <span>이 세트 바로 선택</span>
+                    <span>이 세트 혜택 결과 보기</span>
                     <ArrowRight size={16} aria-hidden="true" />
                   </>
                 )}

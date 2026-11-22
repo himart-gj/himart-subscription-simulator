@@ -161,7 +161,7 @@ export interface CalculationResult {
   overallTotalSurplus: number
 }
 
-export type ConsultChannel = '매장 방문' | '전화 상담' | '카카오톡 상담'
+export type ConsultChannel = '카톡·문자' | '전화 상담' | '매장 방문' | '카카오톡 상담'
 
 export interface ConsultationPayload {
   customerName: string

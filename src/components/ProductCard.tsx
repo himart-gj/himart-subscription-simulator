@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { Check, GripVertical, Plus } from 'lucide-react'
+import { Check, Eye, GripVertical, Plus } from 'lucide-react'
 import { getProductEmpathyDetail } from '../data/productEmpathyDetails'
 import type { PolicyConfig, ProductItem, SubscriptionTerm } from '../types/domain'
 import {
@@ -76,7 +76,7 @@ export function ProductCard({
   const handleAddClick = () => {
     onAdd(product.id, activeTerm)
     setJustAdded(true)
-    window.setTimeout(() => setJustAdded(false), 650)
+    window.setTimeout(() => setJustAdded(false), 750)
   }
 
   return (
@@ -91,7 +91,11 @@ export function ProductCard({
         onDragStartProduct?.(product.id, activeTerm)
       }}
       onDragEnd={() => onDragEndProduct?.()}
-      className="group flex flex-col h-full rounded-xl bg-surface border border-rule hover:border-rule-strong transition-colors duration-150 overflow-hidden"
+      className={`group flex flex-col h-full rounded-xl bg-surface border transition-colors duration-150 overflow-hidden ${
+        inCartCount > 0
+          ? 'border-ink ring-1 ring-ink'
+          : 'border-rule hover:border-rule-strong'
+      }`}
     >
       <div
         onClick={() => onOpenDetail?.(product)}
@@ -109,8 +113,8 @@ export function ProductCard({
             {product.brand}
           </span>
           {inCartCount > 0 && (
-            <span className="inline-flex items-center px-2 py-0.5 rounded bg-ink text-on-ink text-[11px] font-bold tabular-nums">
-              담김 {inCartCount}
+            <span className="inline-flex items-center px-2 py-0.5 rounded bg-accent text-accent-ink text-[11px] font-bold tabular-nums">
+              선택됨 {inCartCount}대
             </span>
           )}
         </div>
@@ -267,13 +271,14 @@ export function ProductCard({
                 type="button"
                 disabled={!supports36 && !supports60}
                 onClick={() => onSelectSingle(product.id, activeTerm)}
-                className={`inline-flex items-center justify-center h-10 px-2.5 rounded-lg text-xs font-bold transition-colors duration-150 ${
+                className={`inline-flex items-center justify-center gap-1 h-10 px-2.5 rounded-lg text-xs font-bold transition-colors duration-150 ${
                   !supports36 && !supports60
                     ? 'bg-field text-subtle border border-rule cursor-not-allowed'
                     : 'bg-ink hover:bg-ink-hover text-on-ink cursor-pointer'
                 }`}
               >
-                <span>이 제품만 선택</span>
+                <Eye size={13} aria-hidden="true" />
+                <span>단독 혜택 보기</span>
               </button>
             )}
 
@@ -281,23 +286,25 @@ export function ProductCard({
               type="button"
               disabled={!supports36 && !supports60}
               onClick={handleAddClick}
-              className={`inline-flex items-center justify-center gap-1 h-10 px-2.5 rounded-lg text-xs font-semibold transition-colors duration-150 border ${
+              className={`inline-flex items-center justify-center gap-1 h-10 px-2.5 rounded-lg text-xs font-bold transition-colors duration-150 border ${
                 !supports36 && !supports60
                   ? 'bg-field border-rule text-subtle cursor-not-allowed'
                   : justAdded
                     ? 'bg-positive border-positive text-on-ink cursor-pointer'
-                    : 'bg-surface hover:bg-field border-rule-strong text-ink cursor-pointer'
+                    : inCartCount > 0
+                      ? 'bg-accent-soft border-accent-rule text-accent cursor-pointer'
+                      : 'bg-surface hover:bg-field border-rule-strong text-ink cursor-pointer'
               }`}
             >
               {justAdded ? (
                 <>
                   <Check size={13} strokeWidth={2.5} aria-hidden="true" />
-                  <span>담김</span>
+                  <span>추가됨 ({inCartCount})</span>
                 </>
               ) : (
                 <>
-                  <Plus size={13} strokeWidth={2.2} aria-hidden="true" />
-                  <span>{onSelectSingle ? '함께 담기' : '담기'}</span>
+                  <Plus size={13} strokeWidth={2.3} aria-hidden="true" />
+                  <span>{inCartCount > 0 ? `추가하기 (${inCartCount})` : '추가하기'}</span>
                 </>
               )}
             </button>
