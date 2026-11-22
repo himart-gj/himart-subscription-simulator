@@ -5,7 +5,6 @@ import {
   CheckCircle2,
   ChevronUp,
   ExternalLink,
-  Info,
   Layers,
   LayoutGrid,
   MapPin,
@@ -15,13 +14,16 @@ import {
   Share2,
   ShoppingBag,
   SlidersHorizontal,
+  Store,
   X,
 } from 'lucide-react'
 import { BundleShowcase } from '../components/BundleShowcase'
 import { ConsultationModal } from '../components/ConsultationModal'
 import { HeroQuickSimulator } from '../components/HeroQuickSimulator'
 import { LegalDisclosureSection } from '../components/LegalDisclosureSection'
+import { MetaAdShowroomHero } from '../components/MetaAdShowroomHero'
 import { ProductCard } from '../components/ProductCard'
+import { ProductDetailModal } from '../components/ProductDetailModal'
 import { ReceiptPanel } from '../components/ReceiptPanel'
 import { SpringNumber } from '../components/SpringNumber'
 import { DEFAULT_CATEGORIES } from '../data/initialSeedData'
@@ -30,6 +32,7 @@ import type {
   CartItem,
   CatalogSnapshot,
   LifeCareUnits,
+  ProductItem,
   RecommendedBundle,
   SubscriptionTerm,
 } from '../types/domain'
@@ -38,6 +41,7 @@ import {
   clampLifeCareUnits,
   recommendZeroCostLifeCare,
 } from '../utils/calculator'
+import { resolveMarketingAttribution } from '../utils/marketingTracker'
 import {
   type QuickScenarioPreset,
   buildQuickScenarioPresets,
@@ -66,6 +70,21 @@ export function SimulatorPage({
         : null,
     [],
   )
+  const attribution = useMemo(
+    () =>
+      typeof window !== 'undefined'
+        ? resolveMarketingAttribution(window.location.search, window.location.hash)
+        : {
+            utmSource: '',
+            utmMedium: '',
+            utmCampaign: '',
+            utmContent: '',
+            utmTerm: '',
+            fbclid: '',
+            adMode: false,
+          },
+    [],
+  )
 
   const initialSetup = useMemo(() => {
     const matched = resolveInitialPreset(presets, urlPresetKey)
@@ -81,6 +100,9 @@ export function SimulatorPage({
   }, [])
 
   const [screenView, setScreenView] = useState<ScreenView>('home')
+  const [adShowroomOpen, setAdShowroomOpen] = useState<boolean>(
+    Boolean(attribution.adMode && !urlPresetKey),
+  )
   const [browseMode, setBrowseMode] = useState<BrowseMode>('products')
   const [selectedCategory, setSelectedCategory] = useState<string>('전체')
   const [selectedBrand, setSelectedBrand] = useState<string>('전체')
@@ -91,6 +113,10 @@ export function SimulatorPage({
   const [autoOptimizeFreed, setAutoOptimizeFreed] = useState<boolean>(true)
   const [hasUserCustomized, setHasUserCustomized] = useState<boolean>(false)
   const [coverShortfall, setCoverShortfall] = useState<boolean>(true)
+
+  const [selectedColorByProduct, setSelectedColorByProduct] = useState<Record<string, string>>({})
+  const [detailModalProduct, setDetailModalProduct] = useState<ProductItem | null>(null)
+  const [consultUndecidedPreset, setConsultUndecidedPreset] = useState<boolean>(false)
 
   const [isDraggingProduct, setIsDraggingProduct] = useState(false)
   const [mobileSheetOpen, setMobileSheetOpen] = useState(false)
@@ -182,6 +208,16 @@ export function SimulatorPage({
     }, 2400)
   }
 
+  const handleSelectColor = (productId: string, colorName: string) => {
+    setSelectedColorByProduct((prev) => ({ ...prev, [productId]: colorName }))
+  }
+
+  const openConsultModal = (undecided = false) => {
+    setConsultUndecidedPreset(undecided)
+    setMobileSheetOpen(false)
+    setConsultModalOpen(true)
+  }
+
   const switchScreen = (nextView: ScreenView, nextMode?: BrowseMode) => {
     if (nextMode) {
       setBrowseMode(nextMode)
@@ -222,10 +258,17 @@ export function SimulatorPage({
     })
     setCart(nextCart)
     setLifeCare(optimal)
-    showToast(`‘${preset.shortTitle}’ 맞춤 혜택이 적용되었습니다`)
+    showToast(`‘${preset.shortTitle}’ 추천 혜택이 반영되었습니다`)
   }
 
-  const handleSelectSingleProduct = (productId: string, term: SubscriptionTerm) => {
+  const handleSelectSingleProduct = (
+    productId: string,
+    term: SubscriptionTerm,
+    colorName?: string,
+  ) => {
+    if (colorName) {
+      handleSelectColor(productId, colorName)
+    }
     setHasUserCustomized(true)
     setAutoOptimizeFreed(true)
     const singleCart: CartItem[] = [{ productId, term, quantity: 1 }]
@@ -236,10 +279,22 @@ export function SimulatorPage({
     })
     setCart(singleCart)
     setLifeCare(optimal)
-    switchScreen('home')
+    setAdShowroomOpen(false)
+    setDetailModalProduct(null)
+    setScreenView('home')
+    if (typeof window !== 'undefined') {
+      window.setTimeout(() => {
+        const el = document.getElementById('benefit-statement-card')
+        if (el) {
+          el.scrollIntoView({ behavior: 'smooth', block: 'start' })
+        } else {
+          window.scrollTo({ top: 0, behavior: 'smooth' })
+        }
+      }, 60)
+    }
     const prod = catalog.products.find((p) => p.id === productId)
     if (prod) {
-      showToast(`${prod.brand} ${prod.name} 단독 맞춤 설계가 완료되었습니다`)
+      showToast(`${prod.brand} ${prod.name} 추천상품 자동맞춤이 적용되었습니다`)
     }
   }
 
@@ -257,8 +312,8 @@ export function SimulatorPage({
     if (prod) {
       showToast(
         autoOptimizeFreed
-          ? `${prod.brand} ${prod.name} 추가됨 (천원단위 구좌 자동 반영)`
-          : `${prod.brand} ${prod.name} (${term}개월) 추가됨`,
+          ? `${prod.brand} ${prod.name} 추가 (추천상품 자동맞춤)`
+          : `${prod.brand} ${prod.name} (${term}개월) 추가`,
       )
     }
   }
@@ -274,8 +329,9 @@ export function SimulatorPage({
         })),
       true,
     )
+    setAdShowroomOpen(false)
     switchScreen('home')
-    showToast(`‘${bundle.name}’ 구성 및 맞춤 혜택이 반영되었습니다`)
+    showToast(`‘${bundle.name}’ 추천상품 자동맞춤이 반영되었습니다`)
   }
 
   const handleUpdateCartQuantity = (
@@ -360,7 +416,7 @@ export function SimulatorPage({
       policy: catalog.policy,
     })
     setLifeCare(recommended)
-    showToast('상조 결합 천원단위 맞춤 구좌가 자동 적용되었습니다')
+    showToast('추천상품 자동맞춤이 적용되었습니다')
   }
 
   const handleToggleAutoOptimize = (enabled: boolean) => {
@@ -372,7 +428,7 @@ export function SimulatorPage({
         policy: catalog.policy,
       })
       setLifeCare(recommended)
-      showToast('품목 변경 시 천원단위 최적 구좌가 자동으로 맞춰집니다')
+      showToast('품목 변경 시 추천상품 자동맞춤이 적용됩니다')
     }
   }
 
@@ -408,10 +464,7 @@ export function SimulatorPage({
     onSetLifeCareUnits: handleSetLifeCareUnits,
     onApplyZeroCostPreset: handleApplyZeroCostPreset,
     onToggleCoverShortfall: setCoverShortfall,
-    onOpenConsultModal: () => {
-      setMobileSheetOpen(false)
-      setConsultModalOpen(true)
-    },
+    onOpenConsultModal: () => openConsultModal(false),
     onQuickTrySample: handleQuickTrySample,
   }
 
@@ -420,7 +473,7 @@ export function SimulatorPage({
 
   return (
     <div className="min-h-dvh bg-paper text-ink pb-28 xl:pb-16">
-      {/* Editorial Storefront Masthead (Zero fake monogram icon or competing neon pills) */}
+      {/* Masthead */}
       <header className="sticky top-0 z-30 bg-surface border-b border-rule">
         <div className="max-w-[1360px] mx-auto px-4 sm:px-6 lg:px-8 h-14 sm:h-15 flex items-center justify-between gap-3">
           <div className="flex items-center gap-3 min-w-0">
@@ -462,6 +515,21 @@ export function SimulatorPage({
           </div>
 
           <div className="flex items-center gap-2 shrink-0">
+            {screenView === 'home' && (
+              <button
+                type="button"
+                onClick={() => setAdShowroomOpen((v) => !v)}
+                className={`hidden md:inline-flex items-center gap-1.5 h-9 px-3 rounded-lg border text-xs font-bold transition-colors cursor-pointer ${
+                  adShowroomOpen
+                    ? 'bg-accent-soft border-accent-rule text-accent'
+                    : 'bg-surface hover:bg-field border-rule-strong text-ink-2'
+                }`}
+              >
+                <Store size={13} aria-hidden="true" />
+                <span>{adShowroomOpen ? '설계 홈 보기' : '가전 쇼윈도'}</span>
+              </button>
+            )}
+
             {screenView === 'home' ? (
               <button
                 type="button"
@@ -494,27 +562,43 @@ export function SimulatorPage({
         </div>
       </header>
 
-      {/* Main Content Container */}
+      {/* Main Content */}
       <main className="max-w-[1360px] mx-auto px-4 sm:px-6 lg:px-8 pt-5 sm:pt-7">
         {screenView === 'home' ? (
-          <>
-            <HeroQuickSimulator
-              presets={presets}
-              products={catalog.products}
-              activePresetId={activePresetId}
-              result={result}
-              policy={catalog.policy}
-              autoOptimizeFreed={autoOptimizeFreed}
-              onSelectPreset={handleSelectPreset}
-              onToggleCoverShortfall={setCoverShortfall}
-              onOpenConsultModal={() => setConsultModalOpen(true)}
-              onOpenCustomizer={(mode) => switchScreen('customizer', mode ?? 'products')}
-            />
+          adShowroomOpen ? (
+            <>
+              <MetaAdShowroomHero
+                products={visibleProducts}
+                policy={catalog.policy}
+                selectedColorByProduct={selectedColorByProduct}
+                onSelectColor={handleSelectColor}
+                onOpenProductDetail={(p) => setDetailModalProduct(p)}
+                onConfirmShowroomProduct={handleSelectSingleProduct}
+                onOpenUndecidedConsult={() => openConsultModal(true)}
+                onExitAdMode={() => setAdShowroomOpen(false)}
+              />
+              <LegalDisclosureSection />
+            </>
+          ) : (
+            <>
+              <HeroQuickSimulator
+                presets={presets}
+                products={catalog.products}
+                activePresetId={activePresetId}
+                result={result}
+                policy={catalog.policy}
+                autoOptimizeFreed={autoOptimizeFreed}
+                onSelectPreset={handleSelectPreset}
+                onToggleCoverShortfall={setCoverShortfall}
+                onOpenConsultModal={() => openConsultModal(false)}
+                onOpenProductDetail={(p) => setDetailModalProduct(p)}
+                onOpenCustomizer={(mode) => switchScreen('customizer', mode ?? 'products')}
+              />
 
-            <LegalDisclosureSection />
-          </>
+              <LegalDisclosureSection />
+            </>
+          )
         ) : (
-          /* SCREEN 2: DEDICATED APPLIANCE PICKER & REAL-TIME EFFECTIVE PRICE CARDS */
           <div className="space-y-5">
             <div className="rounded-xl bg-surface border border-rule p-4 sm:p-5 flex flex-col lg:flex-row lg:items-center justify-between gap-4">
               <div className="space-y-1">
@@ -525,22 +609,16 @@ export function SimulatorPage({
                     className="inline-flex items-center gap-1 font-bold text-accent hover:underline cursor-pointer"
                   >
                     <ArrowLeft size={14} aria-hidden="true" />
-                    <span>메인 추천 화면으로 돌아가기</span>
+                    <span>메인 화면으로</span>
                   </button>
                   <span className="text-rule-strong" aria-hidden="true">|</span>
                   <span className="font-semibold text-ink-2">
-                    모든 상품 카드에 상조·제휴카드 반영 월 체감가가 실시간 표시됩니다
+                    추천 혜택 체감가와 카드 사용 시 추가 혜택이 실시간 반영됩니다
                   </span>
                 </div>
                 <h2 className="text-xl sm:text-2xl font-bold text-ink tracking-tight">
                   원하는 가전 직접 골라 담기
                 </h2>
-                <p className="text-xs text-muted flex items-center gap-1">
-                  <Info size={13} aria-hidden="true" className="text-subtle shrink-0" />
-                  <span>
-                    표시 구독료는 당월 업로드 기준이며 지점 행사 일정에 따라 일부 변동될 수 있습니다.
-                  </span>
-                </p>
               </div>
 
               <div className="flex flex-wrap items-center gap-2 shrink-0">
@@ -575,7 +653,7 @@ export function SimulatorPage({
                     }`}
                   >
                     <Layers size={14} aria-hidden="true" />
-                    <span>추천 세트 묶음</span>
+                    <span>인기 세트 묶음</span>
                   </button>
                 </div>
 
@@ -603,7 +681,6 @@ export function SimulatorPage({
                   />
                 ) : (
                   <div className="space-y-4">
-                    {/* Filter Bar */}
                     <div className="rounded-xl bg-surface border border-rule p-4 space-y-3">
                       <div className="relative">
                         <Search
@@ -699,6 +776,9 @@ export function SimulatorPage({
                             product={product}
                             policy={catalog.policy}
                             inCartCount={cartCountByProduct.get(product.id) || 0}
+                            selectedColor={selectedColorByProduct[product.id]}
+                            onSelectColor={handleSelectColor}
+                            onOpenDetail={(p) => setDetailModalProduct(p)}
                             onAdd={handleAddProduct}
                             onSelectSingle={handleSelectSingleProduct}
                             onDragStartProduct={() => setIsDraggingProduct(true)}
@@ -720,8 +800,8 @@ export function SimulatorPage({
           </div>
         )}
 
-        {/* BOTTOM FOOTER: OFFICIAL STORE INFO + MONOCHROME ARCHITECTURAL CHANNEL LINKS */}
-        <footer className="mt-12 pt-8 border-t border-rule space-y-4 text-xs text-muted">
+        {/* BOTTOM FOOTER: OFFICIAL STORE INFO + SOCIAL CHANNELS */}
+        <footer className="mt-10 pt-8 border-t border-rule space-y-3 text-xs text-muted">
           <div className="rounded-xl bg-surface border border-rule p-5 flex flex-col lg:flex-row lg:items-center justify-between gap-4">
             <div className="space-y-1.5">
               <div className="flex flex-wrap items-center gap-2">
@@ -736,7 +816,7 @@ export function SimulatorPage({
                 <span>주소: {STORE_INFO.address} ({STORE_INFO.parkingNote})</span>
                 <span>영업시간: {STORE_INFO.hours}</span>
                 <span>
-                  대표전화:{' '}
+                  직통문의:{' '}
                   <a href={STORE_INFO.telHref} className="font-bold text-ink underline">
                     {STORE_INFO.phone}
                   </a>
@@ -791,12 +871,11 @@ export function SimulatorPage({
           </div>
 
           <p className="text-[11px] text-muted leading-relaxed">
-            본 시뮬레이터의 산출 금액은 당월 업로드 기준 고객 이해를 돕기 위한 예시이며, 지점 행사 일정 및 가입 시점 카드사·상조사 공식 약관에 따라 일부 변동될 수 있습니다.
+            표시 금액은 당월 업로드 기준 이해를 돕기 위한 예시이며, 행사 일정 및 가입 시점 약관에 따라 변동될 수 있습니다.
           </p>
         </footer>
       </main>
 
-      {/* Toast */}
       {toastMessage && (
         <div
           role="status"
@@ -807,14 +886,14 @@ export function SimulatorPage({
       )}
 
       {/* MOBILE STICKY BOTTOM SUMMARY BAR (< xl) */}
-      <div className="xl:hidden fixed bottom-0 inset-x-0 z-30 bg-surface border-t border-rule-strong px-3.5 py-2.5">
+      <div className="xl:hidden fixed bottom-0 inset-x-0 z-30 bg-surface border-t border-rule-strong px-3 sm:px-4 py-2.5">
         <div className="max-w-2xl mx-auto flex items-center justify-between gap-2">
           <button
             type="button"
             onClick={() => setMobileSheetOpen(true)}
             className="flex items-center gap-2 min-w-0 text-left flex-1 cursor-pointer"
           >
-            <div className="relative w-8 h-8 rounded-lg bg-ink text-on-ink flex items-center justify-center shrink-0">
+            <div className="hidden sm:flex relative w-8 h-8 rounded-lg bg-ink text-on-ink items-center justify-center shrink-0">
               <ShoppingBag size={15} aria-hidden="true" />
               {result.totalQuantity > 0 && (
                 <span className="absolute -top-1.5 -right-1.5 min-w-[17px] h-4 px-1 rounded-full bg-accent text-accent-ink text-[10px] font-bold flex items-center justify-center tabular-nums">
@@ -823,24 +902,22 @@ export function SimulatorPage({
               )}
             </div>
             <div className="min-w-0">
-              <div className="text-[10px] font-medium text-muted whitespace-nowrap">
-                {isEmpty
-                  ? '가전을 선택해 주세요'
-                  : `상조 1차 ${result.phaseA.afterLifeCareEffective.toLocaleString('ko-KR')}원`}
-              </div>
               {isEmpty ? (
-                <div className="text-xs font-bold text-ink">품목 선택 전</div>
-              ) : phaseASurplus ? (
-                <div className="text-xs sm:text-[13px] font-extrabold text-ink tabular-nums whitespace-nowrap">
-                  월 0원{' '}
-                  <span className="text-positive font-bold">
-                    +<SpringNumber value={result.phaseA.monthlySurplusCash} suffix="원" />
-                  </span>
-                </div>
+                <>
+                  <div className="text-[10px] font-medium text-muted">가전을 선택해 주세요</div>
+                  <div className="text-xs font-bold text-ink">품목 선택 전</div>
+                </>
               ) : (
-                <div className="text-sm font-extrabold text-ink tabular-nums whitespace-nowrap">
-                  월 <SpringNumber value={result.phaseA.effectiveMonthlyPay} suffix="원" />
-                </div>
+                <>
+                  <div className="text-[12px] sm:text-[13px] font-extrabold text-ink tabular-nums whitespace-nowrap">
+                    추천 혜택가 월 <SpringNumber value={result.phaseA.afterLifeCareEffective} suffix="원" />
+                  </div>
+                  <div className="text-[10px] sm:text-[11px] font-bold text-positive tabular-nums whitespace-nowrap">
+                    {phaseASurplus
+                      ? `카드 사용 시 0원 (+${result.phaseA.monthlySurplusCash.toLocaleString('ko-KR')}원)`
+                      : `카드 사용 시 월 ${result.phaseA.effectiveMonthlyPay.toLocaleString('ko-KR')}원`}
+                  </div>
+                </>
               )}
             </div>
           </button>
@@ -849,19 +926,20 @@ export function SimulatorPage({
             <button
               type="button"
               onClick={() => setMobileSheetOpen(true)}
-              className="inline-flex items-center gap-0.5 h-10 px-2.5 rounded-lg bg-surface hover:bg-field border border-rule-strong text-ink text-xs font-bold transition-colors cursor-pointer"
+              className="inline-flex items-center gap-0.5 h-9 sm:h-10 px-2 sm:px-2.5 rounded-lg bg-surface hover:bg-field border border-rule-strong text-ink text-[11px] sm:text-xs font-bold transition-colors cursor-pointer"
             >
-              <span>구좌조정</span>
-              <ChevronUp size={14} aria-hidden="true" />
+              <span>구좌</span>
+              <span className="hidden min-[390px]:inline">변경</span>
+              <ChevronUp size={13} aria-hidden="true" />
             </button>
 
             <button
               type="button"
-              onClick={() => setConsultModalOpen(true)}
-              className="inline-flex items-center gap-1 h-10 px-3.5 rounded-lg bg-accent hover:bg-accent-hover text-accent-ink text-xs font-bold transition-colors cursor-pointer"
+              onClick={() => openConsultModal(false)}
+              className="inline-flex items-center gap-1 h-9 sm:h-10 px-3 sm:px-3.5 rounded-lg bg-accent hover:bg-accent-hover text-accent-ink text-xs font-bold transition-colors cursor-pointer whitespace-nowrap"
             >
-              <MessageSquare size={13} aria-hidden="true" className="hidden min-[380px]:inline" />
-              <span>상세표 받기</span>
+              <MessageSquare size={13} aria-hidden="true" className="hidden sm:inline" />
+              <span>견적 받기</span>
             </button>
           </div>
         </div>
@@ -872,7 +950,7 @@ export function SimulatorPage({
         <div
           role="dialog"
           aria-modal="true"
-          aria-label="모바일 실시간 혜택 명세서"
+          aria-label="모바일 맞춤 혜택 설계 및 구좌 변경"
           className="xl:hidden fixed inset-0 z-40 flex flex-col justify-end bg-ink/55"
         >
           <button
@@ -884,7 +962,7 @@ export function SimulatorPage({
           <div className="max-h-[90dvh] flex flex-col rounded-t-2xl bg-paper border-t border-rule-strong overflow-hidden">
             <div className="px-5 py-3 bg-surface border-b border-rule flex items-center justify-between shrink-0">
               <span className="text-sm font-bold text-ink">
-                실시간 맞춤 혜택 명세서 및 구좌 조정
+                내 맞춤 혜택 설계 및 구좌 변경
               </span>
               <button
                 type="button"
@@ -902,10 +980,25 @@ export function SimulatorPage({
         </div>
       )}
 
+      {/* SWIPEABLE LIFESTYLE EMPATHY DETAIL MODAL */}
+      <ProductDetailModal
+        product={detailModalProduct}
+        allProducts={visibleProducts}
+        policy={catalog.policy}
+        selectedColorByProduct={selectedColorByProduct}
+        onSelectColor={handleSelectColor}
+        onNavigateProduct={(next) => setDetailModalProduct(next)}
+        onChooseProduct={handleSelectSingleProduct}
+        onClose={() => setDetailModalProduct(null)}
+      />
+
       {/* WRITE-ONLY CONSULTATION MODAL */}
       <ConsultationModal
         open={consultModalOpen}
         result={result}
+        initialUndecided={consultUndecidedPreset}
+        selectedColorByProduct={selectedColorByProduct}
+        attribution={attribution}
         onClose={() => setConsultModalOpen(false)}
       />
     </div>
