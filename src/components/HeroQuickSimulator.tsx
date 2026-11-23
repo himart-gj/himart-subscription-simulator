@@ -279,9 +279,11 @@ export function HeroQuickSimulator({
                 <span className="text-xs font-bold text-ink">
                   {autoOptimizeFreed ? '추천상품 자동맞춤 혜택가' : '선택 구좌 적용 혜택가'}
                 </span>
-                <span className="px-2 py-0.5 rounded bg-positive-soft border border-positive-rule text-[11px] font-bold text-positive">
-                  만기 시 납입금 100% 환급형
-                </span>
+                {result.totalLifeCareUnits > 0 && (
+                  <span className="px-2 py-0.5 rounded bg-positive-soft border border-positive-rule text-[11px] font-bold text-positive">
+                    만기 시 납입금 100% 환급형
+                  </span>
+                )}
               </div>
 
               <div className="space-y-1 text-xs border-b border-rule pb-3">
@@ -291,15 +293,19 @@ export function HeroQuickSimulator({
                     월 {phaseA.grossSubscription.toLocaleString('ko-KR')}원
                   </span>
                 </div>
-                <div className="flex items-center justify-between gap-2 text-accent font-semibold">
-                  <span>구독플러스 현금 지원 (매월 내 계좌 입금)</span>
-                  <span className="whitespace-nowrap shrink-0">-월 {phaseA.lifeCareCashback.toLocaleString('ko-KR')}원</span>
-                </div>
+                {phaseA.lifeCareCashback > 0 && (
+                  <div className="flex items-center justify-between gap-2 text-accent font-semibold">
+                    <span>(−) 구독플러스(Hi구독 플러스) 월 현금지원</span>
+                    <span className="whitespace-nowrap shrink-0">
+                      -월 {phaseA.lifeCareCashback.toLocaleString('ko-KR')}원
+                    </span>
+                  </div>
+                )}
               </div>
 
               <div className="flex flex-wrap items-baseline justify-between gap-2">
                 <span className="text-xs sm:text-[13px] font-bold text-ink-2">
-                  카드 실적 전 기본 월 체감가
+                  카드 조건 없이도 기본 월 체감가
                 </span>
                 <div className="flex items-baseline gap-1 whitespace-nowrap">
                   <span className="text-sm font-bold text-ink">월</span>
@@ -313,7 +319,7 @@ export function HeroQuickSimulator({
 
               {phaseA.afterLifeCareSurplus > 0 && !isEmpty && (
                 <div className="text-right text-xs font-bold text-positive">
-                  매월 +{phaseA.afterLifeCareSurplus.toLocaleString('ko-KR')}원 계좌 입금
+                  +매월 {phaseA.afterLifeCareSurplus.toLocaleString('ko-KR')}원 계좌 입금
                 </div>
               )}
 
@@ -338,33 +344,33 @@ export function HeroQuickSimulator({
                     <span>사라지는 비용이 아닌 100% 원금 환급 구조</span>
                   </span>
                   <span className="text-xs font-extrabold text-positive">
-                    만기 수령 <SpringNumber value={result.lifeCareMaturityRefundTotal} suffix="원" />
+                    만기 환급 <SpringNumber value={result.lifeCareMaturityRefundTotal} suffix="원" />
                   </span>
                 </div>
 
                 <div className="grid grid-cols-3 gap-1.5 text-center">
                   <div className="rounded-lg bg-field px-2 py-2 border border-rule">
                     <div className="text-[10px] font-medium text-muted">
-                      1~{result.lifeCarePayMonths}회 ({payYearsText})
+                      1~{result.lifeCarePayMonths}회 적립
                     </div>
-                    <div className="text-xs font-bold text-ink mt-0.5">
+                    <div className="text-xs font-bold text-ink mt-0.5 whitespace-nowrap">
                       월 {result.lifeCareMonthlyDues.toLocaleString('ko-KR')}원
                     </div>
-                    <div className="text-[10px] text-muted mt-0.5">실납입 마감</div>
+                    <div className="text-[10px] text-muted mt-0.5">{payYearsText} 별도납입</div>
                   </div>
                   <div className="rounded-lg bg-field px-2 py-2 border border-rule">
                     <div className="text-[10px] font-medium text-muted">
                       {result.lifeCarePayMonths + 1}~{result.lifeCareMaturityMonths}회 거치
                     </div>
-                    <div className="text-xs font-bold text-ink mt-0.5">월 0원</div>
+                    <div className="text-xs font-bold text-ink mt-0.5 whitespace-nowrap">월 0원</div>
                     <div className="text-[10px] text-muted mt-0.5">추가 납입 없음</div>
                   </div>
                   <div className="rounded-lg bg-positive-soft px-2 py-2 border border-positive-rule">
                     <div className="text-[10px] font-bold text-positive">
                       {result.lifeCareMaturityMonths}회 ({maturityYearsText}) 만기
                     </div>
-                    <div className="text-xs font-extrabold text-positive mt-0.5">
-                      100% 전액 환급
+                    <div className="text-xs font-extrabold text-positive mt-0.5 whitespace-nowrap">
+                      100% 원금 환급
                     </div>
                     <div className="text-[10px] text-positive/85 mt-0.5">미이용 해지 기준</div>
                   </div>
@@ -380,27 +386,27 @@ export function HeroQuickSimulator({
             <div className="rounded-xl bg-surface border border-rule-strong p-4 space-y-2.5 tabular-nums">
               <div className="flex items-center justify-between gap-2">
                 <span className="text-xs font-bold text-ink">
-                  + 제휴카드 사용 시 추가 혜택
+                  + 제휴카드 추가 혜택 적용 시
                 </span>
                 <span className="text-xs font-bold text-accent">
                   {result.cardBenefitActive
                     ? `-월 ${policy.cardMonthlyCashback.toLocaleString('ko-KR')}원 캐시백`
-                    : '미적용'}
+                    : '현재 미사용 기준'}
                 </span>
               </div>
 
               {result.cardAutoMetByLifeCare ? (
                 <p className="text-[11px] font-semibold text-positive">
-                  월 납입금({formatKRW(result.cardRecognizedSpend)}) 카드 자동납부만으로 전월 30만 원 실적 자동 충족 (추가 지출 0원)
+                  지원상품 자동납부({formatKRW(result.cardRecognizedSpend)})만으로 전월 30만 원 실적 자동 충족 (추가 카드 지출 0원)
                 </p>
               ) : (
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 rounded-lg bg-field px-3 py-2">
                   <span className="text-[11px] text-ink-2 leading-snug">
                     납입금 외 평소 생활비{' '}
                     <strong className="font-bold text-ink">
-                      월 {formatKRW(result.cardShortfall)} 카드 사용 시
-                    </strong>{' '}
-                    (전월 30만 원 조건 충족)
+                      월 {formatKRW(result.cardShortfall)}
+                    </strong>
+                    만 추가 사용 시 전월 실적 충족
                   </span>
                   <button
                     type="button"
@@ -413,26 +419,41 @@ export function HeroQuickSimulator({
                         : 'bg-surface border-rule-strong text-ink-2'
                     }`}
                   >
-                    {result.cardCoverShortfall ? '카드 사용 ON' : '카드 미사용'}
+                    {result.cardCoverShortfall ? '카드 혜택 ON' : '카드 미사용'}
                   </button>
                 </div>
               )}
 
-              <div className="pt-2.5 border-t border-rule flex flex-wrap items-baseline justify-between gap-2">
-                <span className="text-xs font-bold text-ink-2">
-                  제휴카드 사용 시 체감가
-                </span>
-                <div className="flex flex-wrap items-center gap-2">
-                  <span className="text-lg sm:text-xl font-black text-accent">
-                    월 <SpringNumber value={isEmpty ? 0 : phaseA.effectiveMonthlyPay} suffix="원" />
-                  </span>
-                  {hasExtraCashback && !isEmpty && (
-                    <span className="inline-flex items-center px-2 py-0.5 rounded bg-positive-soft border border-positive-rule text-positive text-xs font-bold">
-                      매월 +{phaseA.monthlySurplusCash.toLocaleString('ko-KR')}원 통장 입금
+              {result.cardBenefitActive && (
+                <div className="pt-2.5 border-t border-rule space-y-1.5">
+                  <div className="flex flex-wrap items-baseline justify-between gap-2">
+                    <span className="text-xs font-bold text-ink-2">
+                      제휴카드 추가 적용 시 최종 월 체감가
                     </span>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="text-lg sm:text-xl font-black text-accent whitespace-nowrap">
+                        월 <SpringNumber value={isEmpty ? 0 : phaseA.effectiveMonthlyPay} suffix="원" />
+                      </span>
+                      {hasExtraCashback && !isEmpty && (
+                        <span className="inline-flex items-center px-2 py-0.5 rounded bg-positive-soft border border-positive-rule text-positive text-xs font-bold whitespace-nowrap">
+                          +매월 {phaseA.monthlySurplusCash.toLocaleString('ko-KR')}원 통장 입금
+                        </span>
+                      )}
+                    </div>
+                  </div>
+
+                  {isMixed && result.phaseB && (
+                    <div className="flex items-center justify-between gap-2 text-xs text-positive font-bold">
+                      <span>37~60개월차 최종 월 체감가 (36M 완납 후)</span>
+                      <span className="whitespace-nowrap">
+                        {result.phaseB.monthlySurplusCash > 0
+                          ? `월 0원 (+${result.phaseB.monthlySurplusCash.toLocaleString('ko-KR')}원/월)`
+                          : `월 ${result.phaseB.effectiveMonthlyPay.toLocaleString('ko-KR')}원`}
+                      </span>
+                    </div>
                   )}
                 </div>
-              </div>
+              )}
             </div>
 
             {/* PRIMARY RESERVATION CTA */}

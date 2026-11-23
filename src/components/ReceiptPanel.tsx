@@ -12,6 +12,7 @@ import {
   Send,
   ShieldCheck,
   ShoppingBag,
+  SlidersHorizontal,
   Trash2,
 } from 'lucide-react'
 import type {
@@ -27,6 +28,7 @@ import { SpringNumber } from './SpringNumber'
 interface ReceiptPanelProps {
   result: CalculationResult
   policy: PolicyConfig
+  variant?: 'full' | 'controller'
   isDraggingProduct: boolean
   autoOptimizeFreed?: boolean
   onToggleAutoOptimizeFreed?: (enabled: boolean) => void
@@ -74,21 +76,21 @@ function PhaseResultCard({
 
         <div className="text-xs text-ink-2 space-y-1">
           <div className="flex justify-between gap-2">
-            <span>원 구독료 월 결제액</span>
+            <span>가전 원 구독료</span>
             <span className="font-semibold text-ink">{formatKRW(phase.grossSubscription)}</span>
           </div>
-          <div className="flex justify-between gap-2 text-accent font-semibold">
-            <span>구독플러스 현금 지원</span>
-            <span>
-              {phase.lifeCareCashback > 0 ? `-${formatKRW(phase.lifeCareCashback)}` : '0원'}
-            </span>
-          </div>
+          {phase.lifeCareCashback > 0 && (
+            <div className="flex justify-between gap-2 text-accent font-semibold">
+              <span>구독플러스 월 현금지원</span>
+              <span>-{formatKRW(phase.lifeCareCashback)}</span>
+            </div>
+          )}
         </div>
       </div>
 
       <div className="pt-2.5 border-t border-rule">
         <div className="text-[11px] font-bold text-ink-2 mb-0.5">
-          추천 혜택 월 체감가 (만기 100% 환급형)
+          카드 조건 없이도 기본 월 체감가
         </div>
         <div className="flex items-baseline justify-between gap-2">
           <div className="flex items-baseline gap-1 text-ink">
@@ -135,6 +137,7 @@ function PhaseResultCard({
 export function ReceiptPanel({
   result,
   policy,
+  variant = 'full',
   isDraggingProduct,
   autoOptimizeFreed = false,
   onToggleAutoOptimizeFreed,
@@ -151,6 +154,7 @@ export function ReceiptPanel({
   onQuickTrySample,
 }: ReceiptPanelProps) {
   const [dragOver, setDragOver] = useState(false)
+  const isController = variant === 'controller'
 
   const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault()
@@ -203,13 +207,21 @@ export function ReceiptPanel({
     >
       <div className="px-5 py-3.5 bg-ink text-on-ink flex items-center justify-between gap-2">
         <div className="flex items-center gap-2.5 min-w-0">
-          <ShoppingBag size={16} aria-hidden="true" className="shrink-0" />
+          {isController ? (
+            <SlidersHorizontal size={16} aria-hidden="true" className="shrink-0" />
+          ) : (
+            <ShoppingBag size={16} aria-hidden="true" className="shrink-0" />
+          )}
           <div className="min-w-0">
             <h2 className="text-[14px] font-bold tracking-tight truncate">
-              내 맞춤 혜택 설계 및 구좌 변경
+              {isController
+                ? '구좌 · 약정 · 카드 조건 조절기'
+                : '내 맞춤 혜택 설계 및 구좌 변경'}
             </h2>
             <p className="text-[11px] text-on-ink/75 truncate">
-              추천상품 자동맞춤 및 구좌 수동 조절
+              {isController
+                ? '조건 변경 시 왼쪽 설계표 금액이 실시간 연동됩니다'
+                : '추천상품 자동맞춤 및 구좌 수동 조절'}
             </p>
           </div>
         </div>
@@ -233,19 +245,19 @@ export function ReceiptPanel({
           </div>
         )}
 
-        {/* STEP 1: CART SUMMARY */}
-        <section aria-label="담은 구독 가전 요약">
+        {/* STEP 1: CART SUMMARY / TERM & QTY CONTROLLER */}
+        <section aria-label={isController ? '약정 기간 및 수량 조절' : '담은 구독 가전 요약'}>
           <div className="flex items-center justify-between gap-2 mb-3">
             <span className="text-xs font-bold tracking-tight text-ink flex items-center gap-1.5">
               <span className="inline-flex items-center justify-center w-5 h-5 rounded bg-field text-ink text-[11px] font-mono font-bold">
                 1
               </span>
-              담은 구독 가전
+              {isController ? '품목별 약정 · 수량 변경' : '담은 구독 가전'}
               <span className="text-accent tabular-nums">({result.totalQuantity})</span>
             </span>
             {!isEmpty && (
               <span className="text-[11px] font-semibold px-2 py-0.5 rounded bg-field text-ink-2 tabular-nums">
-                {isMixed ? '36+60개월 혼합' : `${result.durationMonths}개월 분할결제`}
+                {isMixed ? '36·60개월 맞춤' : `${result.durationMonths}개월 약정`}
               </span>
             )}
           </div>
@@ -275,14 +287,16 @@ export function ReceiptPanel({
                 return (
                   <div
                     key={`${line.product.id}-${line.term}`}
-                    className="rounded-lg bg-field border border-rule p-3"
+                    className="rounded-lg bg-field border border-rule p-2.5 sm:p-3"
                   >
                     <div className="flex items-start justify-between gap-2">
                       <div className="min-w-0">
-                        <div className="text-[11px] font-medium text-muted">
-                          {line.product.brand} / 총 {formatKRW(line.contractTotal)}
-                        </div>
-                        <div className="text-[13px] font-bold text-ink leading-snug break-keep">
+                        {!isController && (
+                          <div className="text-[11px] font-medium text-muted">
+                            {line.product.brand} / 총 {formatKRW(line.contractTotal)}
+                          </div>
+                        )}
+                        <div className="text-xs sm:text-[13px] font-bold text-ink leading-snug break-keep">
                           {line.product.name}
                         </div>
                       </div>
@@ -296,7 +310,7 @@ export function ReceiptPanel({
                       </button>
                     </div>
 
-                    <div className="mt-2.5 flex items-center justify-between gap-2 flex-wrap">
+                    <div className="mt-2 flex items-center justify-between gap-2 flex-wrap">
                       {can36 && can60 ? (
                         <div className="inline-flex rounded-md bg-surface border border-rule p-0.5">
                           <button
@@ -361,16 +375,18 @@ export function ReceiptPanel({
                           </button>
                         </div>
 
-                        <div className="text-[13px] font-bold text-ink tabular-nums min-w-[78px] text-right">
-                          월 {formatKRW(line.lineTotal)}
-                        </div>
+                        {!isController && (
+                          <div className="text-[13px] font-bold text-ink tabular-nums min-w-[78px] text-right">
+                            월 {formatKRW(line.lineTotal)}
+                          </div>
+                        )}
                       </div>
                     </div>
                   </div>
                 )
               })}
 
-              {isMixed && (
+              {!isController && isMixed && (
                 <div className="rounded-lg bg-caution-soft border border-caution-rule p-2.5 flex items-start gap-2">
                   <Info size={14} aria-hidden="true" className="text-caution shrink-0 mt-0.5" />
                   <p className="text-[11px] text-caution leading-relaxed font-medium">
@@ -549,81 +565,127 @@ export function ReceiptPanel({
                 3
               </span>
               <CreditCard size={14} aria-hidden="true" className="text-ink-2" />
-              제휴카드 사용 시 추가 혜택 (조건 충족 시)
+              {isController
+                ? '제휴카드 추가 혜택 시뮬레이션'
+                : '제휴카드 사용 시 추가 혜택 (조건 충족 시)'}
             </span>
             <span className="px-2 py-0.5 rounded bg-field border border-rule text-[10px] font-bold text-ink-2 shrink-0">
               Hi-Class 롯데카드
             </span>
           </div>
 
-          <div className="rounded-lg border border-rule bg-surface p-3.5 space-y-2.5">
-            <div>
-              <div className="flex items-center justify-between text-xs mb-1.5 tabular-nums">
-                <span className="font-medium text-ink-2">
-                  구독플러스 월 납입금 카드 실적 반영
+          {isController ? (
+            result.cardAutoMetByLifeCare ? (
+              <div className="rounded-lg bg-positive-soft border border-positive-rule px-3 py-2.5 flex items-center justify-between gap-2 text-xs font-bold text-positive tabular-nums">
+                <span className="inline-flex items-center gap-1.5">
+                  <CheckCircle2 size={14} aria-hidden="true" className="shrink-0" />
+                  <span>납입금 자동납부로 실적 자동 충족 중</span>
                 </span>
-                <span className="font-bold text-ink">
-                  {result.cardRecognizedSpend.toLocaleString('ko-KR')}원{' '}
-                  <span className="text-muted font-normal">
-                    / {policy.cardMinSpend.toLocaleString('ko-KR')}원
-                  </span>
-                </span>
-              </div>
-              <div className="h-2 w-full rounded-full bg-field overflow-hidden">
-                <div
-                  className={`h-full rounded-full transition-colors duration-300 ${
-                    result.cardAutoMetByLifeCare ? 'bg-positive' : 'bg-ink'
-                  }`}
-                  style={{ width: `${cardProgressPct}%` }}
-                />
-              </div>
-            </div>
-
-            {result.cardAutoMetByLifeCare ? (
-              <div className="rounded-md bg-positive-soft border border-positive-rule px-3 py-2 flex items-center gap-2 text-xs font-bold text-positive">
-                <CheckCircle2 size={14} aria-hidden="true" className="shrink-0" />
-                <span>납입금만으로 실적 30만 원 자동 충족 · 월 {formatKRW(policy.cardMonthlyCashback)} 캐시백</span>
+                <span className="shrink-0">-월 {formatKRW(policy.cardMonthlyCashback)}</span>
               </div>
             ) : (
-              <div className="space-y-2">
-                <div className="rounded-md bg-caution-soft border border-caution-rule px-3 py-2 flex items-start gap-2 text-[11px] text-caution leading-snug tabular-nums">
-                  <AlertCircle size={14} aria-hidden="true" className="shrink-0 mt-0.5" />
-                  <span>
-                    평소 생활비로 <strong>월 {result.cardShortfall.toLocaleString('ko-KR')}원</strong> 카드 사용 시 매월 {policy.cardMonthlyCashback.toLocaleString('ko-KR')}원 추가 캐시백 적용
-                  </span>
+              <button
+                type="button"
+                role="switch"
+                aria-checked={result.cardCoverShortfall}
+                onClick={() => onToggleCoverShortfall(!result.cardCoverShortfall)}
+                className={`w-full flex items-center justify-between gap-2 px-3.5 py-2.5 rounded-lg border text-left transition-colors cursor-pointer ${
+                  result.cardCoverShortfall
+                    ? 'bg-field border-ink text-ink'
+                    : 'bg-surface border-rule text-ink-2 hover:border-rule-strong'
+                }`}
+              >
+                <div className="min-w-0">
+                  <div className="text-xs font-bold">
+                    제휴카드 월 {(policy.cardMinSpend / 10000).toFixed(0)}만 원 사용 시뮬레이션
+                  </div>
+                  <div className="text-[11px] text-muted tabular-nums mt-0.5">
+                    부족 실적 월 {formatKRW(result.cardShortfall)} 생활비 사용 조건
+                  </div>
                 </div>
-
-                <button
-                  type="button"
-                  onClick={() => onToggleCoverShortfall(!result.cardCoverShortfall)}
-                  className={`w-full flex items-center justify-between gap-2 px-3 py-2 rounded-md border text-left transition-colors cursor-pointer ${
+                <span
+                  className={`text-[11px] font-bold px-2.5 py-1 rounded tabular-nums shrink-0 ${
                     result.cardCoverShortfall
-                      ? 'bg-field border-ink text-ink'
-                      : 'bg-surface border-rule text-ink-2 hover:border-rule-strong'
+                      ? 'bg-ink text-on-ink'
+                      : 'bg-field text-ink-2 border border-rule'
                   }`}
                 >
-                  <span className="text-xs font-semibold">
-                    제휴카드 월 30만 원 사용 시뮬레이션
+                  {result.cardCoverShortfall
+                    ? `ON (-${policy.cardMonthlyCashback.toLocaleString('ko-KR')}원)`
+                    : '미적용'}
+                </span>
+              </button>
+            )
+          ) : (
+            <div className="rounded-lg border border-rule bg-surface p-3.5 space-y-2.5">
+              <div>
+                <div className="flex items-center justify-between text-xs mb-1.5 tabular-nums">
+                  <span className="font-medium text-ink-2">
+                    구독플러스 월 납입금 카드 실적 반영
                   </span>
-                  <span
-                    className={`text-[11px] font-bold px-2 py-0.5 rounded tabular-nums shrink-0 ${
+                  <span className="font-bold text-ink">
+                    {result.cardRecognizedSpend.toLocaleString('ko-KR')}원{' '}
+                    <span className="text-muted font-normal">
+                      / {policy.cardMinSpend.toLocaleString('ko-KR')}원
+                    </span>
+                  </span>
+                </div>
+                <div className="h-2 w-full rounded-full bg-field overflow-hidden">
+                  <div
+                    className={`h-full rounded-full transition-colors duration-300 ${
+                      result.cardAutoMetByLifeCare ? 'bg-positive' : 'bg-ink'
+                    }`}
+                    style={{ width: `${cardProgressPct}%` }}
+                  />
+                </div>
+              </div>
+
+              {result.cardAutoMetByLifeCare ? (
+                <div className="rounded-md bg-positive-soft border border-positive-rule px-3 py-2 flex items-center gap-2 text-xs font-bold text-positive">
+                  <CheckCircle2 size={14} aria-hidden="true" className="shrink-0" />
+                  <span>납입금만으로 실적 30만 원 자동 충족 · 월 {formatKRW(policy.cardMonthlyCashback)} 캐시백</span>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  <div className="rounded-md bg-caution-soft border border-caution-rule px-3 py-2 flex items-start gap-2 text-[11px] text-caution leading-snug tabular-nums">
+                    <AlertCircle size={14} aria-hidden="true" className="shrink-0 mt-0.5" />
+                    <span>
+                      평소 생활비로 <strong>월 {result.cardShortfall.toLocaleString('ko-KR')}원</strong> 카드 사용 시 매월 {policy.cardMonthlyCashback.toLocaleString('ko-KR')}원 추가 캐시백 적용
+                    </span>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => onToggleCoverShortfall(!result.cardCoverShortfall)}
+                    className={`w-full flex items-center justify-between gap-2 px-3 py-2 rounded-md border text-left transition-colors cursor-pointer ${
                       result.cardCoverShortfall
-                        ? 'bg-ink text-on-ink'
-                        : 'bg-field text-ink-2'
+                        ? 'bg-field border-ink text-ink'
+                        : 'bg-surface border-rule text-ink-2 hover:border-rule-strong'
                     }`}
                   >
-                    {result.cardCoverShortfall
-                      ? `사용 ON (-${policy.cardMonthlyCashback.toLocaleString('ko-KR')}원)`
-                      : '미사용'}
-                  </span>
-                </button>
-              </div>
-            )}
-          </div>
+                    <span className="text-xs font-semibold">
+                      제휴카드 월 30만 원 사용 시뮬레이션
+                    </span>
+                    <span
+                      className={`text-[11px] font-bold px-2 py-0.5 rounded tabular-nums shrink-0 ${
+                        result.cardCoverShortfall
+                          ? 'bg-ink text-on-ink'
+                          : 'bg-field text-ink-2'
+                      }`}
+                    >
+                      {result.cardCoverShortfall
+                        ? `사용 ON (-${policy.cardMonthlyCashback.toLocaleString('ko-KR')}원)`
+                        : '미사용'}
+                    </span>
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
         </section>
 
-        {/* STEP 4: FINAL EFFECTIVE COST */}
-        {!isEmpty && (
+        {/* STEP 4: FINAL EFFECTIVE COST (full 모드에서만 표시 · 결과 모달에서는 좌측 영수증으로 통합) */}
+        {!isController && !isEmpty && (
           <section
             aria-label="최종 혜택 비교 결과"
             className="pt-5 border-t border-rule"
@@ -667,82 +729,86 @@ export function ReceiptPanel({
           </section>
         )}
 
-        {/* STEP 5: 120-MONTH 100% REFUND TIMELINE */}
-        <section
-          aria-label="납입금 만기 100% 환급 일정"
-          className="rounded-xl bg-field border border-rule p-4 space-y-2.5"
-        >
-          <div className="flex items-center justify-between gap-2">
-            <div className="flex items-center gap-1.5">
-              <ShieldCheck size={15} aria-hidden="true" className="text-positive shrink-0" />
-              <h3 className="text-xs font-bold text-ink tracking-tight">
-                {maturityYearsText}({result.lifeCareMaturityMonths}회) 만기 100% 원금 환급 구조
-              </h3>
-            </div>
-            <span className="text-[11px] font-bold text-ink-2 tabular-nums shrink-0">
-              {result.totalLifeCareUnits}구좌 기준
-            </span>
-          </div>
-
-          {result.totalLifeCareUnits === 0 ? (
-            <p className="text-xs text-muted leading-relaxed">
-              구독플러스 상품을 선택하시면 {payYearsText}({result.lifeCarePayMonths}회) 납입 후 {result.lifeCareDeferMonths}회 거치(0원)를 거쳐 {maturityYearsText}({result.lifeCareMaturityMonths}회) 만기 시 납입 원금 100% 환급 금액이 표시됩니다.
-            </p>
-          ) : (
-            <>
-              <div className="grid grid-cols-3 gap-2 text-center">
-                <div className="rounded-lg bg-surface border border-rule p-2.5">
-                  <div className="text-[10px] font-semibold text-muted tabular-nums">
-                    1~{result.lifeCarePayMonths}회 ({payYearsText})
-                  </div>
-                  <div className="mt-1 text-xs font-bold text-ink tabular-nums">
-                    월 {result.lifeCareMonthlyDues.toLocaleString('ko-KR')}원
-                  </div>
-                </div>
-
-                <div className="rounded-lg bg-surface border border-rule p-2.5">
-                  <div className="text-[10px] font-semibold text-muted tabular-nums">
-                    {result.lifeCarePayMonths + 1}~{result.lifeCareMaturityMonths}회 거치
-                  </div>
-                  <div className="mt-1 text-xs font-bold text-ink-2 tabular-nums">
-                    월 0원
-                  </div>
-                </div>
-
-                <div className="rounded-lg bg-positive-soft border border-positive-rule p-2.5">
-                  <div className="text-[10px] font-bold text-positive tabular-nums">
-                    {result.lifeCareMaturityMonths}회({maturityYearsText}) 만기
-                  </div>
-                  <div className="mt-1 text-xs font-extrabold text-positive tabular-nums">
-                    <SpringNumber
-                      value={result.lifeCareMaturityRefundTotal}
-                      suffix="원"
-                    />
-                  </div>
-                </div>
+        {/* STEP 5: 120-MONTH 100% REFUND TIMELINE (full 모드에서만 표시) */}
+        {!isController && (
+          <section
+            aria-label="납입금 만기 100% 환급 일정"
+            className="rounded-xl bg-field border border-rule p-4 space-y-2.5"
+          >
+            <div className="flex items-center justify-between gap-2">
+              <div className="flex items-center gap-1.5">
+                <ShieldCheck size={15} aria-hidden="true" className="text-positive shrink-0" />
+                <h3 className="text-xs font-bold text-ink tracking-tight">
+                  사라지는 비용이 아닌 100% 원금 환급 구조
+                </h3>
               </div>
+              <span className="text-[11px] font-bold text-ink-2 tabular-nums shrink-0">
+                {result.totalLifeCareUnits}구좌 기준
+              </span>
+            </div>
 
-              <p className="text-[11px] text-ink-2 font-medium leading-snug">
-                실납입은 {payYearsText}({result.lifeCarePayMonths}회)로 마감되며, 미이용 후 {maturityYearsText}({result.lifeCareMaturityMonths}회) 만기 익월 해지 신청 시 원금 {formatKRW(result.lifeCareMaturityRefundTotal)}이 100% 환급됩니다.
+            {result.totalLifeCareUnits === 0 ? (
+              <p className="text-xs text-muted leading-relaxed">
+                구독플러스 상품을 선택하시면 {payYearsText}({result.lifeCarePayMonths}회) 납입 후 {result.lifeCareDeferMonths}회 거치(0원)를 거쳐 {maturityYearsText}({result.lifeCareMaturityMonths}회) 만기 시 납입 원금 100% 환급 금액이 표시됩니다.
               </p>
-            </>
-          )}
-        </section>
+            ) : (
+              <>
+                <div className="grid grid-cols-3 gap-2 text-center">
+                  <div className="rounded-lg bg-surface border border-rule p-2.5">
+                    <div className="text-[10px] font-semibold text-muted tabular-nums">
+                      1~{result.lifeCarePayMonths}회 적립
+                    </div>
+                    <div className="mt-1 text-xs font-bold text-ink tabular-nums">
+                      월 {result.lifeCareMonthlyDues.toLocaleString('ko-KR')}원
+                    </div>
+                  </div>
 
-        <button
-          type="button"
-          disabled={isEmpty}
-          onClick={onOpenConsultModal}
-          className={`w-full h-12 rounded-lg text-[15px] font-bold flex items-center justify-center gap-2 transition-colors duration-150 ${
-            isEmpty
-              ? 'bg-field text-subtle border border-rule cursor-not-allowed'
-              : 'bg-accent hover:bg-accent-hover text-accent-ink cursor-pointer'
-          }`}
-        >
-          <CalendarCheck2 size={17} aria-hidden="true" />
-          <span>내 맞춤 견적 · 100% 환급 일정표 카톡·문자 받기</span>
-          <Send size={14} aria-hidden="true" />
-        </button>
+                  <div className="rounded-lg bg-surface border border-rule p-2.5">
+                    <div className="text-[10px] font-semibold text-muted tabular-nums">
+                      {result.lifeCarePayMonths + 1}~{result.lifeCareMaturityMonths}회 거치
+                    </div>
+                    <div className="mt-1 text-xs font-bold text-ink-2 tabular-nums">
+                      월 0원
+                    </div>
+                  </div>
+
+                  <div className="rounded-lg bg-positive-soft border border-positive-rule p-2.5">
+                    <div className="text-[10px] font-bold text-positive tabular-nums">
+                      {result.lifeCareMaturityMonths}회({maturityYearsText}) 만기
+                    </div>
+                    <div className="mt-1 text-xs font-extrabold text-positive tabular-nums">
+                      <SpringNumber
+                        value={result.lifeCareMaturityRefundTotal}
+                        suffix="원"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                <p className="text-[11px] text-ink-2 font-medium leading-snug">
+                  실납입은 {payYearsText}({result.lifeCarePayMonths}회)로 마감되며, 미이용 후 {maturityYearsText}({result.lifeCareMaturityMonths}회) 만기 익월 해지 신청 시 원금 {formatKRW(result.lifeCareMaturityRefundTotal)}이 100% 환급됩니다.
+                </p>
+              </>
+            )}
+          </section>
+        )}
+
+        {!isController && (
+          <button
+            type="button"
+            disabled={isEmpty}
+            onClick={onOpenConsultModal}
+            className={`w-full h-12 rounded-lg text-[15px] font-bold flex items-center justify-center gap-2 transition-colors duration-150 ${
+              isEmpty
+                ? 'bg-field text-subtle border border-rule cursor-not-allowed'
+                : 'bg-accent hover:bg-accent-hover text-accent-ink cursor-pointer'
+            }`}
+          >
+            <CalendarCheck2 size={17} aria-hidden="true" />
+            <span>내 맞춤 견적 · 100% 환급 일정표 카톡·문자 받기</span>
+            <Send size={14} aria-hidden="true" />
+          </button>
+        )}
       </div>
     </div>
   )
