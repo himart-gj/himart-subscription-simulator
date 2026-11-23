@@ -6,6 +6,7 @@ import {
   calculateBenefitSimulation,
   recommendZeroCostLifeCare,
 } from '../utils/calculator'
+import { trackViewContent } from '../utils/marketingTracker'
 import { ProductThumbnail } from './ProductThumbnail'
 
 interface MetaAdShowroomHeroProps {
@@ -335,6 +336,15 @@ export function MetaAdShowroomHero({
                 type="button"
                 onClick={() => {
                   const chosenColor = selectedColorByProduct[confirmTarget.product.id]
+                  trackViewContent({
+                    productId: confirmTarget.product.id,
+                    productName: `${confirmTarget.product.brand} ${confirmTarget.product.name}`,
+                    category: confirmTarget.product.category,
+                    monthlyValue:
+                      confirmTarget.term === 60
+                        ? (confirmTarget.product.monthly60 ?? 0)
+                        : (confirmTarget.product.monthly36 ?? 0),
+                  })
                   onConfirmShowroomProduct(
                     confirmTarget.product.id,
                     confirmTarget.term,

@@ -7,6 +7,7 @@ import {
   formatKRW,
   recommendZeroCostLifeCare,
 } from '../utils/calculator'
+import { trackViewContent } from '../utils/marketingTracker'
 import { ProductThumbnail } from './ProductThumbnail'
 
 interface ProductDetailModalProps {
@@ -49,6 +50,22 @@ export function ProductDetailModal({
   )
   const hasPrev = currentIdx > 0
   const hasNext = currentIdx >= 0 && currentIdx < allProducts.length - 1
+
+  const lastTrackedProductIdRef = useRef<string | null>(null)
+  useEffect(() => {
+    if (!product) {
+      lastTrackedProductIdRef.current = null
+      return
+    }
+    if (lastTrackedProductIdRef.current === product.id) return
+    lastTrackedProductIdRef.current = product.id
+    trackViewContent({
+      productId: product.id,
+      productName: `${product.brand} ${product.name}`,
+      category: product.category,
+      monthlyValue: product.monthly60 ?? product.monthly36 ?? 0,
+    })
+  }, [product])
 
   useEffect(() => {
     if (!product) return

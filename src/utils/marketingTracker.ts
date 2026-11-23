@@ -1,4 +1,5 @@
 const UTM_STORAGE_KEY = 'himart_gj_meta_utm_v1'
+export const META_PIXEL_ID = '1108973711692141'
 
 export interface MarketingAttribution {
   utmSource: string
@@ -117,6 +118,54 @@ export function formatAttributionTag(attr: MarketingAttribution): string {
   if (attr.fbclid) return 'meta_fbclid'
   if (attr.adMode) return 'meta_showroom'
   return ''
+}
+
+/**
+ * Safely dispatches Meta Pixel `ViewContent` when a customer inspects a product detail or single quote.
+ */
+export function trackViewContent(params: {
+  productId: string
+  productName: string
+  category: string
+  monthlyValue?: number
+}): void {
+  if (typeof window === 'undefined') return
+  try {
+    if (typeof window.fbq === 'function') {
+      window.fbq('track', 'ViewContent', {
+        content_ids: [params.productId],
+        content_name: params.productName,
+        content_category: params.category,
+        content_type: 'product',
+        currency: 'KRW',
+        value: params.monthlyValue ?? 0,
+      })
+    }
+  } catch {
+    // Never let third-party analytics block user flow
+  }
+}
+
+/**
+ * Safely dispatches Meta Pixel `InitiateCheckout` when a customer opens the consultation modal.
+ */
+export function trackInitiateConsult(params: {
+  source: string
+  productIds: string[]
+  undecidedModel: boolean
+}): void {
+  if (typeof window === 'undefined') return
+  try {
+    if (typeof window.fbq === 'function') {
+      window.fbq('track', 'InitiateCheckout', {
+        content_ids: params.undecidedModel ? ['undecided_consult'] : params.productIds,
+        content_type: 'product',
+        content_category: params.source,
+      })
+    }
+  } catch {
+    // Never let third-party analytics block user flow
+  }
 }
 
 /**

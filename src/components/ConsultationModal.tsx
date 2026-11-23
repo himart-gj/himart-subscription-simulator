@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import {
   Check,
   CheckCircle2,
@@ -19,6 +19,7 @@ import { formatKRW } from '../utils/calculator'
 import {
   type MarketingAttribution,
   formatAttributionTag,
+  trackInitiateConsult,
   trackLeadConversion,
 } from '../utils/marketingTracker'
 import { sanitizePhoneNumber } from '../utils/sanitize'
@@ -87,6 +88,21 @@ export function ConsultationModal({
   const [agreed, setAgreed] = useState(false)
   const [showLegalDetail, setShowLegalDetail] = useState(false)
   const [submitting, setSubmitting] = useState(false)
+
+  const trackedOpenSessionRef = useRef(false)
+  useEffect(() => {
+    if (!open) {
+      trackedOpenSessionRef.current = false
+      return
+    }
+    if (trackedOpenSessionRef.current) return
+    trackedOpenSessionRef.current = true
+    trackInitiateConsult({
+      source: entryContextLabel || '맞춤 상담',
+      productIds: result.lines.map((line) => line.product.id),
+      undecidedModel: initialUndecided || result.lines.length === 0,
+    })
+  }, [open, entryContextLabel, initialUndecided, result.lines])
   const [errorMsg, setErrorMsg] = useState<string | null>(null)
   const [completed, setCompleted] = useState<{
     referenceCode: string
