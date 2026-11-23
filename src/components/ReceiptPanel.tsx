@@ -88,23 +88,23 @@ function PhaseResultCard({
         </div>
       </div>
 
-      <div className="pt-2.5 border-t border-rule">
-        <div className="text-[11px] font-bold text-ink-2 mb-0.5">
+      <div className="pt-2.5 border-t border-rule flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
+        <span className="text-xs font-bold text-ink-2">
           카드 조건 없이도 기본 월 체감가
-        </div>
-        <div className="flex items-baseline justify-between gap-2">
-          <div className="flex items-baseline gap-1 text-ink">
+        </span>
+        <div className="ml-auto text-right">
+          <div className="flex items-baseline justify-end gap-1 text-ink whitespace-nowrap">
             <span className="text-xs font-bold">월</span>
             <SpringNumber
               value={phase.afterLifeCareEffective}
               suffix="원"
-              className={`${isMixed ? 'text-xl' : 'text-[26px]'} font-black tracking-tight`}
+              className={`${isMixed ? 'text-xl' : 'text-[26px]'} font-black tracking-tight leading-none`}
             />
           </div>
           {phase.afterLifeCareSurplus > 0 && (
-            <span className="text-[11px] font-bold text-positive">
+            <div className="text-[11px] font-bold text-positive mt-1 whitespace-nowrap">
               +{phase.afterLifeCareSurplus.toLocaleString('ko-KR')}원/월 입금
-            </span>
+            </div>
           )}
         </div>
       </div>
@@ -114,18 +114,18 @@ function PhaseResultCard({
           {cardActive ? '제휴카드 사용 시' : '제휴카드 미사용 기준'}
         </span>
         {cardActive ? (
-          <div className="flex flex-wrap items-center gap-1.5">
-            <span className="text-sm font-black text-accent">
+          <div className="ml-auto flex flex-wrap items-center justify-end gap-1.5">
+            <span className="text-sm font-black text-accent whitespace-nowrap">
               월 {phase.effectiveMonthlyPay.toLocaleString('ko-KR')}원
             </span>
             {hasExtraCashback && (
-              <span className="inline-flex items-center px-1.5 py-0.5 rounded bg-positive-soft border border-positive-rule text-positive text-[11px] font-bold">
+              <span className="inline-flex items-center px-1.5 py-0.5 rounded bg-positive-soft border border-positive-rule text-positive text-[11px] font-bold whitespace-nowrap">
                 +{phase.monthlySurplusCash.toLocaleString('ko-KR')}원 입금
               </span>
             )}
           </div>
         ) : (
-          <span className="text-xs font-bold text-muted">
+          <span className="ml-auto text-xs font-bold text-muted whitespace-nowrap">
             위 체감가 동일
           </span>
         )}

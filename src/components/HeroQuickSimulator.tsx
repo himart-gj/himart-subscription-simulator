@@ -307,7 +307,7 @@ export function HeroQuickSimulator({
                 <span className="text-xs sm:text-[13px] font-bold text-ink-2">
                   카드 조건 없이도 기본 월 체감가
                 </span>
-                <div className="flex items-baseline gap-1 whitespace-nowrap">
+                <div className="ml-auto flex items-baseline gap-1 whitespace-nowrap">
                   <span className="text-sm font-bold text-ink">월</span>
                   <SpringNumber
                     value={isEmpty ? 0 : phaseA.afterLifeCareEffective}
@@ -430,7 +430,7 @@ export function HeroQuickSimulator({
                     <span className="text-xs font-bold text-ink-2">
                       제휴카드 추가 적용 시 최종 월 체감가
                     </span>
-                    <div className="flex flex-wrap items-center gap-2">
+                    <div className="ml-auto flex flex-wrap items-center justify-end gap-2">
                       <span className="text-lg sm:text-xl font-black text-accent whitespace-nowrap">
                         월 <SpringNumber value={isEmpty ? 0 : phaseA.effectiveMonthlyPay} suffix="원" />
                       </span>

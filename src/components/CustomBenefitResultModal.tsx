@@ -235,7 +235,7 @@ export function CustomBenefitResultModal({
                                   제휴카드 미사용 · 실적 부담 없는 기본 혜택가
                                 </div>
                               </div>
-                              <div className="text-right">
+                              <div className="ml-auto text-right">
                                 <div className="flex items-baseline justify-end gap-1 whitespace-nowrap">
                                   <span className="text-xs font-bold text-ink">월</span>
                                   <SpringNumber
@@ -315,7 +315,7 @@ export function CustomBenefitResultModal({
                           </div>
                         </div>
 
-                        <div className="flex items-baseline gap-1 whitespace-nowrap">
+                        <div className="ml-auto flex items-baseline gap-1 whitespace-nowrap">
                           <span className="text-sm font-bold text-accent">월</span>
                           <SpringNumber
                             value={phaseA.effectiveMonthlyPay}
@@ -326,7 +326,7 @@ export function CustomBenefitResultModal({
                       </div>
 
                       {hasFinalSurplus && (
-                        <div>
+                        <div className="text-right">
                           <span className="inline-flex items-center px-2.5 py-1 rounded-md bg-positive-soft border border-positive-rule text-positive text-xs font-extrabold">
                             +매월 {phaseA.monthlySurplusCash.toLocaleString('ko-KR')}원 내 통장 입금
                           </span>
