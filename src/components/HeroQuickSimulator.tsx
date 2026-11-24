@@ -563,7 +563,7 @@ export function HeroQuickSimulator({
                           onClick={() => onOpenProductDetail(line.product)}
                           className="text-xs font-bold text-ink-2 underline underline-offset-2 hover:text-ink cursor-pointer"
                         >
-                          이런 집 추천 · 색상 보기
+                          이런 집 추천 · 상세 보기
                         </button>
                       )}
                       <div className="pt-2.5 border-t border-rule flex items-baseline justify-between gap-2 tabular-nums">

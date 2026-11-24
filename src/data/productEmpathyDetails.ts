@@ -1,54 +1,10 @@
 import type { ProductItem } from '../types/domain'
 
-export interface ApplianceColorOption {
-  name: string
-  swatchClass: 'swatch-ivory' | 'swatch-beige' | 'swatch-sage' | 'swatch-silver' | 'swatch-charcoal'
-}
-
 export interface ProductEmpathyDetail {
   headline: string
   points: string[]
   recommendFor: string[]
   whyGood: string
-  colors: ApplianceColorOption[]
-}
-
-function inferColorsFromName(name: string): ApplianceColorOption[] {
-  const lower = name.toLowerCase()
-  if (lower.includes('화이트') && lower.includes('베이지')) {
-    return [
-      { name: '새틴 화이트+베이지', swatchClass: 'swatch-beige' },
-      { name: '퓨어 화이트', swatchClass: 'swatch-ivory' },
-    ]
-  }
-  if (lower.includes('베이지') || lower.includes('그레이지') || lower.includes('아이보리') || lower.includes('카푸치노')) {
-    return [
-      { name: '오브제/비스포크 베이지', swatchClass: 'swatch-beige' },
-      { name: '에센스 화이트', swatchClass: 'swatch-ivory' },
-    ]
-  }
-  if (lower.includes('그린')) {
-    return [
-      { name: '네이처 그린', swatchClass: 'swatch-sage' },
-      { name: '네이처 베이지', swatchClass: 'swatch-beige' },
-    ]
-  }
-  if (lower.includes('블랙') || lower.includes('그라파이트') || lower.includes('다크')) {
-    return [
-      { name: '스페이스/타이탄 블랙', swatchClass: 'swatch-charcoal' },
-      { name: '메탈 실버', swatchClass: 'swatch-silver' },
-    ]
-  }
-  if (lower.includes('실버') || lower.includes('이녹스') || lower.includes('그레이') || lower.includes('플래티넘')) {
-    return [
-      { name: '메탈 실버/그레이', swatchClass: 'swatch-silver' },
-      { name: '차콜 블랙', swatchClass: 'swatch-charcoal' },
-    ]
-  }
-  return [
-    { name: '화이트/아이보리', swatchClass: 'swatch-ivory' },
-    { name: '오브제 베이지', swatchClass: 'swatch-beige' },
-  ]
 }
 
 /**
@@ -57,7 +13,6 @@ function inferColorsFromName(name: string): ApplianceColorOption[] {
  */
 export function getProductEmpathyDetail(product: ProductItem): ProductEmpathyDetail {
   const cat = `${product.category} ${product.name}`
-  const colors = inferColorsFromName(product.name)
   const points =
     product.careTags.length > 0
       ? product.careTags
@@ -72,7 +27,6 @@ export function getProductEmpathyDetail(product: ProductItem): ProductEmpathyDet
         '완전분해 스팀세척과 5년 무상보증까지 한 번에 챙기고 싶은 분',
       ],
       whyGood: '계절마다 냉동·냉장·김치 모드로 활용하면서 전문 케어 매니저의 분해 세척까지 받을 수 있어요.',
-      colors,
     }
   }
 
@@ -85,7 +39,6 @@ export function getProductEmpathyDetail(product: ProductItem): ProductEmpathyDet
         '냉장실 스팀 살균과 후면 기계실 세척 케어까지 맡기고 싶은 분',
       ],
       whyGood: '초기 목돈 수백만 원 부담 없이 월 천원대 추천 체감가로 주방 분위기를 바꿀 수 있어요.',
-      colors,
     }
   }
 
@@ -98,7 +51,6 @@ export function getProductEmpathyDetail(product: ProductItem): ProductEmpathyDet
         '사설 세탁조 분해청소 비용 없이 공식 케어와 5년 보증을 받고 싶은 분',
       ],
       whyGood: '눈에 보이지 않는 세탁조·열교환기 분해 세척까지 구독 케어로 깔끔하게 관리돼요.',
-      colors,
     }
   }
 
@@ -111,7 +63,6 @@ export function getProductEmpathyDetail(product: ProductItem): ProductEmpathyDet
         '초기 설치 목돈 부담 없이 2in1·벽걸이 에어컨을 미리 준비하실 분',
       ],
       whyGood: '주기적인 판넬·열교환기 고압 분해세척과 총 5년 무상 A/S가 함께 제공돼요.',
-      colors,
     }
   }
 
@@ -124,7 +75,6 @@ export function getProductEmpathyDetail(product: ProductItem): ProductEmpathyDet
         '고가 디스플레이 파손보장보험과 5년 무상 연장보증을 함께 챙기고 싶은 집',
       ],
       whyGood: 'TV 구독 시 가장 걱정되는 파손·패널 수리 부담을 데미지 케어보험과 5년 보증으로 덜어드려요.',
-      colors,
     }
   }
 
@@ -137,7 +87,6 @@ export function getProductEmpathyDetail(product: ProductItem): ProductEmpathyDet
         '배터리·더스트백·물걸레 등 정품 소모품 정기배송까지 편하게 받고 싶은 분',
       ],
       whyGood: '잊기 쉬운 정품 배터리·먼지봉투·물걸레 정기배송과 5년 무상보증이 포함되어 늘 새 컨디션을 유지해요.',
-      colors,
     }
   }
 
@@ -150,7 +99,6 @@ export function getProductEmpathyDetail(product: ProductItem): ProductEmpathyDet
         '정품 필터 정기 교체와 내부·토출구 살균 클리닝을 함께 받고 싶은 분',
       ],
       whyGood: '주기별 필터 교체·클리닝과 5년 무상보증에 구독플러스 지원까지 더해 체감 부담을 확 낮췄어요.',
-      colors,
     }
   }
 
@@ -163,7 +111,6 @@ export function getProductEmpathyDetail(product: ProductItem): ProductEmpathyDet
         '36개월 실속 구독으로 최신 인덕션·밥솥·커피머신·음식물처리기를 들이실 가정',
       ],
       whyGood: '주방가전 수명을 좌우하는 정품 소모품 배송·전문 세척과 5년 무상보증이 기본 포함돼요.',
-      colors,
     }
   }
 
@@ -176,7 +123,6 @@ export function getProductEmpathyDetail(product: ProductItem): ProductEmpathyDet
         '부모님 효도 선물이나 우리 집 힐링 가전을 월 천원대 체감가로 시작하실 분',
       ],
       whyGood: '소모품 정기배송·분해 세척과 5년 연장보증이 결합되어 사후 유지비 걱정이 없어요.',
-      colors,
     }
   }
 
@@ -189,7 +135,6 @@ export function getProductEmpathyDetail(product: ProductItem): ProductEmpathyDet
         '휴대 중 액정·외관 파손에 대비해 데미지 케어보험과 장기 보증이 꼭 필요한 분',
       ],
       whyGood: '고가 IT 기기에서 가장 아까운 일시불 지출과 수리비 부담을 36개월 구독+케어보험으로 해결해요.',
-      colors,
     }
   }
 
@@ -201,6 +146,5 @@ export function getProductEmpathyDetail(product: ProductItem): ProductEmpathyDet
       '5년 무상 A/S 연장보증과 정기 관리를 함께 챙기고 싶은 가정',
     ],
     whyGood: '경기광주점 전담 매니저가 당월 지점 행사 혜택까지 더해 가장 유리한 조건으로 안내해 드려요.',
-    colors,
   }
 }

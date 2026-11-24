@@ -29,7 +29,6 @@ interface ConsultationModalProps {
   result: CalculationResult
   entryContextLabel?: string
   initialUndecided?: boolean
-  selectedColorByProduct?: Record<string, string>
   attribution?: MarketingAttribution
   onClose: () => void
 }
@@ -69,7 +68,6 @@ export function ConsultationModal({
   result,
   entryContextLabel,
   initialUndecided = false,
-  selectedColorByProduct = {},
   attribution,
   onClose,
 }: ConsultationModalProps) {
@@ -115,11 +113,7 @@ export function ConsultationModal({
   const hasCartItems = result.lines.length > 0
   const selectedItemsLabel = hasCartItems
     ? result.lines
-        .map((l) => {
-          const pickedColor = selectedColorByProduct[l.product.id]
-          const colorSuffix = pickedColor ? ` [${pickedColor}]` : ''
-          return `${l.product.brand} ${l.product.name}${colorSuffix} (${l.term}개월 × ${l.quantity})`
-        })
+        .map((l) => `${l.product.brand} ${l.product.name} (${l.term}개월 × ${l.quantity})`)
         .join(', ')
     : '아직 정하지 않았어요 (상담 후 맞춤 추천 희망)'
 

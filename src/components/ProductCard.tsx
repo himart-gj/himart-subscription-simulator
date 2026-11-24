@@ -14,8 +14,6 @@ interface ProductCardProps {
   product: ProductItem
   policy?: PolicyConfig
   inCartCount: number
-  selectedColor?: string
-  onSelectColor?: (productId: string, colorName: string) => void
   onOpenDetail?: (product: ProductItem) => void
   onAdd: (productId: string, term: SubscriptionTerm) => void
   onSelectSingle?: (productId: string, term: SubscriptionTerm) => void
@@ -27,8 +25,6 @@ export function ProductCard({
   product,
   policy = DEFAULT_POLICY_CONFIG,
   inCartCount,
-  selectedColor,
-  onSelectColor,
   onOpenDetail,
   onAdd,
   onSelectSingle,
@@ -54,7 +50,6 @@ export function ProductCard({
     activeTerm === 36 ? (product.monthly36 ?? 0) : (product.monthly60 ?? 0)
   const totalContractAmount = activePrice * activeTerm
   const empathy = useMemo(() => getProductEmpathyDetail(product), [product])
-  const currentColor = selectedColor || empathy.colors[0]?.name || ''
 
   const careBadge = product.careTags.find((t) => t.includes('구독'))
   const highlightTags = product.careTags.filter((t) => t !== careBadge).slice(0, 2)
@@ -170,33 +165,8 @@ export function ProductCard({
           </p>
         )}
 
-        {/* Color Swatches + Empathy Detail Link */}
-        <div className="mt-2 flex flex-wrap items-center justify-between gap-1.5">
-          <div className="flex flex-wrap gap-1">
-            {empathy.colors.slice(0, 2).map((cl) => {
-              const isSel = currentColor === cl.name
-              return (
-                <button
-                  key={cl.name}
-                  type="button"
-                  onClick={() => onSelectColor?.(product.id, cl.name)}
-                  className={`inline-flex items-center gap-1 h-6 px-2 rounded-full text-[11px] border cursor-pointer ${
-                    isSel
-                      ? 'bg-field border-ink font-bold text-ink'
-                      : 'bg-surface border-rule text-muted'
-                  }`}
-                >
-                  <span
-                    aria-hidden="true"
-                    className={`w-2.5 h-2.5 rounded-full border border-rule-strong ${cl.swatchClass}`}
-                  />
-                  <span>{cl.name}</span>
-                </button>
-              )
-            })}
-          </div>
-
-          {onOpenDetail && (
+        {onOpenDetail && (
+          <div className="mt-2">
             <button
               type="button"
               onClick={() => onOpenDetail(product)}
@@ -204,8 +174,8 @@ export function ProductCard({
             >
               케어·추천 상세
             </button>
-          )}
-        </div>
+          </div>
+        )}
 
         <div className="mt-auto pt-3 space-y-2.5">
           {supportsBothTerms ? (
