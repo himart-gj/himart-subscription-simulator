@@ -14,10 +14,8 @@ interface ProductDetailModalProps {
   product: ProductItem | null
   allProducts: ProductItem[]
   policy: PolicyConfig
-  selectedColorByProduct: Record<string, string>
-  onSelectColor: (productId: string, colorName: string) => void
   onNavigateProduct: (product: ProductItem) => void
-  onChooseProduct: (productId: string, term: SubscriptionTerm, colorName?: string) => void
+  onChooseProduct: (productId: string, term: SubscriptionTerm) => void
   onClose: () => void
 }
 
@@ -25,8 +23,6 @@ export function ProductDetailModal({
   product,
   allProducts,
   policy,
-  selectedColorByProduct,
-  onSelectColor,
   onNavigateProduct,
   onChooseProduct,
   onClose,
@@ -105,9 +101,6 @@ export function ProductDetailModal({
   }, [product, activeTerm, policy, supports36, supports60])
 
   if (!product || !detail) return null
-
-  const activeColor =
-    selectedColorByProduct[product.id] || detail.colors[0]?.name || ''
 
   return (
     <div
@@ -213,39 +206,6 @@ export function ProductDetailModal({
               <p className="text-xs sm:text-[13px] font-semibold text-accent leading-relaxed break-keep">
                 {detail.headline}
               </p>
-
-              {/* Interior Color Finish Selector */}
-              {detail.colors.length > 0 && (
-                <div className="pt-1 space-y-1.5">
-                  <span className="block text-[11px] font-bold text-ink-2">
-                    선호 색상 선택 (상담 시 재고 우선 확인)
-                  </span>
-                  <div className="flex flex-wrap gap-1.5">
-                    {detail.colors.map((c) => {
-                      const isSel = activeColor === c.name
-                      return (
-                        <button
-                          key={c.name}
-                          type="button"
-                          aria-pressed={isSel}
-                          onClick={() => onSelectColor(product.id, c.name)}
-                          className={`inline-flex items-center gap-1.5 h-8 px-2.5 rounded-full text-xs font-semibold border transition-colors cursor-pointer ${
-                            isSel
-                              ? 'bg-field border-ink text-ink font-bold'
-                              : 'bg-surface border-rule text-ink-2 hover:border-rule-strong'
-                          }`}
-                        >
-                          <span
-                            aria-hidden="true"
-                            className={`w-3.5 h-3.5 rounded-full border border-rule-strong ${c.swatchClass}`}
-                          />
-                          <span>{c.name}</span>
-                        </button>
-                      )
-                    })}
-                  </div>
-                </div>
-              )}
             </div>
           </div>
 
@@ -362,7 +322,7 @@ export function ProductDetailModal({
           <button
             type="button"
             disabled={!supports36 && !supports60}
-            onClick={() => onChooseProduct(product.id, activeTerm, activeColor)}
+            onClick={() => onChooseProduct(product.id, activeTerm)}
             className="flex-1 h-11 px-5 rounded-lg bg-accent hover:bg-accent-hover text-accent-ink text-sm font-bold transition-colors cursor-pointer"
           >
             이 가전으로 맞춤 혜택 설계하기

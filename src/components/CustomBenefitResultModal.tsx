@@ -27,7 +27,6 @@ interface CustomBenefitResultModalProps {
   result: CalculationResult
   policy: PolicyConfig
   autoOptimizeFreed: boolean
-  selectedColorByProduct: Record<string, string>
   onToggleAutoOptimizeFreed: (enabled: boolean) => void
   onUpdateCartQuantity: (productId: string, term: SubscriptionTerm, delta: number) => void
   onSwitchCartItemTerm: (
@@ -52,7 +51,6 @@ export function CustomBenefitResultModal({
   result,
   policy,
   autoOptimizeFreed,
-  selectedColorByProduct,
   onToggleAutoOptimizeFreed,
   onUpdateCartQuantity,
   onSwitchCartItemTerm,
@@ -400,7 +398,6 @@ export function CustomBenefitResultModal({
 
                   <div className="divide-y divide-rule">
                     {result.lines.map((line) => {
-                      const pickedColor = selectedColorByProduct[line.product.id]
                       const careText =
                         line.product.careTags.length > 0
                           ? line.product.careTags.join(' · ')
@@ -427,11 +424,6 @@ export function CustomBenefitResultModal({
                               <span className="px-1.5 py-0.5 rounded bg-field border border-rule text-[10.5px] font-bold text-ink tabular-nums">
                                 {line.term}개월 구독
                               </span>
-                              {pickedColor && (
-                                <span className="px-1.5 py-0.5 rounded bg-field text-[10px] font-semibold text-ink-2">
-                                  {pickedColor}
-                                </span>
-                              )}
                               {line.quantity > 1 && (
                                 <span className="font-bold text-accent tabular-nums">
                                   ×{line.quantity}대

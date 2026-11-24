@@ -245,7 +245,6 @@ export function SimulatorPage({
   )
 
   /* ==================== 3. SHARED UI & HISTORY BACK STACK ==================== */
-  const [selectedColorByProduct, setSelectedColorByProduct] = useState<Record<string, string>>({})
   const [detailModalProduct, setDetailModalProduct] = useState<ProductItem | null>(null)
   const [consultUndecidedPreset, setConsultUndecidedPreset] = useState<boolean>(false)
   const [consultSource, setConsultSource] = useState<ConsultSource>('home')
@@ -369,10 +368,6 @@ export function SimulatorPage({
     })
   }, [visibleProducts, selectedCategory, selectedBrand, searchQuery])
 
-  const handleSelectColor = (productId: string, colorName: string) => {
-    setSelectedColorByProduct((prev) => ({ ...prev, [productId]: colorName }))
-  }
-
   const openConsultModal = (source: ConsultSource, undecided = false) => {
     setConsultSource(source)
     setConsultUndecidedPreset(undecided)
@@ -438,12 +433,8 @@ export function SimulatorPage({
   const handleViewSingleProductResult = (
     productId: string,
     term: SubscriptionTerm,
-    colorName?: string,
     fromLabel = '이전 화면으로',
   ) => {
-    if (colorName) {
-      handleSelectColor(productId, colorName)
-    }
     setSinglePreviewCart([{ productId, term, quantity: 1 }])
     setSingleManualLifeCare(null)
     setResultTargetMode('single-preview')
@@ -801,14 +792,11 @@ export function SimulatorPage({
               <MetaAdShowroomHero
                 products={visibleProducts}
                 policy={catalog.policy}
-                selectedColorByProduct={selectedColorByProduct}
-                onSelectColor={handleSelectColor}
                 onOpenProductDetail={(p) => setDetailModalProduct(p)}
-                onConfirmShowroomProduct={(productId, term, colorName) =>
+                onConfirmShowroomProduct={(productId, term) =>
                   handleViewSingleProductResult(
                     productId,
                     term,
-                    colorName,
                     '쇼윈도로 돌아가기',
                   )
                 }
@@ -924,15 +912,12 @@ export function SimulatorPage({
                           product={product}
                           policy={catalog.policy}
                           inCartCount={customCartCountByProduct.get(product.id) || 0}
-                          selectedColor={selectedColorByProduct[product.id]}
-                          onSelectColor={handleSelectColor}
                           onOpenDetail={(p) => setDetailModalProduct(p)}
                           onAdd={handleAddCustomProduct}
                           onSelectSingle={(productId, term) =>
                             handleViewSingleProductResult(
                               productId,
                               term,
-                              selectedColorByProduct[productId],
                               '가전 골라담기로',
                             )
                           }
@@ -1336,7 +1321,6 @@ export function SimulatorPage({
         result={overlayResult}
         policy={catalog.policy}
         autoOptimizeFreed={activeOverlayAutoOptimize}
-        selectedColorByProduct={selectedColorByProduct}
         onToggleAutoOptimizeFreed={handleOverlayToggleAutoOptimize}
         onUpdateCartQuantity={handleOverlayUpdateQty}
         onSwitchCartItemTerm={handleOverlaySwitchTerm}
@@ -1356,16 +1340,14 @@ export function SimulatorPage({
         product={detailModalProduct}
         allProducts={visibleProducts}
         policy={catalog.policy}
-        selectedColorByProduct={selectedColorByProduct}
-        onSelectColor={handleSelectColor}
         onNavigateProduct={(next) => setDetailModalProduct(next)}
-        onChooseProduct={(productId, term, colorName) => {
+        onChooseProduct={(productId, term) => {
           const backLabel = adShowroomOpen
             ? '쇼윈도로 돌아가기'
             : screenView === 'customizer'
               ? '가전 골라담기로'
               : '이전 화면으로'
-          handleViewSingleProductResult(productId, term, colorName, backLabel)
+          handleViewSingleProductResult(productId, term, backLabel)
         }}
         onClose={() => setDetailModalProduct(null)}
       />
@@ -1376,7 +1358,6 @@ export function SimulatorPage({
         result={consultTargetResult}
         entryContextLabel={consultContextLabel}
         initialUndecided={consultUndecidedPreset}
-        selectedColorByProduct={selectedColorByProduct}
         attribution={attribution}
         onClose={() => setConsultModalOpen(false)}
       />

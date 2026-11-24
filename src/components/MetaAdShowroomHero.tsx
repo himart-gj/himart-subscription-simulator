@@ -12,10 +12,8 @@ import { ProductThumbnail } from './ProductThumbnail'
 interface MetaAdShowroomHeroProps {
   products: ProductItem[]
   policy: PolicyConfig
-  selectedColorByProduct: Record<string, string>
-  onSelectColor: (productId: string, colorName: string) => void
   onOpenProductDetail: (product: ProductItem) => void
-  onConfirmShowroomProduct: (productId: string, term: SubscriptionTerm, colorName?: string) => void
+  onConfirmShowroomProduct: (productId: string, term: SubscriptionTerm) => void
   onOpenUndecidedConsult: () => void
   onExitAdMode: () => void
 }
@@ -33,8 +31,6 @@ const SHOWROOM_FILTERS = [
 export function MetaAdShowroomHero({
   products,
   policy,
-  selectedColorByProduct,
-  onSelectColor,
   onOpenProductDetail,
   onConfirmShowroomProduct,
   onOpenUndecidedConsult,
@@ -158,8 +154,6 @@ export function MetaAdShowroomHero({
             policy,
           })
           const empathy = getProductEmpathyDetail(product)
-          const activeColor =
-            selectedColorByProduct[product.id] || empathy.colors[0]?.name || ''
 
           return (
             <article
@@ -197,32 +191,6 @@ export function MetaAdShowroomHero({
                     {empathy.headline}
                   </p>
                 </div>
-
-                {empathy.colors.length > 0 && (
-                  <div className="flex flex-wrap gap-1">
-                    {empathy.colors.slice(0, 3).map((cl) => {
-                      const isSel = activeColor === cl.name
-                      return (
-                        <button
-                          key={cl.name}
-                          type="button"
-                          onClick={() => onSelectColor(product.id, cl.name)}
-                          className={`inline-flex items-center gap-1 h-6 px-2 rounded-full text-[11px] border cursor-pointer ${
-                            isSel
-                              ? 'bg-field border-ink font-bold text-ink'
-                              : 'bg-surface border-rule text-muted'
-                          }`}
-                        >
-                          <span
-                            aria-hidden="true"
-                            className={`w-2.5 h-2.5 rounded-full border border-rule-strong ${cl.swatchClass}`}
-                          />
-                          <span>{cl.name}</span>
-                        </button>
-                      )
-                    })}
-                  </div>
-                )}
 
                 <button
                   type="button"
@@ -306,9 +274,6 @@ export function MetaAdShowroomHero({
             <div className="space-y-1">
               <div className="text-xs font-bold text-accent">
                 {confirmTarget.product.brand}
-                {selectedColorByProduct[confirmTarget.product.id]
-                  ? ` / ${selectedColorByProduct[confirmTarget.product.id]}`
-                  : ''}
               </div>
               <div className="text-sm font-bold text-ink break-keep">
                 {confirmTarget.product.name}
@@ -335,7 +300,6 @@ export function MetaAdShowroomHero({
               <button
                 type="button"
                 onClick={() => {
-                  const chosenColor = selectedColorByProduct[confirmTarget.product.id]
                   trackViewContent({
                     productId: confirmTarget.product.id,
                     productName: `${confirmTarget.product.brand} ${confirmTarget.product.name}`,
@@ -348,7 +312,6 @@ export function MetaAdShowroomHero({
                   onConfirmShowroomProduct(
                     confirmTarget.product.id,
                     confirmTarget.term,
-                    chosenColor,
                   )
                   setConfirmTarget(null)
                 }}
