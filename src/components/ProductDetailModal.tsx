@@ -14,6 +14,7 @@ interface ProductDetailModalProps {
   product: ProductItem | null
   allProducts: ProductItem[]
   policy: PolicyConfig
+  ctaLabel?: string
   onNavigateProduct: (product: ProductItem) => void
   onChooseProduct: (productId: string, term: SubscriptionTerm) => void
   onClose: () => void
@@ -23,6 +24,7 @@ export function ProductDetailModal({
   product,
   allProducts,
   policy,
+  ctaLabel = '이 가전으로 맞춤 혜택 설계하기',
   onNavigateProduct,
   onChooseProduct,
   onClose,
@@ -245,13 +247,17 @@ export function ProductDetailModal({
           {sim && (
             <div className="rounded-xl bg-surface border border-ink p-4 space-y-3 tabular-nums">
               <div className="flex items-center justify-between gap-2">
-                <span className="text-xs font-bold text-ink">{supports36 && supports60 ? "약정 기간별 맞춤 혜택가 미리보기" : `${activeTerm}개월 공식 약정 혜택가 미리보기`}</span>
+                <span className="text-xs font-bold text-ink">
+                  {supports36 && supports60
+                    ? '약정 기간별 맞춤 혜택가 미리보기'
+                    : `${activeTerm}개월 공식 약정 혜택가 미리보기`}
+                </span>
                 <div className="inline-flex rounded-md bg-field border border-rule p-0.5">
                   {supports36 && (
                     <button
                       type="button"
                       onClick={() => setTerm(36)}
-                      className={`px-2.5 py-1 rounded text-[11px] font-bold transition-colors cursor-pointer ${
+                      className={`px-2.5 py-1 rounded text-[11px] font-bold transition-colors cursor-pointer whitespace-nowrap ${
                         activeTerm === 36 ? 'bg-ink text-on-ink' : 'text-muted hover:text-ink'
                       }`}
                     >
@@ -262,7 +268,7 @@ export function ProductDetailModal({
                     <button
                       type="button"
                       onClick={() => setTerm(60)}
-                      className={`px-2.5 py-1 rounded text-[11px] font-bold transition-colors cursor-pointer ${
+                      className={`px-2.5 py-1 rounded text-[11px] font-bold transition-colors cursor-pointer whitespace-nowrap ${
                         activeTerm === 60 ? 'bg-ink text-on-ink' : 'text-muted hover:text-ink'
                       }`}
                     >
@@ -275,7 +281,7 @@ export function ProductDetailModal({
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
                 <div className="rounded-lg bg-field px-3.5 py-2.5 border border-rule">
                   <div className="flex items-center justify-between text-[11px] text-muted">
-                    <span>추천 혜택 체감가</span>
+                    <span>기본 혜택 체감가</span>
                     <span className="line-through">
                       원금 {formatKRW(sim.phaseA.grossSubscription)}
                     </span>
@@ -284,7 +290,7 @@ export function ProductDetailModal({
                     월 {formatKRW(sim.phaseA.afterLifeCareEffective)}
                   </div>
                   <div className="text-[10px] font-bold text-positive mt-0.5">
-                    실납입 90회 마감 · 120회 만기 100% 환급형
+                    카드 미사용 기본 결합 기준
                   </div>
                 </div>
 
@@ -302,7 +308,7 @@ export function ProductDetailModal({
                   </div>
                   <div className="inline-flex items-center gap-1 text-[10px] text-muted mt-0.5">
                     <ShieldCheck size={11} aria-hidden="true" className="text-positive" />
-                    <span>만기 원금 {formatKRW(sim.lifeCareMaturityRefundTotal)} 환급</span>
+                    <span>최대 5년 무상 A/S·정기 방문케어 포함</span>
                   </div>
                 </div>
               </div>
@@ -311,11 +317,11 @@ export function ProductDetailModal({
         </div>
 
         {/* Sticky Action Footer */}
-        <div className="px-4 sm:px-5 py-3.5 bg-surface border-t border-rule flex items-center justify-between gap-3 shrink-0">
+        <div className="px-4 sm:px-5 pt-3.5 pb-[max(0.875rem,env(safe-area-inset-bottom))] bg-surface border-t border-rule flex items-center justify-between gap-3 shrink-0">
           <button
             type="button"
             onClick={onClose}
-            className="h-11 px-4 rounded-lg bg-surface hover:bg-field border border-rule-strong text-xs sm:text-sm font-bold text-ink-2 cursor-pointer"
+            className="h-11 px-4 rounded-lg bg-surface hover:bg-field border border-rule-strong text-xs sm:text-sm font-bold text-ink-2 cursor-pointer whitespace-nowrap"
           >
             목록으로
           </button>
@@ -323,9 +329,9 @@ export function ProductDetailModal({
             type="button"
             disabled={!supports36 && !supports60}
             onClick={() => onChooseProduct(product.id, activeTerm)}
-            className="flex-1 h-11 px-5 rounded-lg bg-accent hover:bg-accent-hover text-accent-ink text-sm font-bold transition-colors cursor-pointer"
+            className="flex-1 h-11 px-5 rounded-lg bg-accent hover:bg-accent-hover text-accent-ink text-sm font-bold transition-colors cursor-pointer whitespace-nowrap"
           >
-            이 가전으로 맞춤 혜택 설계하기
+            {ctaLabel}
           </button>
         </div>
       </div>

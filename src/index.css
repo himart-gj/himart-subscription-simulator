@@ -1,6 +1,6 @@
 /* Hallmark · theme: manifesto (deal) · shape: app screen · posture: restrained */
 /* Hallmark · dismissed 49 · preset row buttons intentionally wrap multi-field title and effective price on narrow Fold screens */
-/* Hallmark · dropped kakaoChatUrl, naverTalkUrl, handleCopyAddress · unused middle StoreInfoSection simplified per user request */
+/* Hallmark · dropped kakaoChatUrl, naverTalkUrl, handleCopyAddress, setConfirmTarget, micro-commit-title, onConfirmShowroomProduct, onOpenUndecidedConsult, openConsultModal('meta-showroom', adShowroomOpen ? '쇼윈도로 돌아가기' · blocking modal steps replaced by embedded 30-second inline consultation form */
 @import "tailwindcss";
 
 @theme {
@@ -61,7 +61,8 @@
 
   h1,
   h2,
-  h3 {
+  h3,
+  h4 {
     font-family: var(--font-display);
     word-break: keep-all;
     overflow-wrap: break-word;

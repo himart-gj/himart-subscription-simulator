@@ -71,7 +71,7 @@ export function ProductThumbnail({
   return (
     <div
       className={`relative overflow-hidden flex items-center justify-center ${
-        isExternalStudioImg ? 'bg-white' : 'bg-field'
+        isExternalStudioImg ? 'bg-surface' : 'bg-field'
       } ${className}`}
     >
       {!activeSrc ? (

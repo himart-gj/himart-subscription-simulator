@@ -220,7 +220,7 @@ export function ReceiptPanel({
             </h2>
             <p className="text-[11px] text-on-ink/75 truncate">
               {isController
-                ? '조건 변경 시 왼쪽 설계표 금액이 실시간 연동됩니다'
+                ? '조건 변경 시 체감가가 실시간 반영됩니다'
                 : '추천상품 자동맞춤 및 구좌 수동 조절'}
             </p>
           </div>
@@ -230,7 +230,7 @@ export function ReceiptPanel({
           <button
             type="button"
             onClick={onClearCart}
-            className="inline-flex items-center gap-1 px-2.5 py-1 rounded text-xs font-semibold text-on-ink/80 hover:text-on-ink hover:bg-on-ink/10 transition-colors cursor-pointer shrink-0"
+            className="inline-flex items-center gap-1 px-2.5 py-1 rounded text-xs font-semibold text-on-ink/80 hover:text-on-ink hover:bg-on-ink/10 transition-colors cursor-pointer shrink-0 whitespace-nowrap"
           >
             <RotateCcw size={12} aria-hidden="true" />
             <span>비우기</span>
@@ -245,7 +245,6 @@ export function ReceiptPanel({
           </div>
         )}
 
-        {/* STEP 1: CART SUMMARY / TERM & QTY CONTROLLER */}
         <section aria-label={isController ? '약정 기간 및 수량 조절' : '담은 구독 가전 요약'}>
           <div className="flex items-center justify-between gap-2 mb-3">
             <span className="text-xs font-bold tracking-tight text-ink flex items-center gap-1.5">
@@ -256,7 +255,7 @@ export function ReceiptPanel({
               <span className="text-accent tabular-nums">({result.totalQuantity})</span>
             </span>
             {!isEmpty && (
-              <span className="text-[11px] font-semibold px-2 py-0.5 rounded bg-field text-ink-2 tabular-nums">
+              <span className="text-[11px] font-semibold px-2 py-0.5 rounded bg-field text-ink-2 tabular-nums whitespace-nowrap">
                 {isMixed ? '36·60개월 맞춤' : `${result.durationMonths}개월 약정`}
               </span>
             )}
@@ -271,7 +270,7 @@ export function ReceiptPanel({
                 <button
                   type="button"
                   onClick={onQuickTrySample}
-                  className="mt-3 inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg bg-surface border border-rule-strong hover:bg-field text-xs font-bold text-ink transition-colors cursor-pointer"
+                  className="mt-3 inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg bg-surface border border-rule-strong hover:bg-field text-xs font-bold text-ink transition-colors cursor-pointer whitespace-nowrap"
                 >
                   <span>인기 살림효자 3종 세트 담아보기</span>
                 </button>
@@ -319,7 +318,7 @@ export function ReceiptPanel({
                               line.term !== 36 &&
                               onSwitchCartItemTerm(line.product.id, line.term, 36)
                             }
-                            className={`px-2 py-1 rounded text-[11px] font-bold tabular-nums transition-colors ${
+                            className={`px-2 py-1 rounded text-[11px] font-bold tabular-nums transition-colors whitespace-nowrap ${
                               line.term === 36
                                 ? 'bg-ink text-on-ink'
                                 : 'text-muted hover:text-ink cursor-pointer'
@@ -333,7 +332,7 @@ export function ReceiptPanel({
                               line.term !== 60 &&
                               onSwitchCartItemTerm(line.product.id, line.term, 60)
                             }
-                            className={`px-2 py-1 rounded text-[11px] font-bold tabular-nums transition-colors ${
+                            className={`px-2 py-1 rounded text-[11px] font-bold tabular-nums transition-colors whitespace-nowrap ${
                               line.term === 60
                                 ? 'bg-ink text-on-ink'
                                 : 'text-muted hover:text-ink cursor-pointer'
@@ -343,7 +342,7 @@ export function ReceiptPanel({
                           </button>
                         </div>
                       ) : (
-                        <span className="inline-flex items-center px-2.5 py-1 rounded-md bg-surface border border-rule text-[11px] font-bold text-ink-2 tabular-nums">
+                        <span className="inline-flex items-center px-2.5 py-1 rounded-md bg-surface border border-rule text-[11px] font-bold text-ink-2 tabular-nums whitespace-nowrap">
                           {line.term}개월 공식 약정
                         </span>
                       )}
@@ -376,7 +375,7 @@ export function ReceiptPanel({
                         </div>
 
                         {!isController && (
-                          <div className="text-[13px] font-bold text-ink tabular-nums min-w-[78px] text-right">
+                          <div className="text-[13px] font-bold text-ink tabular-nums min-w-[78px] text-right whitespace-nowrap">
                             월 {formatKRW(line.lineTotal)}
                           </div>
                         )}
@@ -398,19 +397,18 @@ export function ReceiptPanel({
           )}
         </section>
 
-        {/* STEP 2: LIFECARE */}
         <section
           aria-label="구독플러스 결합 혜택 선택기"
           className="pt-5 border-t border-rule"
         >
           <div className="flex items-center justify-between gap-2 mb-2">
-            <span className="text-xs font-bold tracking-tight text-ink flex items-center gap-1.5">
-              <span className="inline-flex items-center justify-center w-5 h-5 rounded bg-accent-soft text-accent text-[11px] font-mono font-bold">
+            <span className="text-xs font-bold tracking-tight text-ink flex items-center gap-1.5 break-keep">
+              <span className="inline-flex items-center justify-center w-5 h-5 rounded bg-accent-soft text-accent text-[11px] font-mono font-bold shrink-0">
                 2
               </span>
-              구독플러스 현금 지원 (만기 100% 환급형)
+              <span>구독플러스 현금 지원</span>
             </span>
-            <span className="text-xs font-bold text-ink tabular-nums">
+            <span className="text-xs font-bold text-ink tabular-nums whitespace-nowrap shrink-0">
               <span className={result.totalLifeCareUnits > 0 ? 'text-accent' : ''}>
                 {result.totalLifeCareUnits}
               </span>{' '}
@@ -428,7 +426,7 @@ export function ReceiptPanel({
                 role="switch"
                 aria-checked={autoOptimizeFreed}
                 onClick={() => onToggleAutoOptimizeFreed(!autoOptimizeFreed)}
-                className={`px-2.5 py-1 rounded text-[11px] font-bold transition-colors cursor-pointer ${
+                className={`px-2.5 py-1 rounded text-[11px] font-bold transition-colors cursor-pointer whitespace-nowrap ${
                   autoOptimizeFreed
                     ? 'bg-ink text-on-ink'
                     : 'bg-surface border border-rule-strong text-ink-2'
@@ -454,7 +452,7 @@ export function ReceiptPanel({
             <button
               type="button"
               onClick={() => onSetLifeCareUnits({ q40: 0, q50: 0, q60: 0 })}
-              className="px-2.5 py-1.5 rounded-md bg-field hover:bg-field-hover border border-rule text-[11px] font-semibold text-ink-2 transition-colors cursor-pointer"
+              className="px-2.5 py-1.5 rounded-md bg-field hover:bg-field-hover border border-rule text-[11px] font-semibold text-ink-2 transition-colors cursor-pointer whitespace-nowrap"
             >
               초기화
             </button>
@@ -462,7 +460,7 @@ export function ReceiptPanel({
               type="button"
               disabled={isEmpty}
               onClick={onApplyZeroCostPreset}
-              className={`px-2.5 py-1.5 rounded-md border text-[11px] font-bold transition-colors ${
+              className={`px-2.5 py-1.5 rounded-md border text-[11px] font-bold transition-colors whitespace-nowrap ${
                 isEmpty
                   ? 'bg-field border-rule text-subtle cursor-not-allowed'
                   : 'bg-accent-soft border-accent-rule text-accent cursor-pointer'
@@ -473,7 +471,7 @@ export function ReceiptPanel({
             <button
               type="button"
               onClick={() => onSetLifeCareUnits({ q40: 0, q50: 6, q60: 0 })}
-              className="px-2.5 py-1.5 rounded-md bg-positive-soft border border-positive-rule text-[11px] font-bold text-positive transition-colors cursor-pointer"
+              className="px-2.5 py-1.5 rounded-md bg-positive-soft border border-positive-rule text-[11px] font-bold text-positive transition-colors cursor-pointer whitespace-nowrap"
             >
               카드실적 30만원 자동충족
             </button>
@@ -482,7 +480,7 @@ export function ReceiptPanel({
               onClick={() =>
                 onSetLifeCareUnits({ q40: 0, q50: 0, q60: policy.maxLifeCareUnits })
               }
-              className="px-2.5 py-1.5 rounded-md bg-surface hover:bg-field border border-rule-strong text-[11px] font-bold text-ink transition-colors cursor-pointer"
+              className="px-2.5 py-1.5 rounded-md bg-surface hover:bg-field border border-rule-strong text-[11px] font-bold text-ink transition-colors cursor-pointer whitespace-nowrap"
             >
               최대 {policy.maxLifeCareUnits}구좌
             </button>
@@ -505,10 +503,10 @@ export function ReceiptPanel({
                 >
                   <div className="min-w-0">
                     <div className="flex flex-wrap items-center gap-1.5">
-                      <span className="text-[13px] font-bold text-ink">
+                      <span className="text-[13px] font-bold text-ink whitespace-nowrap">
                         {tier.label}
                       </span>
-                      <span className="inline-flex items-center px-1.5 py-0.5 rounded bg-positive-soft border border-positive-rule text-[10px] font-bold text-positive tabular-nums">
+                      <span className="inline-flex items-center px-1.5 py-0.5 rounded bg-positive-soft border border-positive-rule text-[10px] font-bold text-positive tabular-nums whitespace-nowrap">
                         총 {totalSupportManwon}만원 지원
                       </span>
                     </div>
@@ -554,22 +552,23 @@ export function ReceiptPanel({
           </div>
         </section>
 
-        {/* STEP 3: HI-CLASS AFFILIATE CARD */}
         <section
           aria-label="Hi-Class 제휴카드 캐시백 혜택"
           className="pt-5 border-t border-rule"
         >
           <div className="flex items-center justify-between gap-2 mb-2.5">
-            <span className="text-xs font-bold tracking-tight text-ink flex items-center gap-1.5">
-              <span className="inline-flex items-center justify-center w-5 h-5 rounded bg-field text-ink text-[11px] font-mono font-bold">
+            <span className="text-xs font-bold tracking-tight text-ink flex items-center gap-1.5 break-keep">
+              <span className="inline-flex items-center justify-center w-5 h-5 rounded bg-field text-ink text-[11px] font-mono font-bold shrink-0">
                 3
               </span>
-              <CreditCard size={14} aria-hidden="true" className="text-ink-2" />
-              {isController
-                ? '제휴카드 추가 혜택 시뮬레이션'
-                : '제휴카드 사용 시 추가 혜택 (조건 충족 시)'}
+              <CreditCard size={14} aria-hidden="true" className="text-ink-2 shrink-0" />
+              <span>
+                {isController
+                  ? '제휴카드 추가 혜택 설정'
+                  : '제휴카드 추가 혜택 (조건 충족 시)'}
+              </span>
             </span>
-            <span className="px-2 py-0.5 rounded bg-field border border-rule text-[10px] font-bold text-ink-2 shrink-0">
+            <span className="px-2 py-0.5 rounded bg-field border border-rule text-[10px] font-bold text-ink-2 shrink-0 whitespace-nowrap">
               Hi-Class 롯데카드
             </span>
           </div>
@@ -581,7 +580,7 @@ export function ReceiptPanel({
                   <CheckCircle2 size={14} aria-hidden="true" className="shrink-0" />
                   <span>납입금 자동납부로 실적 자동 충족 중</span>
                 </span>
-                <span className="shrink-0">-월 {formatKRW(policy.cardMonthlyCashback)}</span>
+                <span className="shrink-0 whitespace-nowrap">-월 {formatKRW(policy.cardMonthlyCashback)}</span>
               </div>
             ) : (
               <button
@@ -604,7 +603,7 @@ export function ReceiptPanel({
                   </div>
                 </div>
                 <span
-                  className={`text-[11px] font-bold px-2.5 py-1 rounded tabular-nums shrink-0 ${
+                  className={`text-[11px] font-bold px-2.5 py-1 rounded tabular-nums shrink-0 whitespace-nowrap ${
                     result.cardCoverShortfall
                       ? 'bg-ink text-on-ink'
                       : 'bg-field text-ink-2 border border-rule'
@@ -623,7 +622,7 @@ export function ReceiptPanel({
                   <span className="font-medium text-ink-2">
                     구독플러스 월 납입금 카드 실적 반영
                   </span>
-                  <span className="font-bold text-ink">
+                  <span className="font-bold text-ink whitespace-nowrap">
                     {result.cardRecognizedSpend.toLocaleString('ko-KR')}원{' '}
                     <span className="text-muted font-normal">
                       / {policy.cardMinSpend.toLocaleString('ko-KR')}원
@@ -663,11 +662,11 @@ export function ReceiptPanel({
                         : 'bg-surface border-rule text-ink-2 hover:border-rule-strong'
                     }`}
                   >
-                    <span className="text-xs font-semibold">
+                    <span className="text-xs font-semibold break-keep">
                       제휴카드 월 30만 원 사용 시뮬레이션
                     </span>
                     <span
-                      className={`text-[11px] font-bold px-2 py-0.5 rounded tabular-nums shrink-0 ${
+                      className={`text-[11px] font-bold px-2.5 py-0.5 rounded tabular-nums shrink-0 whitespace-nowrap ${
                         result.cardCoverShortfall
                           ? 'bg-ink text-on-ink'
                           : 'bg-field text-ink-2'
@@ -684,7 +683,6 @@ export function ReceiptPanel({
           )}
         </section>
 
-        {/* STEP 4: FINAL EFFECTIVE COST (full 모드에서만 표시 · 결과 모달에서는 좌측 영수증으로 통합) */}
         {!isController && !isEmpty && (
           <section
             aria-label="최종 혜택 비교 결과"
@@ -729,7 +727,6 @@ export function ReceiptPanel({
           </section>
         )}
 
-        {/* STEP 5: 120-MONTH 100% REFUND TIMELINE (full 모드에서만 표시) */}
         {!isController && (
           <section
             aria-label="납입금 만기 100% 환급 일정"
@@ -742,7 +739,7 @@ export function ReceiptPanel({
                   사라지는 비용이 아닌 100% 원금 환급 구조
                 </h3>
               </div>
-              <span className="text-[11px] font-bold text-ink-2 tabular-nums shrink-0">
+              <span className="text-[11px] font-bold text-ink-2 tabular-nums shrink-0 whitespace-nowrap">
                 {result.totalLifeCareUnits}구좌 기준
               </span>
             </div>
@@ -758,7 +755,7 @@ export function ReceiptPanel({
                     <div className="text-[10px] font-semibold text-muted tabular-nums">
                       1~{result.lifeCarePayMonths}회 적립
                     </div>
-                    <div className="mt-1 text-xs font-bold text-ink tabular-nums">
+                    <div className="mt-1 text-xs font-bold text-ink tabular-nums whitespace-nowrap">
                       월 {result.lifeCareMonthlyDues.toLocaleString('ko-KR')}원
                     </div>
                   </div>
@@ -767,7 +764,7 @@ export function ReceiptPanel({
                     <div className="text-[10px] font-semibold text-muted tabular-nums">
                       {result.lifeCarePayMonths + 1}~{result.lifeCareMaturityMonths}회 거치
                     </div>
-                    <div className="mt-1 text-xs font-bold text-ink-2 tabular-nums">
+                    <div className="mt-1 text-xs font-bold text-ink-2 tabular-nums whitespace-nowrap">
                       월 0원
                     </div>
                   </div>
@@ -776,7 +773,7 @@ export function ReceiptPanel({
                     <div className="text-[10px] font-bold text-positive tabular-nums">
                       {result.lifeCareMaturityMonths}회({maturityYearsText}) 만기
                     </div>
-                    <div className="mt-1 text-xs font-extrabold text-positive tabular-nums">
+                    <div className="mt-1 text-xs font-extrabold text-positive tabular-nums whitespace-nowrap">
                       <SpringNumber
                         value={result.lifeCareMaturityRefundTotal}
                         suffix="원"
@@ -798,7 +795,7 @@ export function ReceiptPanel({
             type="button"
             disabled={isEmpty}
             onClick={onOpenConsultModal}
-            className={`w-full h-12 rounded-lg text-[15px] font-bold flex items-center justify-center gap-2 transition-colors duration-150 ${
+            className={`w-full h-12 rounded-lg text-[15px] font-bold flex items-center justify-center gap-2 transition-colors duration-150 whitespace-nowrap ${
               isEmpty
                 ? 'bg-field text-subtle border border-rule cursor-not-allowed'
                 : 'bg-accent hover:bg-accent-hover text-accent-ink cursor-pointer'

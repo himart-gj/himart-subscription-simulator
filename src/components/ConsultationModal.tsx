@@ -45,7 +45,7 @@ const CHANNELS: Array<{
 }> = [
   {
     value: '카톡·문자',
-    label: '카톡 · 문자',
+    label: '카톡·문자',
     ctaLabel: '카톡·문자로 내 맞춤 견적·환급표 받기',
     icon: MessageSquare,
   },
@@ -262,7 +262,7 @@ export function ConsultationModal({
               내 맞춤 견적 · 100% 환급 일정표 받기
             </h2>
             <p className="text-xs text-muted">
-              카톡 · 문자 · 전화 중 편하신 방법으로 당월 추가 혜택까지 보내드립니다
+              카톡이나 문자, 전화 중 편하신 방법으로 당월 추가 혜택까지 보내드립니다
             </p>
           </div>
           <button
@@ -319,7 +319,7 @@ export function ConsultationModal({
               <button
                 type="button"
                 onClick={handleClose}
-                className="w-full h-11 rounded-lg bg-ink hover:bg-ink-hover text-on-ink text-sm font-bold cursor-pointer"
+                className="w-full h-11 rounded-lg bg-ink hover:bg-ink-hover text-on-ink text-sm font-bold cursor-pointer whitespace-nowrap"
               >
                 화면으로 돌아가기
               </button>
@@ -347,7 +347,6 @@ export function ConsultationModal({
                 <span>견적표만 먼저 받아보셔도 되며, 신청만으로 가입·결제되지 않습니다.</span>
               </div>
 
-              {/* 1-Tap Undecided Model Option + Selected Summary */}
               <div className="space-y-2">
                 <div className="flex items-center justify-between gap-2">
                   <span className="text-xs font-bold text-ink">관심 가전 확인</span>
@@ -356,7 +355,7 @@ export function ConsultationModal({
                       type="button"
                       aria-pressed={undecidedModel}
                       onClick={() => setUndecidedModel((v) => !v)}
-                      className={`inline-flex items-center gap-1 h-7 px-2.5 rounded-full text-[11px] font-bold border transition-colors cursor-pointer ${
+                      className={`inline-flex items-center gap-1 h-7 px-2.5 rounded-full text-[11px] font-bold border transition-colors cursor-pointer whitespace-nowrap ${
                         undecidedModel
                           ? 'bg-ink border-ink text-on-ink'
                           : 'bg-surface border-rule-strong text-ink-2 hover:text-ink'
@@ -427,7 +426,7 @@ export function ConsultationModal({
                         key={ch.value}
                         type="button"
                         onClick={() => setChannel(ch.value)}
-                        className={`h-11 rounded-lg border text-xs font-bold flex items-center justify-center gap-1.5 transition-colors cursor-pointer ${
+                        className={`h-11 rounded-lg border text-xs font-bold flex items-center justify-center gap-1.5 transition-colors cursor-pointer whitespace-nowrap ${
                           active
                             ? 'bg-ink border-ink text-on-ink'
                             : 'bg-surface border-rule text-ink-2 hover:border-rule-strong'
@@ -452,6 +451,7 @@ export function ConsultationModal({
                   <input
                     id="consult-name"
                     type="text"
+                    autoComplete="name"
                     required
                     maxLength={40}
                     value={name}
@@ -472,6 +472,7 @@ export function ConsultationModal({
                     id="consult-phone"
                     type="tel"
                     inputMode="numeric"
+                    autoComplete="tel"
                     required
                     maxLength={13}
                     value={phone}
@@ -482,7 +483,6 @@ export function ConsultationModal({
                 </div>
               </div>
 
-              {/* 4-Chip 1-Tap Preferred Contact Time */}
               <fieldset className="space-y-1.5">
                 <legend className="flex items-center gap-1 text-xs font-bold text-ink">
                   <Clock size={13} aria-hidden="true" className="text-muted" />
@@ -498,7 +498,7 @@ export function ConsultationModal({
                         type="button"
                         aria-pressed={isSel}
                         onClick={() => setPreferredTime(slot)}
-                        className={`h-11 rounded-lg border text-xs font-bold transition-colors cursor-pointer ${
+                        className={`h-11 rounded-lg border text-xs font-bold transition-colors cursor-pointer whitespace-nowrap ${
                           isSel
                             ? 'bg-ink border-ink text-on-ink'
                             : 'bg-field border-rule text-ink-2 hover:border-rule-strong'
@@ -546,14 +546,14 @@ export function ConsultationModal({
                     className="mt-0.5 h-4.5 w-4.5 rounded border-rule-strong accent-ink shrink-0 cursor-pointer"
                   />
                   <span className="text-xs text-ink-2 leading-relaxed">
-                    <strong className="font-bold text-ink">[필수 동의]</strong> 가전 구독과 선불식 할부거래(상조) 별개 계약, 120회 만기 환급 조건·중도 해지 기준, 제휴카드 실적 조건 안내 및 상담을 위한 개인정보 수집·이용에 동의합니다.
+                    <strong className="font-bold text-ink">[필수 동의]</strong> 가전 구독과 선불식 할부거래(상조) 별개 계약, 120회 만기 환급 조건, 제휴카드 실적 안내 및 상담을 위한 개인정보 수집에 동의합니다.
                   </span>
                 </label>
 
                 <button
                   type="button"
                   onClick={() => setShowLegalDetail((v) => !v)}
-                  className="text-[11px] font-semibold text-ink-2 underline underline-offset-2 cursor-pointer"
+                  className="text-[11px] font-semibold text-ink-2 underline underline-offset-2 cursor-pointer whitespace-nowrap"
                 >
                   {showLegalDetail ? '약관 요약 접기' : '필수 고지사항 자세히 보기'}
                 </button>
@@ -586,14 +586,13 @@ export function ConsultationModal({
                 <button
                   type="submit"
                   aria-busy={submitting}
-                  className={`w-full h-12 rounded-lg text-accent-ink text-[15px] font-bold transition-colors cursor-pointer ${
+                  className={`w-full h-12 rounded-lg text-accent-ink text-[15px] font-bold transition-colors cursor-pointer whitespace-nowrap ${
                     submitting ? 'bg-accent/60' : 'bg-accent hover:bg-accent-hover'
                   }`}
                 >
-                  {submitting ? '안전하게 접수 중…' : activeChannelObj.ctaLabel}
+                  {submitting ? '안전하게 접수 중입니다' : activeChannelObj.ctaLabel}
                 </button>
 
-                {/* Bottom Visual Anchor Strip */}
                 <div className="rounded-lg bg-ink text-on-ink px-3.5 py-2.5 flex items-center justify-between gap-2 text-xs">
                   <span className="font-bold">
                     새 가전은 먼저 설치받고, 납입금은 10년(120회) 만기 시 100% 환급

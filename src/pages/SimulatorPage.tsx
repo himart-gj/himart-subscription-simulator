@@ -138,26 +138,55 @@ export function SimulatorPage({
     [heroCart, catalog.products, catalog.policy, heroLifeCare, heroCoverShortfall],
   )
 
-  /* ==================== 2. CUSTOMIZER & META SHOWROOM STATE (INDEPENDENT FROM HOME) ==================== */
+  /* ==================== 2. CUSTOMIZER & META REVERSE-FUNNEL STATE ==================== */
   const [screenView, setScreenView] = useState<ScreenView>('home')
-  // Meta Showroom ONLY activates when entering via Meta Ad URL (?ad=meta, utm_source=meta/ig/fb, fbclid)
+  // Meta Ad Landing activates whenever entering via Meta Ad URL (?ad=meta, utm_source=meta/ig/fb, fbclid), even with ?preset=
   const [adShowroomOpen, setAdShowroomOpen] = useState<boolean>(
-    Boolean(attribution.adMode && !urlPresetKey),
+    Boolean(attribution.adMode),
   )
+  const [metaSelectedCart, setMetaSelectedCart] = useState<CartItem[]>(() => {
+    if (!attribution.adMode || !urlPresetKey) return []
+    const matched = resolveInitialPreset(presets, urlPresetKey)
+    return matched ? matched.items : []
+  })
+  const [quickFormVisible, setQuickFormVisible] = useState<boolean>(false)
+
   useEffect(() => {
     const syncHashUrl = () => {
       const nextPreset = readPresetKeyFromUrl(window.location.search, window.location.hash)
       const nextAttr = resolveMarketingAttribution(window.location.search, window.location.hash)
       setLocationKey(`${window.location.search}|${window.location.hash}`)
-      setAdShowroomOpen(Boolean(nextAttr.adMode && !nextPreset))
+      setAdShowroomOpen(Boolean(nextAttr.adMode))
       if (nextPreset) {
         const matched = resolveInitialPreset(presets, nextPreset)
-        if (matched) setSelectedPresetId(matched.id)
+        if (matched) {
+          setSelectedPresetId(matched.id)
+          if (nextAttr.adMode) {
+            setMetaSelectedCart(matched.items)
+          }
+        }
       }
     }
     window.addEventListener('hashchange', syncHashUrl)
     return () => window.removeEventListener('hashchange', syncHashUrl)
   }, [presets])
+
+  useEffect(() => {
+    if (!adShowroomOpen || screenView !== 'home') {
+      return
+    }
+    const target = document.getElementById('quick-reserve-form')
+    if (!target || typeof IntersectionObserver === 'undefined') return
+    const observer = new IntersectionObserver(
+      (entries) => {
+        setQuickFormVisible(entries.some((entry) => entry.isIntersecting))
+      },
+      { threshold: 0.12 },
+    )
+    observer.observe(target)
+    return () => observer.disconnect()
+  }, [adShowroomOpen, screenView])
+
   const [browseMode, setBrowseMode] = useState<BrowseMode>('products')
   const [selectedCategory, setSelectedCategory] = useState<string>('전체')
   const [selectedBrand, setSelectedBrand] = useState<string>('전체')
@@ -319,6 +348,39 @@ export function SimulatorPage({
     window.setTimeout(() => {
       setToastMessage((cur) => (cur === msg ? null : cur))
     }, 2400)
+  }, [])
+
+  const scrollToQuickForm = useCallback(() => {
+    const el = document.getElementById('quick-reserve-form')
+    if (el) {
+      el.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    }
+  }, [])
+
+  const handleToggleMetaProduct = useCallback(
+    (productId: string, term: SubscriptionTerm) => {
+      const exists = metaSelectedCart.some((i) => i.productId === productId)
+      if (exists) {
+        setMetaSelectedCart((prev) => prev.filter((i) => i.productId !== productId))
+        showToast('견적함에서 선택이 해제되었습니다')
+      } else {
+        setMetaSelectedCart((prev) => [...prev, { productId, term, quantity: 1 }])
+        window.setTimeout(() => {
+          scrollToQuickForm()
+        }, 80)
+      }
+    },
+    [metaSelectedCart, catalog.products, showToast, scrollToQuickForm],
+  )
+
+  const handleRemoveMetaItem = useCallback((productId: string, term: SubscriptionTerm) => {
+    setMetaSelectedCart((prev) =>
+      prev.filter((i) => !(i.productId === productId && i.term === term)),
+    )
+  }, [])
+
+  const handleClearMetaItems = useCallback(() => {
+    setMetaSelectedCart([])
   }, [])
 
   const visibleProducts = useMemo(
@@ -593,6 +655,8 @@ export function SimulatorPage({
   const customTotalQty = customCartResult.totalQuantity
   const isCustomEmpty = customCartResult.mode === 'empty'
   const heroIsEmpty = heroResult.mode === 'empty'
+  const hideStickyBarForInlineForm =
+    screenView === 'home' && adShowroomOpen && quickFormVisible
 
   // Determine which CalculationResult & label ConsultationModal receives
   const consultTargetResult =
@@ -614,7 +678,7 @@ export function SimulatorPage({
               <button
                 type="button"
                 onClick={returnToHomeScreen}
-                className="inline-flex items-center gap-1.5 h-9 px-3 rounded-lg bg-surface hover:bg-field border border-rule-strong text-ink text-xs font-bold transition-colors cursor-pointer shrink-0"
+                className="inline-flex items-center gap-1.5 h-9 px-3 rounded-lg bg-surface hover:bg-field border border-rule-strong text-ink text-xs font-bold transition-colors cursor-pointer shrink-0 whitespace-nowrap"
               >
                 <ArrowLeft size={14} aria-hidden="true" />
                 <span>첫 화면</span>
@@ -649,20 +713,31 @@ export function SimulatorPage({
 
           <div className="flex items-center gap-2 shrink-0">
             {screenView === 'home' ? (
-              <button
-                type="button"
-                onClick={() => openCustomizerScreen('products')}
-                className="inline-flex items-center gap-1.5 h-9 px-3.5 rounded-lg bg-ink hover:bg-ink-hover text-on-ink text-xs font-bold transition-colors cursor-pointer"
-              >
-                <SlidersHorizontal size={13} aria-hidden="true" />
-                <span>가전 골라담기</span>
-              </button>
+              adShowroomOpen ? (
+                <button
+                  type="button"
+                  onClick={scrollToQuickForm}
+                  className="inline-flex items-center gap-1.5 h-9 px-3.5 rounded-lg bg-accent hover:bg-accent-hover text-accent-ink text-xs font-bold transition-colors cursor-pointer whitespace-nowrap"
+                >
+                  <MessageSquare size={13} aria-hidden="true" />
+                  <span>30초 견적 신청</span>
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => openCustomizerScreen('products')}
+                  className="inline-flex items-center gap-1.5 h-9 px-3.5 rounded-lg bg-ink hover:bg-ink-hover text-on-ink text-xs font-bold transition-colors cursor-pointer whitespace-nowrap"
+                >
+                  <SlidersHorizontal size={13} aria-hidden="true" />
+                  <span>가전 골라담기</span>
+                </button>
+              )
             ) : (
               <button
                 type="button"
                 data-testid="top-view-result-btn"
                 onClick={openCartResultModal}
-                className={`inline-flex items-center gap-1.5 h-9 px-3.5 rounded-lg text-xs font-bold transition-colors cursor-pointer tabular-nums ${
+                className={`inline-flex items-center gap-1.5 h-9 px-3.5 rounded-lg text-xs font-bold transition-colors cursor-pointer tabular-nums whitespace-nowrap ${
                   customTotalQty > 0
                     ? 'bg-accent hover:bg-accent-hover text-accent-ink'
                     : 'bg-field hover:bg-field-hover border border-rule-strong text-ink-2'
@@ -676,7 +751,7 @@ export function SimulatorPage({
             <a
               href={STORE_INFO.telHref}
               aria-label={`매장 전화 ${STORE_INFO.phone}`}
-              className="inline-flex items-center justify-center gap-1.5 h-9 w-9 sm:w-auto sm:px-3 rounded-lg bg-surface hover:bg-field border border-rule-strong text-ink text-xs font-semibold transition-colors tabular-nums shrink-0"
+              className="inline-flex items-center justify-center gap-1.5 h-9 w-9 sm:w-auto sm:px-3 rounded-lg bg-surface hover:bg-field border border-rule-strong text-ink text-xs font-semibold transition-colors tabular-nums shrink-0 whitespace-nowrap"
             >
               <PhoneCall size={14} aria-hidden="true" />
               <span className="hidden sm:inline">{STORE_INFO.phone}</span>
@@ -700,7 +775,7 @@ export function SimulatorPage({
                   role="tab"
                   aria-selected={browseMode === 'products'}
                   onClick={() => setBrowseMode('products')}
-                  className={`inline-flex items-center justify-center gap-1.5 px-3 sm:px-4 py-1.5 rounded-md text-xs font-bold transition-colors cursor-pointer ${
+                  className={`inline-flex items-center justify-center gap-1.5 px-3 sm:px-4 py-1.5 rounded-md text-xs font-bold transition-colors cursor-pointer whitespace-nowrap ${
                     browseMode === 'products'
                       ? 'bg-ink text-on-ink'
                       : 'text-ink-2 hover:text-ink'
@@ -714,7 +789,7 @@ export function SimulatorPage({
                   role="tab"
                   aria-selected={browseMode === 'bundles'}
                   onClick={() => setBrowseMode('bundles')}
-                  className={`inline-flex items-center justify-center gap-1.5 px-3 sm:px-4 py-1.5 rounded-md text-xs font-bold transition-colors cursor-pointer ${
+                  className={`inline-flex items-center justify-center gap-1.5 px-3 sm:px-4 py-1.5 rounded-md text-xs font-bold transition-colors cursor-pointer whitespace-nowrap ${
                     browseMode === 'bundles'
                       ? 'bg-ink text-on-ink'
                       : 'text-ink-2 hover:text-ink'
@@ -733,7 +808,7 @@ export function SimulatorPage({
                       setCustomCart([])
                       setCustomManualLifeCare(null)
                     }}
-                    className="inline-flex items-center gap-1 h-8 px-2.5 rounded-lg bg-surface hover:bg-field border border-rule text-[11px] font-semibold text-muted hover:text-ink cursor-pointer"
+                    className="inline-flex items-center gap-1 h-8 px-2.5 rounded-lg bg-surface hover:bg-field border border-rule text-[11px] font-semibold text-muted hover:text-ink cursor-pointer whitespace-nowrap"
                   >
                     <RotateCcw size={11} aria-hidden="true" />
                     <span>비우기</span>
@@ -743,7 +818,7 @@ export function SimulatorPage({
                 <button
                   type="button"
                   onClick={openCartResultModal}
-                  className={`hidden sm:inline-flex items-center gap-1 h-8 px-3 rounded-lg text-xs font-bold transition-colors cursor-pointer tabular-nums ${
+                  className={`hidden sm:inline-flex items-center gap-1 h-8 px-3 rounded-lg text-xs font-bold transition-colors cursor-pointer tabular-nums whitespace-nowrap ${
                     customTotalQty > 0
                       ? 'bg-accent hover:bg-accent-hover text-accent-ink'
                       : 'bg-surface border border-rule text-muted'
@@ -788,23 +863,21 @@ export function SimulatorPage({
       <main className="max-w-[1360px] mx-auto px-4 sm:px-6 lg:px-8 pt-5 sm:pt-7">
         {screenView === 'home' ? (
           adShowroomOpen ? (
-            <>
+            <div className="max-w-[1040px] mx-auto">
               <MetaAdShowroomHero
                 products={visibleProducts}
                 policy={catalog.policy}
+                selectedCart={metaSelectedCart}
+                attribution={attribution}
+                onToggleSelectProduct={handleToggleMetaProduct}
+                onRemoveSelectedItem={handleRemoveMetaItem}
+                onClearSelectedItems={handleClearMetaItems}
                 onOpenProductDetail={(p) => setDetailModalProduct(p)}
-                onConfirmShowroomProduct={(productId, term) =>
-                  handleViewSingleProductResult(
-                    productId,
-                    term,
-                    '쇼윈도로 돌아가기',
-                  )
-                }
-                onOpenUndecidedConsult={() => openConsultModal('meta-showroom', true)}
+                onScrollToForm={scrollToQuickForm}
                 onExitAdMode={() => setAdShowroomOpen(false)}
               />
               <LegalDisclosureSection />
-            </>
+            </div>
           ) : (
             <>
               <HeroQuickSimulator
@@ -938,7 +1011,7 @@ export function SimulatorPage({
                   <button
                     type="button"
                     onClick={openCartResultModal}
-                    className="w-full h-12 rounded-xl bg-accent hover:bg-accent-hover text-accent-ink text-sm font-bold flex items-center justify-center gap-2 transition-colors cursor-pointer"
+                    className="w-full h-12 rounded-xl bg-accent hover:bg-accent-hover text-accent-ink text-sm font-bold flex items-center justify-center gap-2 transition-colors cursor-pointer whitespace-nowrap"
                   >
                     <CheckCircle2 size={16} aria-hidden="true" />
                     <span>선택한 가전 ({customTotalQty}대) 전체 결과 화면 열기</span>
@@ -1065,7 +1138,7 @@ export function SimulatorPage({
                 href={STORE_INFO.naverMapUrl}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex items-center gap-1.5 h-9 px-3 rounded-lg bg-surface hover:bg-field border border-rule-strong text-xs font-semibold text-ink transition-colors"
+                className="inline-flex items-center gap-1.5 h-9 px-3 rounded-lg bg-surface hover:bg-field border border-rule-strong text-xs font-semibold text-ink transition-colors whitespace-nowrap"
               >
                 <MapPin size={13} aria-hidden="true" />
                 <span>오시는 길</span>
@@ -1075,7 +1148,7 @@ export function SimulatorPage({
                 href={STORE_INFO.instagramUrl}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex items-center gap-1.5 h-9 px-3 rounded-lg bg-surface hover:bg-field border border-rule-strong text-xs font-semibold text-ink transition-colors"
+                className="inline-flex items-center gap-1.5 h-9 px-3 rounded-lg bg-surface hover:bg-field border border-rule-strong text-xs font-semibold text-ink transition-colors whitespace-nowrap"
               >
                 <Share2 size={13} aria-hidden="true" />
                 <span>인스타그램</span>
@@ -1086,7 +1159,7 @@ export function SimulatorPage({
                 href={STORE_INFO.facebookUrl}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex items-center gap-1.5 h-9 px-3 rounded-lg bg-surface hover:bg-field border border-rule-strong text-xs font-semibold text-ink transition-colors"
+                className="inline-flex items-center gap-1.5 h-9 px-3 rounded-lg bg-surface hover:bg-field border border-rule-strong text-xs font-semibold text-ink transition-colors whitespace-nowrap"
               >
                 <Share2 size={13} aria-hidden="true" />
                 <span>페이스북</span>
@@ -1097,7 +1170,7 @@ export function SimulatorPage({
                 href={STORE_INFO.naverBlogUrl}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex items-center gap-1.5 h-9 px-3 rounded-lg bg-surface hover:bg-field border border-rule-strong text-xs font-semibold text-ink transition-colors"
+                className="inline-flex items-center gap-1.5 h-9 px-3 rounded-lg bg-surface hover:bg-field border border-rule-strong text-xs font-semibold text-ink transition-colors whitespace-nowrap"
               >
                 <BookOpen size={13} aria-hidden="true" />
                 <span>공식 블로그</span>
@@ -1121,9 +1194,9 @@ export function SimulatorPage({
         </div>
       )}
 
-      {/* MOBILE STICKY BOTTOM BAR (< xl) — Distinct Behavior for Home vs Customizer vs Meta Showroom */}
-      {!resultModalOpen && (
-        <div className="xl:hidden fixed bottom-0 inset-x-0 z-30 bg-surface border-t border-rule-strong px-3 sm:px-4 py-2.5">
+      {/* MOBILE STICKY BOTTOM BAR (< xl) — Auto-hides when InlineQuickConsultForm is visible */}
+      {!resultModalOpen && !hideStickyBarForInlineForm && (
+        <div className="xl:hidden fixed bottom-0 inset-x-0 z-30 bg-surface border-t border-rule-strong px-3 sm:px-4 pt-2.5 pb-[max(0.625rem,env(safe-area-inset-bottom))]">
           <div className="max-w-2xl mx-auto flex items-center justify-between gap-2">
             {screenView === 'customizer' ? (
               <>
@@ -1182,20 +1255,22 @@ export function SimulatorPage({
             ) : adShowroomOpen ? (
               <>
                 <div className="min-w-0 flex-1">
-                  <div className="text-xs font-bold text-ink truncate">
-                    관심 있는 새 가전을 눌러보세요
+                  <div className="text-xs font-bold text-ink truncate tabular-nums">
+                    {metaSelectedCart.length > 0
+                      ? `선택 가전 ${metaSelectedCart.length}대 담김`
+                      : '모델 고민 중이어도 괜찮아요'}
                   </div>
                   <div className="text-[10px] text-positive font-semibold truncate">
-                    월 천원대 추천가 · 만기 100% 원금 환급
+                    카톡·문자로 내 맞춤 최대 혜택표 무료 발송
                   </div>
                 </div>
                 <button
                   type="button"
-                  onClick={() => openConsultModal('meta-showroom', true)}
+                  onClick={scrollToQuickForm}
                   className="inline-flex items-center gap-1 h-10 px-3.5 rounded-lg bg-accent hover:bg-accent-hover text-accent-ink text-xs font-bold cursor-pointer shrink-0 whitespace-nowrap"
                 >
                   <MessageSquare size={13} aria-hidden="true" />
-                  <span>모델 추천 받기</span>
+                  <span>30초 견적 신청</span>
                 </button>
               </>
             ) : (
@@ -1234,7 +1309,7 @@ export function SimulatorPage({
                   <button
                     type="button"
                     onClick={() => setMobileHeroSheetOpen(true)}
-                    className="inline-flex items-center gap-0.5 h-9 sm:h-10 px-2 sm:px-2.5 rounded-lg bg-surface hover:bg-field border border-rule-strong text-ink text-[11px] sm:text-xs font-bold transition-colors cursor-pointer"
+                    className="inline-flex items-center gap-0.5 h-9 sm:h-10 px-2 sm:px-2.5 rounded-lg bg-surface hover:bg-field border border-rule-strong text-ink text-[11px] sm:text-xs font-bold transition-colors cursor-pointer whitespace-nowrap"
                   >
                     <span>구좌</span>
                     <span className="hidden min-[390px]:inline">변경</span>
@@ -1340,13 +1415,26 @@ export function SimulatorPage({
         product={detailModalProduct}
         allProducts={visibleProducts}
         policy={catalog.policy}
+        ctaLabel={
+          adShowroomOpen && screenView === 'home'
+            ? '이 가전 내 견적함에 담기'
+            : '이 가전으로 맞춤 혜택 설계하기'
+        }
         onNavigateProduct={(next) => setDetailModalProduct(next)}
         onChooseProduct={(productId, term) => {
-          const backLabel = adShowroomOpen
-            ? '쇼윈도로 돌아가기'
-            : screenView === 'customizer'
-              ? '가전 골라담기로'
-              : '이전 화면으로'
+          if (adShowroomOpen && screenView === 'home') {
+            setMetaSelectedCart((prev) => {
+              if (prev.some((i) => i.productId === productId)) return prev
+              return [...prev, { productId, term, quantity: 1 }]
+            })
+            setDetailModalProduct(null)
+            window.setTimeout(() => {
+              scrollToQuickForm()
+            }, 80)
+            return
+          }
+          const backLabel =
+            screenView === 'customizer' ? '가전 골라담기로' : '이전 화면으로'
           handleViewSingleProductResult(productId, term, backLabel)
         }}
         onClose={() => setDetailModalProduct(null)}

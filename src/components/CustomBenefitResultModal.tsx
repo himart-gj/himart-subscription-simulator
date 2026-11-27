@@ -127,7 +127,7 @@ export function CustomBenefitResultModal({
         <button
           type="button"
           onClick={onClose}
-          className="inline-flex items-center gap-1.5 h-9 px-3 rounded-lg bg-field hover:bg-field-hover border border-rule-strong text-xs font-bold text-ink cursor-pointer shrink-0"
+          className="inline-flex items-center gap-1.5 h-9 px-3 rounded-lg bg-field hover:bg-field-hover border border-rule-strong text-xs font-bold text-ink cursor-pointer shrink-0 whitespace-nowrap"
         >
           <ArrowLeft size={15} aria-hidden="true" />
           <span>{originLabel}</span>
@@ -166,7 +166,7 @@ export function CustomBenefitResultModal({
               <button
                 type="button"
                 onClick={onClose}
-                className="inline-flex items-center gap-1.5 h-11 px-5 rounded-lg bg-ink text-on-ink text-xs font-bold cursor-pointer"
+                className="inline-flex items-center gap-1.5 h-11 px-5 rounded-lg bg-ink text-on-ink text-xs font-bold cursor-pointer whitespace-nowrap"
               >
                 <ArrowLeft size={14} aria-hidden="true" />
                 <span>가전 다시 고르기</span>
@@ -176,7 +176,6 @@ export function CustomBenefitResultModal({
             <div className="grid grid-cols-1 xl:grid-cols-12 gap-6 items-start">
               {/* Left / Primary: Single-Fact 4-Block Benefit Proposal */}
               <div className="xl:col-span-7 space-y-4">
-                {/* [블록 1] 내 맞춤 구독 결론 영수증 카드 — 모달 내 유일 체감가 수식 */}
                 <section
                   aria-label="내 맞춤 구독 결론 영수증"
                   className="rounded-xl bg-surface border border-ink overflow-hidden"
@@ -191,7 +190,6 @@ export function CustomBenefitResultModal({
                   </div>
 
                   <div className="p-4 sm:p-5 space-y-3.5 tabular-nums">
-                    {/* 기준선: 가전 원 구독료 합계 */}
                     <div className="flex items-baseline justify-between gap-2 pb-3 border-b border-rule">
                       <div className="space-y-0.5">
                         <div className="text-xs sm:text-[13px] font-bold text-ink">
@@ -209,7 +207,6 @@ export function CustomBenefitResultModal({
                       </span>
                     </div>
 
-                    {/* 1단계: 구독플러스 현금지원 (활성 시에만 노출) */}
                     {hasLifeCareBenefit && (
                       <div className="space-y-2.5">
                         <div className="flex items-center justify-between gap-2 text-xs sm:text-[13px]">
@@ -221,7 +218,6 @@ export function CustomBenefitResultModal({
                           </span>
                         </div>
 
-                        {/* 2단 수식일 때만 중간 결론('카드 조건 없이도 기본 월 체감가') 노출 */}
                         {isTwoStep && (
                           <div className="rounded-xl bg-field border border-rule-strong p-3.5 space-y-2">
                             <div className="flex flex-wrap items-baseline justify-between gap-2">
@@ -230,7 +226,7 @@ export function CustomBenefitResultModal({
                                   카드 조건 없이도 기본 월 체감가
                                 </div>
                                 <div className="text-[11px] text-muted">
-                                  제휴카드 미사용 · 실적 부담 없는 기본 혜택가
+                                  제휴카드 미사용 기준 기본 혜택가
                                 </div>
                               </div>
                               <div className="ml-auto text-right">
@@ -279,7 +275,6 @@ export function CustomBenefitResultModal({
                       </div>
                     )}
 
-                    {/* 2단계: 제휴카드 추가 혜택 줄 (카드 혜택 활성 시에만 노출) */}
                     {hasCardBenefit && (
                       <div className="flex items-center justify-between gap-2 text-xs sm:text-[13px] pt-0.5">
                         <span className="font-bold text-ink">
@@ -293,7 +288,6 @@ export function CustomBenefitResultModal({
                       </div>
                     )}
 
-                    {/* 최종 월 체감가 결론 박스 — 모달 내 단 1회 노출 */}
                     <div className="rounded-xl bg-field border-2 border-ink p-4 space-y-2.5">
                       <div className="flex flex-wrap items-baseline justify-between gap-2">
                         <div className="space-y-0.5">
@@ -341,7 +335,6 @@ export function CustomBenefitResultModal({
                         </p>
                       )}
 
-                      {/* 36+60개월 혼합 약정 시 구간별 최종 월 체감가 나란히 비교 */}
                       {isMixed && phaseB && (
                         <div className="pt-2.5 border-t border-rule grid grid-cols-2 gap-2">
                           <div className="rounded-lg bg-surface border border-rule px-3 py-2">
@@ -377,7 +370,6 @@ export function CustomBenefitResultModal({
                   </div>
                 </section>
 
-                {/* [블록 2] 선택 가전 · 무상 케어 명세 — 차감 수식 반복 없는 순수 명세 */}
                 <section
                   aria-label="선택 가전 및 케어 명세"
                   className="rounded-xl bg-surface border border-rule p-4 sm:p-5 space-y-3"
@@ -389,7 +381,7 @@ export function CustomBenefitResultModal({
                     <button
                       type="button"
                       onClick={onClose}
-                      className="inline-flex items-center gap-1 text-xs font-bold text-accent hover:underline cursor-pointer"
+                      className="inline-flex items-center gap-1 text-xs font-bold text-accent hover:underline cursor-pointer whitespace-nowrap"
                     >
                       <SlidersHorizontal size={12} aria-hidden="true" />
                       <span>가전 더 담거나 변경하기</span>
@@ -400,8 +392,8 @@ export function CustomBenefitResultModal({
                     {result.lines.map((line) => {
                       const careText =
                         line.product.careTags.length > 0
-                          ? line.product.careTags.join(' · ')
-                          : '전문가 방문케어 · 5년 무상 A/S 포함'
+                          ? line.product.careTags.join(', ')
+                          : '전문가 방문케어, 5년 무상 A/S 포함'
                       return (
                         <div
                           key={`res-${line.product.id}-${line.term}`}
@@ -451,7 +443,6 @@ export function CustomBenefitResultModal({
                   </div>
                 </section>
 
-                {/* [블록 3 - 카드 A] 만기 100% 원금 환급 3칸 타임라인 — 모달 내 유일 노출 */}
                 {result.totalLifeCareUnits > 0 && (
                   <section
                     aria-label="100% 원금 환급 구조"
@@ -462,7 +453,7 @@ export function CustomBenefitResultModal({
                         <ShieldCheck size={15} aria-hidden="true" className="text-positive shrink-0" />
                         <span>사라지는 비용이 아닌 100% 원금 환급 구조</span>
                       </span>
-                      <span className="px-2 py-0.5 rounded-full bg-positive-soft border border-positive-rule text-[11px] font-bold text-positive">
+                      <span className="px-2 py-0.5 rounded-full bg-positive-soft border border-positive-rule text-[11px] font-bold text-positive whitespace-nowrap">
                         {lifeCarePlanSummary}
                       </span>
                     </div>
@@ -510,7 +501,6 @@ export function CustomBenefitResultModal({
                   </section>
                 )}
 
-                {/* [블록 3 - 카드 B] 제휴카드 실적 게이지 바 — 모달 내 유일 노출 */}
                 <section
                   aria-label="제휴카드 실적 충족 안내"
                   className="rounded-xl bg-surface border border-rule p-4 sm:p-5 space-y-3 tabular-nums"
@@ -541,7 +531,7 @@ export function CustomBenefitResultModal({
                     </div>
                     <div className="h-2.5 w-full rounded-full bg-field overflow-hidden">
                       <div
-                        className={`h-full rounded-full transition-all duration-300 ${
+                        className={`h-full rounded-full transition-colors duration-300 ${
                           result.cardAutoMetByLifeCare ? 'bg-positive' : 'bg-ink'
                         }`}
                         style={{ width: `${cardProgressPct}%` }}
@@ -589,7 +579,6 @@ export function CustomBenefitResultModal({
                   </p>
                 </section>
 
-                {/* Primary Consultation CTA (Desktop Single Placement; Mobile uses Sticky Bottom Bar) */}
                 <div className="hidden xl:block rounded-xl bg-surface border border-rule p-4 space-y-2">
                   <button
                     type="button"
@@ -605,7 +594,6 @@ export function CustomBenefitResultModal({
                 </div>
               </div>
 
-              {/* Right / Secondary: Slim Condition Controller Only (Zero Duplication) */}
               <div className="xl:col-span-5 xl:sticky xl:top-5">
                 <ReceiptPanel
                   variant="controller"
@@ -631,14 +619,13 @@ export function CustomBenefitResultModal({
         </div>
       </div>
 
-      {/* Mobile Sticky Bottom Action Bar Inside Dedicated Result Screen */}
       {!isEmpty && (
-        <div className="xl:hidden fixed bottom-0 inset-x-0 z-50 bg-surface border-t border-rule-strong px-3.5 py-2.5">
+        <div className="xl:hidden fixed bottom-0 inset-x-0 z-50 bg-surface border-t border-rule-strong px-3.5 pt-2.5 pb-[max(0.625rem,env(safe-area-inset-bottom))]">
           <div className="max-w-2xl mx-auto flex items-center justify-between gap-2">
             <button
               type="button"
               onClick={onClose}
-              className="inline-flex items-center gap-1 h-10 px-3 rounded-lg bg-field hover:bg-field-hover border border-rule-strong text-xs font-bold text-ink cursor-pointer shrink-0"
+              className="inline-flex items-center gap-1 h-10 px-3 rounded-lg bg-field hover:bg-field-hover border border-rule-strong text-xs font-bold text-ink cursor-pointer shrink-0 whitespace-nowrap"
             >
               <ArrowLeft size={14} aria-hidden="true" />
               <span>이전 화면</span>

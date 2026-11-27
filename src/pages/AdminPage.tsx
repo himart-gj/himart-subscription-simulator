@@ -160,6 +160,7 @@ export function AdminPage({
 
   const handleServerLogin = async (e: React.FormEvent) => {
     e.preventDefault()
+    if (authLoading || !gasConnected) return
     setAuthError(null)
     try {
       setAuthLoading(true)
@@ -186,6 +187,7 @@ export function AdminPage({
 
   const handleReauthSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    if (reauthLoading) return
     setReauthError(null)
     try {
       setReauthLoading(true)
@@ -623,10 +625,10 @@ export function AdminPage({
               </button>
               <button
                 type="submit"
-                disabled={reauthLoading}
-                className="flex-1 h-11 rounded-xl bg-accent hover:bg-accent-hover disabled:bg-accent/60 text-on-ink text-sm font-extrabold cursor-pointer"
+                aria-busy={reauthLoading}
+                className={`flex-1 h-11 rounded-xl text-on-ink text-sm font-extrabold cursor-pointer ${reauthLoading ? "bg-accent/60" : "bg-accent hover:bg-accent-hover"}`}
               >
-                {reauthLoading ? '재인증 중...' : '재로그인하여 계속하기'}
+                {reauthLoading ? '재인증 중입니다' : '재로그인하여 계속하기'}
               </button>
             </div>
           </form>
@@ -711,7 +713,7 @@ export function AdminPage({
 
               <button
                 type="submit"
-                disabled={authLoading || !gasConnected}
+                aria-busy={authLoading}
                 className={`w-full h-11 rounded-xl text-sm font-extrabold transition-colors ${
                   gasConnected
                     ? 'bg-ink hover:bg-ink-hover text-on-ink cursor-pointer'
@@ -719,7 +721,7 @@ export function AdminPage({
                 }`}
               >
                 {authLoading
-                  ? '서버 인증 확인 중...'
+                  ? '서버 인증 확인 중입니다'
                   : gasConnected
                     ? '관리자 세션 발급 및 로그인'
                     : '실서버 URL 연결 필요 (관리자 로그인 비활성)'}
