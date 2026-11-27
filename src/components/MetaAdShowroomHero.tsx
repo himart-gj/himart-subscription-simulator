@@ -4,8 +4,8 @@ import {
   Check,
   ChevronDown,
   MessageSquare,
+  Plus,
   ShieldCheck,
-  SlidersHorizontal,
   Sparkles,
   Wrench,
 } from 'lucide-react'
@@ -29,11 +29,11 @@ interface MetaAdShowroomHeroProps {
   selectedCart: CartItem[]
   attribution?: MarketingAttribution
   onToggleSelectProduct: (productId: string, term: SubscriptionTerm) => void
+  onConsultProduct: (productId: string, term: SubscriptionTerm) => void
   onRemoveSelectedItem: (productId: string, term: SubscriptionTerm) => void
   onClearSelectedItems: () => void
   onOpenProductDetail: (product: ProductItem) => void
   onScrollToForm: () => void
-  onExitAdMode: () => void
 }
 
 const SHOWROOM_FILTERS = [
@@ -43,9 +43,9 @@ const SHOWROOM_FILTERS = [
   { id: '세탁', label: '세탁·건조·스타일러' },
   { id: '에어컨', label: '에어컨·TV' },
   { id: '주방', label: '정수기·주방가전' },
+  { id: '생활IT', label: '욕실·안마·IT' },
 ] as const
 
-// Curated diverse category representatives so 'all' never shows two identical robot vacuums in slots 1 & 2
 const CURATED_REPRESENTATIVE_IDS = [
   'prod-off-s10maxvultra-wh', // 1. 로보락 S10 MaxV Ultra 로봇청소기
   'prod-rm70f63r2xj', // 2. 삼성 비스포크 AI 키친핏 4도어 냉장고
@@ -82,11 +82,11 @@ export function MetaAdShowroomHero({
   selectedCart,
   attribution,
   onToggleSelectProduct,
+  onConsultProduct,
   onRemoveSelectedItem,
   onClearSelectedItems,
   onOpenProductDetail,
   onScrollToForm,
-  onExitAdMode,
 }: MetaAdShowroomHeroProps) {
   const [activeFilter, setActiveFilter] = useState<string>('all')
   const [showAll, setShowAll] = useState<boolean>(false)
@@ -147,12 +147,22 @@ export function MetaAdShowroomHero({
       if (activeFilter === '주방') {
         return hay.includes('정수기') || hay.includes('주방') || hay.includes('밥솥')
       }
+      if (activeFilter === '생활IT') {
+        return (
+          hay.includes('욕실') ||
+          hay.includes('안마') ||
+          hay.includes('생활') ||
+          hay.includes('노트북') ||
+          hay.includes('태블릿') ||
+          hay.includes('IT')
+        )
+      }
       return hay.includes(activeFilter)
     })
   }, [eligibleProducts, activeFilter])
 
   const displayed =
-    activeFilter === 'all' && !showAll ? curatedTopSix : filtered.slice(0, showAll ? 30 : 12)
+    activeFilter === 'all' && !showAll ? curatedTopSix : showAll ? filtered : filtered.slice(0, 12)
 
   const selectedIdSet = useMemo(
     () => new Set(selectedCart.map((c) => c.productId)),
@@ -183,11 +193,11 @@ export function MetaAdShowroomHero({
           </h2>
 
           <p className="text-sm sm:text-[15px] text-ink-2 leading-relaxed break-keep">
-            복잡한 카드 실적이나 결합 조건을 직접 계산하실 필요 없습니다. 관심 품목만 골라주시면 전담 매니저가 가장 유리한 월 부담금 비교표를 카톡·문자로 정리해 보내드립니다.
+            복잡한 카드 실적이나 결합 조건을 직접 계산하실 필요 없습니다. 관심 품목을 여러 개 담아 한 번에 비교하거나 바로 신청하시면 전담 매니저가 가장 유리한 월 부담금 비교표를 카톡·문자로 보내드립니다.
           </p>
         </div>
 
-        {/* 3 Core Benefit Pillars (Scannable, Parallel Noun Lead-Ins) */}
+        {/* 3 Core Benefit Pillars */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
           <div className="rounded-xl bg-field border border-rule px-3.5 py-3 flex items-start gap-2.5">
             <Sparkles size={16} aria-hidden="true" className="text-accent shrink-0 mt-0.5" />
@@ -242,12 +252,12 @@ export function MetaAdShowroomHero({
             onClick={scrollToGrid}
             className="h-11 sm:h-13 px-4 rounded-xl bg-surface hover:bg-field border border-rule-strong text-xs sm:text-sm font-bold text-ink-2 hover:text-ink inline-flex items-center justify-center gap-1.5 transition-colors cursor-pointer whitespace-nowrap"
           >
-            <span>인기 가전 월 혜택가 둘러보기</span>
+            <span>인기 가전 여러 개 골라담기</span>
           </button>
         </div>
       </section>
 
-      {/* SECTION 2: Compact 2-Column Popular Appliances Grid (Optional Selection) */}
+      {/* SECTION 2: Compact 2-Column Popular Appliances Grid (Multi-Add + Direct Consult) */}
       <section
         id="meta-best-grid"
         aria-labelledby="meta-best-heading"
@@ -256,7 +266,7 @@ export function MetaAdShowroomHero({
         <div className="flex flex-wrap items-end justify-between gap-2">
           <div>
             <span className="text-[11px] font-bold text-accent">
-              선택은 자유 · 안 고르고 바로 신청해도 OK
+              담기로 여러 개 골라 한 번에 비교하거나 바로 상담 신청하세요
             </span>
             <h3
               id="meta-best-heading"
@@ -271,7 +281,7 @@ export function MetaAdShowroomHero({
               onClick={onScrollToForm}
               className="h-8 px-3 rounded-full bg-ink text-on-ink text-xs font-bold inline-flex items-center gap-1 cursor-pointer whitespace-nowrap tabular-nums"
             >
-              <span>담은 {selectedCart.length}개 견적 신청하기</span>
+              <span>담은 {selectedCart.length}대 상담 신청</span>
               <ArrowDown size={12} aria-hidden="true" />
             </button>
           )}
@@ -372,7 +382,7 @@ export function MetaAdShowroomHero({
                     </button>
                   </div>
 
-                  {/* Clean 2-Line Price Comparison (Zero Complex Jargon) */}
+                  {/* Clean 2-Line Price Comparison */}
                   <div className="mt-auto pt-2 border-t border-rule space-y-0.5 tabular-nums">
                     <div className="flex items-center justify-between gap-1 text-[10.5px] sm:text-[11px] text-muted">
                       <span className="whitespace-nowrap">일반 구독료</span>
@@ -390,10 +400,47 @@ export function MetaAdShowroomHero({
                     </div>
                   </div>
 
-                  <button
-                    type="button"
-                    onClick={() => {
-                      if (!isSelected) {
+                  {/* Split Action Row: [담기 / 담김] (stays in place) + [바로 상담] (scrolls to form) */}
+                  <div className="mt-1 grid grid-cols-2 gap-1.5">
+                    <button
+                      type="button"
+                      aria-pressed={isSelected}
+                      onClick={() => {
+                        if (!isSelected) {
+                          trackViewContent({
+                            productId: product.id,
+                            productName: `${product.brand} ${product.name}`,
+                            category: product.category,
+                            monthlyValue:
+                              term === 60
+                                ? (product.monthly60 ?? 0)
+                                : (product.monthly36 ?? 0),
+                          })
+                        }
+                        onToggleSelectProduct(product.id, term)
+                      }}
+                      className={`h-9 sm:h-10 px-2 rounded-lg text-xs font-bold inline-flex items-center justify-center gap-1 transition-colors cursor-pointer whitespace-nowrap border ${
+                        isSelected
+                          ? 'bg-ink border-ink text-on-ink'
+                          : 'bg-field hover:bg-field-hover border-rule-strong text-ink'
+                      }`}
+                    >
+                      {isSelected ? (
+                        <>
+                          <Check size={13} strokeWidth={2.6} aria-hidden="true" />
+                          <span>담김</span>
+                        </>
+                      ) : (
+                        <>
+                          <Plus size={13} strokeWidth={2.4} aria-hidden="true" />
+                          <span>담기</span>
+                        </>
+                      )}
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => {
                         trackViewContent({
                           productId: product.id,
                           productName: `${product.brand} ${product.name}`,
@@ -403,24 +450,13 @@ export function MetaAdShowroomHero({
                               ? (product.monthly60 ?? 0)
                               : (product.monthly36 ?? 0),
                         })
-                      }
-                      onToggleSelectProduct(product.id, term)
-                    }}
-                    className={`mt-1 w-full h-9 sm:h-10 rounded-lg text-xs font-bold inline-flex items-center justify-center gap-1 transition-colors cursor-pointer whitespace-nowrap ${
-                      isSelected
-                        ? 'bg-field hover:bg-field-hover border border-ink text-ink'
-                        : 'bg-ink hover:bg-ink-hover text-on-ink'
-                    }`}
-                  >
-                    {isSelected ? (
-                      <>
-                        <Check size={13} strokeWidth={2.6} aria-hidden="true" />
-                        <span>선택됨 (해제)</span>
-                      </>
-                    ) : (
-                      <span>이 모델 견적 담기</span>
-                    )}
-                  </button>
+                        onConsultProduct(product.id, term)
+                      }}
+                      className="h-9 sm:h-10 px-2 rounded-lg bg-accent hover:bg-accent-hover text-accent-ink text-xs font-bold inline-flex items-center justify-center transition-colors cursor-pointer whitespace-nowrap"
+                    >
+                      <span>바로 상담</span>
+                    </button>
+                  </div>
                 </div>
               </article>
             )
@@ -433,7 +469,7 @@ export function MetaAdShowroomHero({
             onClick={() => setShowAll(true)}
             className="w-full h-11 rounded-xl bg-surface hover:bg-field border border-rule-strong text-xs sm:text-sm font-bold text-ink flex items-center justify-center gap-1.5 transition-colors cursor-pointer whitespace-nowrap"
           >
-            <span>인기 모델 더 펼쳐보기 ({filtered.length}개)</span>
+            <span>전체 모델 더 펼쳐보기 ({filtered.length}개)</span>
             <ChevronDown size={15} aria-hidden="true" />
           </button>
         )}
@@ -451,7 +487,7 @@ export function MetaAdShowroomHero({
               30초 견적 신청
             </strong>
             <span className="hidden sm:block text-[11px] text-muted">
-              관심 품목과 연락처만 입력
+              담은 품목 확인 후 연락처 입력
             </span>
           </div>
           <div className="space-y-0.5 border-x border-rule px-1">
@@ -485,9 +521,9 @@ export function MetaAdShowroomHero({
         />
       </div>
 
-      {/* SECTION 4: Short Reassurance FAQ & Power-User Escape Hatch */}
+      {/* SECTION 4: Short Reassurance FAQ */}
       <section
-        aria-label="자주 묻는 질문 및 전체 시뮬레이터 이동"
+        aria-label="자주 묻는 질문"
         className="rounded-xl bg-surface border border-rule p-4 sm:p-5 space-y-4"
       >
         <div className="flex items-center gap-1.5">
@@ -495,11 +531,11 @@ export function MetaAdShowroomHero({
           <h3 className="text-sm font-bold text-ink">신청 전 자주 묻는 질문</h3>
         </div>
 
-        <div className="divide-y divide-rule border-y border-rule">
+        <div className="divide-y divide-rule border-t border-rule">
           {QUICK_FAQS.map((faq) => {
             const isOpen = openFaqId === faq.id
             return (
-              <div key={faq.id} className="py-3">
+              <div key={faq.id} className="py-3 last:pb-0">
                 <button
                   type="button"
                   aria-expanded={isOpen}
@@ -523,20 +559,6 @@ export function MetaAdShowroomHero({
               </div>
             )
           })}
-        </div>
-
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 pt-1">
-          <p className="text-xs text-muted">
-            147개 전 모델을 직접 검색하거나 세부 구좌 조건을 직접 조절해 보고 싶으신가요?
-          </p>
-          <button
-            type="button"
-            onClick={onExitAdMode}
-            className="self-start sm:self-auto inline-flex items-center gap-1.5 h-9 px-3.5 rounded-lg bg-field hover:bg-field-hover border border-rule-strong text-xs font-bold text-ink-2 hover:text-ink transition-colors cursor-pointer whitespace-nowrap"
-          >
-            <SlidersHorizontal size={13} aria-hidden="true" />
-            <span>전체 모델 직접 계산기 열기</span>
-          </button>
         </div>
       </section>
     </div>

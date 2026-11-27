@@ -40,12 +40,14 @@ function collectSearchParams(search: string, hash: string): URLSearchParams {
   return merged
 }
 
+export function isExplicitClassicView(search: string, hash: string): boolean {
+  const params = collectSearchParams(search, hash)
+  return params.get('view') === 'classic'
+}
+
 /**
- * Parses UTM / Meta Ad parameters (`?ad=meta`, `utm_source=meta`, `fbclid`, etc.)
+ * Parses UTM / Meta Ad parameters (`?ad=meta`, `utm_source=meta*`, `fbclid`, etc.)
  * from standard search and HashRouter URLs.
- * - `adMode` is strictly evaluated from the CURRENT URL so direct visits to `#/`
- *   always render the clean 4-Preset Main Home without showroom stickiness.
- * - Campaign UTM fields persist in `sessionStorage` so lead submissions retain attribution.
  */
 export function resolveMarketingAttribution(
   search: string,
@@ -65,7 +67,7 @@ export function resolveMarketingAttribution(
     adParam === 'meta' ||
     adParam === 'showroom' ||
     Boolean(fbclid) ||
-    /^(meta|fb|facebook|ig|instagram)$/i.test(utmSource)
+    /^(meta|fb|facebook|ig|insta)/i.test(utmSource)
 
   const currentAdMode = explicitView === 'classic' ? false : isMetaTraffic
 
@@ -120,9 +122,6 @@ export function formatAttributionTag(attr: MarketingAttribution): string {
   return ''
 }
 
-/**
- * Safely dispatches Meta Pixel `ViewContent` when a customer inspects a product detail or single quote.
- */
 export function trackViewContent(params: {
   productId: string
   productName: string
@@ -146,9 +145,6 @@ export function trackViewContent(params: {
   }
 }
 
-/**
- * Safely dispatches Meta Pixel `InitiateCheckout` when a customer opens the consultation modal.
- */
 export function trackInitiateConsult(params: {
   source: string
   productIds: string[]
@@ -168,10 +164,6 @@ export function trackInitiateConsult(params: {
   }
 }
 
-/**
- * Safely dispatches Meta Pixel `Lead` conversion and GTM `dataLayer` event
- * when a customer completes a consultation request.
- */
 export function trackLeadConversion(params: {
   referenceCode: string
   productIds: string[]

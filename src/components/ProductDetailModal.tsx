@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { Check, ChevronLeft, ChevronRight, ShieldCheck, X } from 'lucide-react'
+import { Check, ChevronLeft, ChevronRight, Plus, ShieldCheck, X } from 'lucide-react'
 import { getProductEmpathyDetail } from '../data/productEmpathyDetails'
 import type { PolicyConfig, ProductItem, SubscriptionTerm } from '../types/domain'
 import {
@@ -15,6 +15,8 @@ interface ProductDetailModalProps {
   allProducts: ProductItem[]
   policy: PolicyConfig
   ctaLabel?: string
+  isSelected?: boolean
+  onToggleCartOnly?: (productId: string, term: SubscriptionTerm) => void
   onNavigateProduct: (product: ProductItem) => void
   onChooseProduct: (productId: string, term: SubscriptionTerm) => void
   onClose: () => void
@@ -25,6 +27,8 @@ export function ProductDetailModal({
   allProducts,
   policy,
   ctaLabel = '이 가전으로 맞춤 혜택 설계하기',
+  isSelected = false,
+  onToggleCartOnly,
   onNavigateProduct,
   onChooseProduct,
   onClose,
@@ -211,7 +215,6 @@ export function ProductDetailModal({
             </div>
           </div>
 
-          {/* Core Features */}
           <div className="space-y-2">
             <h3 className="text-xs font-bold text-ink">핵심 특징 및 하이마트 구독 케어</h3>
             <ul className="space-y-1.5">
@@ -224,7 +227,6 @@ export function ProductDetailModal({
             </ul>
           </div>
 
-          {/* Lifestyle Empathy Section ("이런 분께 추천해요") */}
           <div className="rounded-xl bg-field border border-rule p-4 space-y-2.5">
             <h3 className="text-xs sm:text-[13px] font-bold text-ink">
               이런 집 · 고객님께 특히 추천해요
@@ -243,7 +245,6 @@ export function ProductDetailModal({
             </p>
           </div>
 
-          {/* Term Switch + 2-Step Price Preview */}
           {sim && (
             <div className="rounded-xl bg-surface border border-ink p-4 space-y-3 tabular-nums">
               <div className="flex items-center justify-between gap-2">
@@ -317,14 +318,39 @@ export function ProductDetailModal({
         </div>
 
         {/* Sticky Action Footer */}
-        <div className="px-4 sm:px-5 pt-3.5 pb-[max(0.875rem,env(safe-area-inset-bottom))] bg-surface border-t border-rule flex items-center justify-between gap-3 shrink-0">
-          <button
-            type="button"
-            onClick={onClose}
-            className="h-11 px-4 rounded-lg bg-surface hover:bg-field border border-rule-strong text-xs sm:text-sm font-bold text-ink-2 cursor-pointer whitespace-nowrap"
-          >
-            목록으로
-          </button>
+        <div className="px-4 sm:px-5 pt-3.5 pb-[max(0.875rem,env(safe-area-inset-bottom))] bg-surface border-t border-rule flex items-center justify-between gap-2 shrink-0">
+          {onToggleCartOnly ? (
+            <button
+              type="button"
+              disabled={!supports36 && !supports60}
+              onClick={() => onToggleCartOnly(product.id, activeTerm)}
+              className={`h-11 px-4 rounded-lg border text-xs sm:text-sm font-bold inline-flex items-center justify-center gap-1.5 transition-colors cursor-pointer whitespace-nowrap ${
+                isSelected
+                  ? 'bg-ink border-ink text-on-ink'
+                  : 'bg-field hover:bg-field-hover border-rule-strong text-ink'
+              }`}
+            >
+              {isSelected ? (
+                <>
+                  <Check size={14} strokeWidth={2.6} aria-hidden="true" />
+                  <span>담김 해제</span>
+                </>
+              ) : (
+                <>
+                  <Plus size={14} strokeWidth={2.4} aria-hidden="true" />
+                  <span>담기만 하기</span>
+                </>
+              )}
+            </button>
+          ) : (
+            <button
+              type="button"
+              onClick={onClose}
+              className="h-11 px-4 rounded-lg bg-surface hover:bg-field border border-rule-strong text-xs sm:text-sm font-bold text-ink-2 cursor-pointer whitespace-nowrap"
+            >
+              목록으로
+            </button>
+          )}
           <button
             type="button"
             disabled={!supports36 && !supports60}

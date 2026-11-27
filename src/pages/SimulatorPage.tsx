@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
+  ArrowDown,
   ArrowLeft,
   ArrowRight,
   BookOpen,
@@ -43,7 +44,10 @@ import {
   clampLifeCareUnits,
   recommendZeroCostLifeCare,
 } from '../utils/calculator'
-import { resolveMarketingAttribution } from '../utils/marketingTracker'
+import {
+  isExplicitClassicView,
+  resolveMarketingAttribution,
+} from '../utils/marketingTracker'
 import {
   type QuickScenarioPreset,
   buildQuickScenarioPresets,
@@ -90,7 +94,7 @@ export function SimulatorPage({
         }
   }, [locationKey])
 
-  /* ==================== 1. MAIN HOME STATE (EXCLUSIVELY 4 ONE-CLICK PRESETS) ==================== */
+  /* ==================== 1. CLASSIC PRESET STATE (?view=classic FALLBACK) ==================== */
   const [selectedPresetId, setSelectedPresetId] = useState<string | null>(() => {
     const matched = resolveInitialPreset(presets, urlPresetKey)
     return matched ? matched.id : null
@@ -138,30 +142,48 @@ export function SimulatorPage({
     [heroCart, catalog.products, catalog.policy, heroLifeCare, heroCoverShortfall],
   )
 
-  /* ==================== 2. CUSTOMIZER & META REVERSE-FUNNEL STATE ==================== */
+  /* ==================== 2. UNIFIED REVERSE-FUNNEL CUSTOMER LANDING STATE ==================== */
   const [screenView, setScreenView] = useState<ScreenView>('home')
-  // Meta Ad Landing activates whenever entering via Meta Ad URL (?ad=meta, utm_source=meta/ig/fb, fbclid), even with ?preset=
-  const [adShowroomOpen, setAdShowroomOpen] = useState<boolean>(
-    Boolean(attribution.adMode),
+  // Default ALL customer URLs (#/, ?ad=meta, utm_source=...) to the streamlined reverse-funnel landing page unless ?view=classic
+  const [adShowroomOpen, setAdShowroomOpen] = useState<boolean>(() =>
+    typeof window !== 'undefined'
+      ? !isExplicitClassicView(window.location.search, window.location.hash)
+      : true,
   )
   const [metaSelectedCart, setMetaSelectedCart] = useState<CartItem[]>(() => {
-    if (!attribution.adMode || !urlPresetKey) return []
+    if (!urlPresetKey) return []
     const matched = resolveInitialPreset(presets, urlPresetKey)
     return matched ? matched.items : []
   })
   const [quickFormVisible, setQuickFormVisible] = useState<boolean>(false)
 
+  const metaCartSim = useMemo(() => {
+    const recUnits = recommendZeroCostLifeCare({
+      cart: metaSelectedCart,
+      products: catalog.products,
+      policy: catalog.policy,
+    })
+    return calculateBenefitSimulation({
+      cart: metaSelectedCart,
+      products: catalog.products,
+      lifeCare: recUnits,
+      cardEnabled: true,
+      coverShortfallWithLivingSpend: true,
+      policy: catalog.policy,
+    })
+  }, [metaSelectedCart, catalog.products, catalog.policy])
+
   useEffect(() => {
     const syncHashUrl = () => {
       const nextPreset = readPresetKeyFromUrl(window.location.search, window.location.hash)
-      const nextAttr = resolveMarketingAttribution(window.location.search, window.location.hash)
+      const isClassic = isExplicitClassicView(window.location.search, window.location.hash)
       setLocationKey(`${window.location.search}|${window.location.hash}`)
-      setAdShowroomOpen(Boolean(nextAttr.adMode))
+      setAdShowroomOpen(!isClassic)
       if (nextPreset) {
         const matched = resolveInitialPreset(presets, nextPreset)
         if (matched) {
           setSelectedPresetId(matched.id)
-          if (nextAttr.adMode) {
+          if (!isClassic) {
             setMetaSelectedCart(matched.items)
           }
         }
@@ -196,7 +218,6 @@ export function SimulatorPage({
   const [customManualLifeCare, setCustomManualLifeCare] = useState<LifeCareUnits | null>(null)
   const [customCoverShortfall, setCustomCoverShortfall] = useState<boolean>(true)
 
-  // Dedicated single-product preview state so clicking '단독 혜택 보기' never wipes items already added via '+ 추가하기'
   const [singlePreviewCart, setSinglePreviewCart] = useState<CartItem[]>([])
   const [singleManualLifeCare, setSingleManualLifeCare] = useState<LifeCareUnits | null>(null)
   const [resultTargetMode, setResultTargetMode] = useState<ResultTargetMode>('custom-cart')
@@ -283,7 +304,6 @@ export function SimulatorPage({
   const [consultModalOpen, setConsultModalOpen] = useState(false)
   const [toastMessage, setToastMessage] = useState<string | null>(null)
 
-  // Refs to read latest UI layer inside popstate without stale closures
   const suppressNextPopRef = useRef(false)
   const layerStateRef = useRef({
     resultModalOpen: false,
@@ -347,30 +367,45 @@ export function SimulatorPage({
     setToastMessage(msg)
     window.setTimeout(() => {
       setToastMessage((cur) => (cur === msg ? null : cur))
-    }, 2400)
+    }, 2200)
   }, [])
 
   const scrollToQuickForm = useCallback(() => {
+    setToastMessage(null)
     const el = document.getElementById('quick-reserve-form')
     if (el) {
       el.scrollIntoView({ behavior: 'smooth', block: 'start' })
     }
   }, [])
 
+  // Toggles item in metaSelectedCart IN PLACE without scrolling away so users can add multiple appliances!
   const handleToggleMetaProduct = useCallback(
     (productId: string, term: SubscriptionTerm) => {
       const exists = metaSelectedCart.some((i) => i.productId === productId)
       if (exists) {
         setMetaSelectedCart((prev) => prev.filter((i) => i.productId !== productId))
-        showToast('견적함에서 선택이 해제되었습니다')
+        showToast('견적함에서 제외되었습니다')
       } else {
         setMetaSelectedCart((prev) => [...prev, { productId, term, quantity: 1 }])
-        window.setTimeout(() => {
-          scrollToQuickForm()
-        }, 80)
+        const nextCount = metaSelectedCart.length + 1
+        showToast(`${nextCount}개 담김 · 더 담거나 상담 버튼을 눌러주세요`)
       }
     },
-    [metaSelectedCart, catalog.products, showToast, scrollToQuickForm],
+    [metaSelectedCart, showToast],
+  )
+
+  // Ensures item is in metaSelectedCart and smoothly scrolls straight to the inline reservation form
+  const handleConsultMetaProduct = useCallback(
+    (productId: string, term: SubscriptionTerm) => {
+      setMetaSelectedCart((prev) => {
+        if (prev.some((i) => i.productId === productId)) return prev
+        return [...prev, { productId, term, quantity: 1 }]
+      })
+      window.setTimeout(() => {
+        scrollToQuickForm()
+      }, 60)
+    },
+    [scrollToQuickForm],
   )
 
   const handleRemoveMetaItem = useCallback((productId: string, term: SubscriptionTerm) => {
@@ -463,7 +498,7 @@ export function SimulatorPage({
     }
   }
 
-  /* ==================== MAIN HOME HANDLERS ==================== */
+  /* ==================== CLASSIC HOME HANDLERS ==================== */
   const handleSelectHeroPreset = (preset: QuickScenarioPreset) => {
     setSelectedPresetId(preset.id)
     setHeroManualLifeCare(null)
@@ -537,7 +572,6 @@ export function SimulatorPage({
     setResultModalOpen(true)
   }
 
-  // Mutators inside CustomBenefitResultModal (operates on whichever cart is active in result view)
   const mutateOverlayCart = (updater: (prev: CartItem[]) => CartItem[]) => {
     if (resultTargetMode === 'single-preview') {
       setSingleManualLifeCare(null)
@@ -658,7 +692,6 @@ export function SimulatorPage({
   const hideStickyBarForInlineForm =
     screenView === 'home' && adShowroomOpen && quickFormVisible
 
-  // Determine which CalculationResult & label ConsultationModal receives
   const consultTargetResult =
     consultSource === 'custom-result' ? overlayResult : heroResult
   const consultContextLabel =
@@ -668,8 +701,13 @@ export function SimulatorPage({
         ? '가전 골라담기 결과'
         : '첫화면 원클릭 추천'
 
+  const detailProductInMetaCart = Boolean(
+    detailModalProduct &&
+      metaSelectedCart.some((i) => i.productId === detailModalProduct.id),
+  )
+
   return (
-    <div className="min-h-dvh bg-paper text-ink pb-28 xl:pb-16">
+    <div className="min-h-dvh bg-paper text-ink pb-28 xl:pb-20">
       {/* Top Sticky Header */}
       <header className="sticky top-0 z-30 bg-surface border-b border-rule">
         <div className="max-w-[1360px] mx-auto px-4 sm:px-6 lg:px-8 h-14 sm:h-15 flex items-center justify-between gap-2.5">
@@ -717,10 +755,14 @@ export function SimulatorPage({
                 <button
                   type="button"
                   onClick={scrollToQuickForm}
-                  className="inline-flex items-center gap-1.5 h-9 px-3.5 rounded-lg bg-accent hover:bg-accent-hover text-accent-ink text-xs font-bold transition-colors cursor-pointer whitespace-nowrap"
+                  className="inline-flex items-center gap-1.5 h-9 px-3.5 rounded-lg bg-accent hover:bg-accent-hover text-accent-ink text-xs font-bold transition-colors cursor-pointer whitespace-nowrap tabular-nums"
                 >
                   <MessageSquare size={13} aria-hidden="true" />
-                  <span>30초 견적 신청</span>
+                  <span>
+                    {metaSelectedCart.length > 0
+                      ? `담은 ${metaSelectedCart.length}대 상담 신청`
+                      : '30초 견적 신청'}
+                  </span>
                 </button>
               ) : (
                 <button
@@ -870,11 +912,11 @@ export function SimulatorPage({
                 selectedCart={metaSelectedCart}
                 attribution={attribution}
                 onToggleSelectProduct={handleToggleMetaProduct}
+                onConsultProduct={handleConsultMetaProduct}
                 onRemoveSelectedItem={handleRemoveMetaItem}
                 onClearSelectedItems={handleClearMetaItems}
                 onOpenProductDetail={(p) => setDetailModalProduct(p)}
                 onScrollToForm={scrollToQuickForm}
-                onExitAdMode={() => setAdShowroomOpen(false)}
               />
               <LegalDisclosureSection />
             </div>
@@ -909,7 +951,6 @@ export function SimulatorPage({
                 />
               ) : (
                 <div className="space-y-4">
-                  {/* Search & Brand Filter */}
                   <div className="rounded-xl bg-surface border border-rule p-3.5 sm:p-4 space-y-2.5">
                     <div className="relative">
                       <Search
@@ -1004,7 +1045,6 @@ export function SimulatorPage({
               )}
             </div>
 
-            {/* Desktop Live Customizer Side Panel */}
             <aside className="hidden xl:block xl:col-span-5 sticky top-32">
               <div className="max-h-[calc(100dvh-9rem)] overflow-y-auto receipt-scroll rounded-xl space-y-3">
                 {customTotalQty > 0 && (
@@ -1188,11 +1228,44 @@ export function SimulatorPage({
       {toastMessage && (
         <div
           role="status"
-          className="fixed bottom-24 xl:bottom-6 left-1/2 -translate-x-1/2 z-50 px-4 py-2.5 rounded-lg bg-ink text-on-ink text-xs font-bold whitespace-nowrap max-w-[92vw] truncate"
+          className="fixed bottom-24 xl:bottom-20 left-1/2 -translate-x-1/2 z-50 px-4 py-2.5 rounded-lg bg-ink text-on-ink text-xs font-bold whitespace-nowrap max-w-[92vw] truncate"
         >
           {toastMessage}
         </div>
       )}
+
+      {/* DESKTOP FLOATING MULTI-CART DOCK (xl+) — Shows when 1+ items added via 담기 and form not yet visible */}
+      {screenView === 'home' &&
+        adShowroomOpen &&
+        metaSelectedCart.length > 0 &&
+        !quickFormVisible && (
+          <div className="hidden xl:flex fixed bottom-5 left-1/2 -translate-x-1/2 z-30 items-center gap-4 px-5 py-3 rounded-2xl bg-ink text-on-ink border border-rule-strong">
+            <div className="text-xs tabular-nums">
+              <strong className="font-extrabold">
+                담은 가전 {metaSelectedCart.length}대
+              </strong>
+              <span className="ml-2 text-on-ink/80">
+                최대 혜택 적용 시 월{' '}
+                {metaCartSim.phaseA.effectiveMonthlyPay.toLocaleString('ko-KR')}원
+              </span>
+            </div>
+            <button
+              type="button"
+              onClick={handleClearMetaItems}
+              className="text-xs font-semibold text-on-ink/75 hover:text-on-ink underline underline-offset-2 cursor-pointer whitespace-nowrap"
+            >
+              비우기
+            </button>
+            <button
+              type="button"
+              onClick={scrollToQuickForm}
+              className="h-9 px-4 rounded-lg bg-accent hover:bg-accent-hover text-accent-ink text-xs font-extrabold inline-flex items-center gap-1.5 cursor-pointer whitespace-nowrap tabular-nums"
+            >
+              <span>담은 {metaSelectedCart.length}대 상담 신청하기</span>
+              <ArrowDown size={13} aria-hidden="true" />
+            </button>
+          </div>
+        )}
 
       {/* MOBILE STICKY BOTTOM BAR (< xl) — Auto-hides when InlineQuickConsultForm is visible */}
       {!resultModalOpen && !hideStickyBarForInlineForm && (
@@ -1257,8 +1330,8 @@ export function SimulatorPage({
                 <div className="min-w-0 flex-1">
                   <div className="text-xs font-bold text-ink truncate tabular-nums">
                     {metaSelectedCart.length > 0
-                      ? `선택 가전 ${metaSelectedCart.length}대 담김`
-                      : '모델 고민 중이어도 괜찮아요'}
+                      ? `담은 가전 ${metaSelectedCart.length}대 · 최대 혜택 월 ${metaCartSim.phaseA.effectiveMonthlyPay.toLocaleString('ko-KR')}원`
+                      : '담기로 여러 개 고르거나 바로 신청하세요'}
                   </div>
                   <div className="text-[10px] text-positive font-semibold truncate">
                     카톡·문자로 내 맞춤 최대 혜택표 무료 발송
@@ -1267,10 +1340,14 @@ export function SimulatorPage({
                 <button
                   type="button"
                   onClick={scrollToQuickForm}
-                  className="inline-flex items-center gap-1 h-10 px-3.5 rounded-lg bg-accent hover:bg-accent-hover text-accent-ink text-xs font-bold cursor-pointer shrink-0 whitespace-nowrap"
+                  className="inline-flex items-center gap-1 h-10 px-3.5 rounded-lg bg-accent hover:bg-accent-hover text-accent-ink text-xs font-bold cursor-pointer shrink-0 whitespace-nowrap tabular-nums"
                 >
                   <MessageSquare size={13} aria-hidden="true" />
-                  <span>30초 견적 신청</span>
+                  <span>
+                    {metaSelectedCart.length > 0
+                      ? `${metaSelectedCart.length}대 상담 신청`
+                      : '30초 견적 신청'}
+                  </span>
                 </button>
               </>
             ) : (
@@ -1331,7 +1408,7 @@ export function SimulatorPage({
         </div>
       )}
 
-      {/* MAIN HOME MOBILE UNIT DRAWER (Strictly for Hero Preset only) */}
+      {/* CLASSIC MOBILE UNIT DRAWER */}
       {mobileHeroSheetOpen && (
         <div
           role="dialog"
@@ -1389,7 +1466,7 @@ export function SimulatorPage({
         </div>
       )}
 
-      {/* DEDICATED SEPARATE BENEFIT RESULT VIEW (Back & X return to previous screen!) */}
+      {/* DEDICATED SEPARATE BENEFIT RESULT VIEW */}
       <CustomBenefitResultModal
         open={resultModalOpen}
         originLabel={resultOriginLabel}
@@ -1417,20 +1494,23 @@ export function SimulatorPage({
         policy={catalog.policy}
         ctaLabel={
           adShowroomOpen && screenView === 'home'
-            ? '이 가전 내 견적함에 담기'
+            ? '담고 바로 상담 신청'
             : '이 가전으로 맞춤 혜택 설계하기'
+        }
+        isSelected={detailProductInMetaCart}
+        onToggleCartOnly={
+          adShowroomOpen && screenView === 'home'
+            ? (productId, term) => {
+                handleToggleMetaProduct(productId, term)
+                setDetailModalProduct(null)
+              }
+            : undefined
         }
         onNavigateProduct={(next) => setDetailModalProduct(next)}
         onChooseProduct={(productId, term) => {
           if (adShowroomOpen && screenView === 'home') {
-            setMetaSelectedCart((prev) => {
-              if (prev.some((i) => i.productId === productId)) return prev
-              return [...prev, { productId, term, quantity: 1 }]
-            })
             setDetailModalProduct(null)
-            window.setTimeout(() => {
-              scrollToQuickForm()
-            }, 80)
+            handleConsultMetaProduct(productId, term)
             return
           }
           const backLabel =
