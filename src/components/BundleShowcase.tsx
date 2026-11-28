@@ -140,44 +140,35 @@ export function BundleShowcase({
             </div>
 
             <div className="mt-5 pt-4 border-t border-rule flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-              <div className="flex flex-wrap items-center gap-x-5 gap-y-2">
+              <div className="space-y-1.5 tabular-nums">
                 <div>
-                  <div className="text-[11px] font-bold text-ink-2">
-                    추천 혜택 체감가 (만기 100% 환급형)
+                  <div className="text-xs font-extrabold text-accent">
+                    카드실적 없어도 (프리드 {optimalCalc.totalLifeCareUnits}구좌 · 만기 100% 환급형)
                   </div>
-                  <div className="flex items-baseline gap-1.5 tabular-nums">
+                  <div className="flex items-baseline gap-2 mt-0.5">
                     <span className="text-xs text-subtle line-through">
-                      월 {optimalCalc.phaseA.grossSubscription.toLocaleString('ko-KR')}원
+                      일반 월 {optimalCalc.phaseA.grossSubscription.toLocaleString('ko-KR')}원
                     </span>
-                    <span className="text-xl font-black text-ink">
+                    <span className="text-2xl font-black text-ink tracking-tight">
                       월 {optimalCalc.phaseA.afterLifeCareEffective.toLocaleString('ko-KR')}원
                     </span>
                   </div>
                 </div>
 
-                <div className="h-8 w-px bg-rule hidden sm:block" />
-
-                <div>
-                  <div className="text-[11px] font-semibold text-muted">
-                    제휴카드 사용 시 (전월 30만 원 기준)
-                  </div>
-                  <div className="flex flex-wrap items-baseline gap-1.5 tabular-nums">
-                    <span className="text-sm font-extrabold text-accent">
+                <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted">
+                  <span>
+                    제휴카드 실적 추가 시:{' '}
+                    <strong className="font-bold text-ink-2">
                       월 {optimalCalc.phaseA.effectiveMonthlyPay.toLocaleString('ko-KR')}원
-                    </span>
-                    {optimalCalc.phaseA.monthlySurplusCash > 0 && (
-                      <span className="text-xs font-bold text-positive bg-positive-soft border border-positive-rule px-2 py-0.5 rounded">
-                        매월 +{optimalCalc.phaseA.monthlySurplusCash.toLocaleString('ko-KR')}원 입금
-                      </span>
-                    )}
-                  </div>
+                    </strong>
+                  </span>
                   {optimalCalc.lifeCareMaturityRefundTotal > 0 && (
-                    <div className="mt-0.5 inline-flex items-center gap-1 text-[11px] font-medium text-muted tabular-nums">
+                    <span className="inline-flex items-center gap-1 text-[11px]">
                       <ShieldCheck size={12} aria-hidden="true" className="text-positive" />
                       <span>
                         120회 만기 시 납입금 {formatKRW(optimalCalc.lifeCareMaturityRefundTotal)} 100% 환급
                       </span>
-                    </div>
+                    </span>
                   )}
                 </div>
               </div>

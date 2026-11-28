@@ -279,38 +279,46 @@ export function ProductDetailModal({
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
-                <div className="rounded-lg bg-field px-3.5 py-2.5 border border-rule">
-                  <div className="flex items-center justify-between text-[11px] text-muted">
-                    <span>기본 혜택 체감가</span>
-                    <span className="line-through">
-                      원금 {formatKRW(sim.phaseA.grossSubscription)}
+              <div className="rounded-lg bg-field px-4 py-3 border border-rule-strong space-y-2">
+                <div className="flex items-center justify-between gap-2 text-xs text-muted">
+                  <span>일반 구독료</span>
+                  <span
+                    className={
+                      sim.phaseA.lifeCareCashback > 0 ? 'line-through font-medium' : 'font-medium'
+                    }
+                  >
+                    월 {formatKRW(sim.phaseA.grossSubscription)}
+                  </span>
+                </div>
+
+                <div className="flex flex-wrap items-baseline justify-between gap-2">
+                  <div>
+                    <span className="text-xs sm:text-[13px] font-extrabold text-accent">
+                      카드실적 없어도
+                    </span>
+                    <span className="block text-[11px] font-semibold text-positive mt-0.5">
+                      {sim.totalLifeCareUnits > 0
+                        ? `프리드 ${sim.totalLifeCareUnits}구좌 결합 · 만기 100% 환급형`
+                        : '단품 기본 케어 구독'}
                     </span>
                   </div>
-                  <div className="mt-1 text-xl font-black text-ink">
+                  <div className="ml-auto text-2xl sm:text-[26px] font-black text-ink tracking-tight whitespace-nowrap">
                     월 {formatKRW(sim.phaseA.afterLifeCareEffective)}
-                  </div>
-                  <div className="text-[10px] font-bold text-positive mt-0.5">
-                    카드 미사용 기본 결합 기준
                   </div>
                 </div>
 
-                <div className="rounded-lg bg-surface px-3.5 py-2.5 border border-rule-strong">
-                  <div className="text-[11px] font-semibold text-ink-2">
-                    제휴카드 사용 시 (전월 30만 원 기준)
-                  </div>
-                  <div className="mt-1 text-lg font-black text-accent">
+                <div className="pt-2 border-t border-dashed border-rule flex flex-wrap items-center justify-between gap-2 text-xs">
+                  <span className="text-muted font-medium">
+                    제휴카드 실적 추가 시 (전월 30만 원 · -{policy.cardMonthlyCashback.toLocaleString('ko-KR')}원)
+                  </span>
+                  <span className="font-bold text-ink-2 whitespace-nowrap">
                     월 {formatKRW(sim.phaseA.effectiveMonthlyPay)}
-                    {sim.phaseA.monthlySurplusCash > 0 && (
-                      <span className="ml-1.5 text-xs font-bold text-positive">
-                        (+{sim.phaseA.monthlySurplusCash.toLocaleString('ko-KR')}원 입금)
-                      </span>
-                    )}
-                  </div>
-                  <div className="inline-flex items-center gap-1 text-[10px] text-muted mt-0.5">
-                    <ShieldCheck size={11} aria-hidden="true" className="text-positive" />
-                    <span>최대 5년 무상 A/S·정기 방문케어 포함</span>
-                  </div>
+                  </span>
+                </div>
+
+                <div className="inline-flex items-center gap-1 text-[11px] text-muted pt-0.5">
+                  <ShieldCheck size={12} aria-hidden="true" className="text-positive" />
+                  <span>최대 5년 무상 A/S·정기 방문케어 포함</span>
                 </div>
               </div>
             </div>

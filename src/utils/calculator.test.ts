@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+import { INITIAL_PRODUCTS } from '../data/initialSeedData'
 import {
   DEFAULT_POLICY_CONFIG,
   calculateBenefitSimulation,
@@ -72,7 +73,7 @@ const TEST_PRODUCTS: ProductItem[] = [
   },
 ]
 
-describe('Phase 1: Business Math Engine & Near-Zero Thousand-Won Rule Verification', () => {
+describe('Phase 1: Business Math Engine & 18,000원 Card-Headroom Main Price Rule Verification', () => {
   it('Uses official 구독플러스 72 / 90 / 108 product names with exact total benefit math', () => {
     const res = calculateBenefitSimulation({
       cart: [{ productId: 'single-36-item', term: 36, quantity: 1 }],
@@ -140,13 +141,13 @@ describe('Phase 1: Business Math Engine & Near-Zero Thousand-Won Rule Verificati
     expect(clamped.q40 + clamped.q50 + clamped.q60).toBe(12)
   })
 
-  it('Near-Zero Rule: leaves positive 천원단위 remainder (e.g. 46,000 -> 1,000원) before card, then <= 0원 with card', () => {
+  it('Card-Headroom Rule: leaves >= 18,000원 room for card benefit on main price (e.g. 46,000 -> 21,000원/19,000원 before card, 3,000원/1,000원 with card)', () => {
     const rec36 = recommendZeroCostLifeCare({
       cart: [{ productId: 'robot-vac', term: 36, quantity: 1 }],
       products: TEST_PRODUCTS,
       policy: DEFAULT_POLICY_CONFIG,
     })
-    expect(rec36).toEqual({ q40: 1, q50: 1, q60: 0 })
+    expect(rec36).toEqual({ q40: 0, q50: 1, q60: 0 })
 
     const sim36 = calculateBenefitSimulation({
       cart: [{ productId: 'robot-vac', term: 36, quantity: 1 }],
@@ -156,15 +157,17 @@ describe('Phase 1: Business Math Engine & Near-Zero Thousand-Won Rule Verificati
       coverShortfallWithLivingSpend: true,
       policy: DEFAULT_POLICY_CONFIG,
     })
-    expect(sim36.phaseA.afterLifeCareEffective).toBe(1000)
-    expect(sim36.phaseA.effectiveMonthlyPay).toBe(0)
-    expect(sim36.phaseA.monthlySurplusCash).toBe(17000)
+    expect(sim36.phaseA.afterLifeCareEffective).toBe(21000)
+    expect(sim36.phaseA.effectiveMonthlyPay).toBe(3000)
+    expect(sim36.phaseA.monthlySurplusCash).toBe(0)
 
     const rec60 = recommendZeroCostLifeCare({
       cart: [{ productId: 'robot-vac', term: 60, quantity: 1 }],
       products: TEST_PRODUCTS,
       policy: DEFAULT_POLICY_CONFIG,
     })
+    expect(rec60).toEqual({ q40: 1, q50: 1, q60: 0 })
+
     const sim60 = calculateBenefitSimulation({
       cart: [{ productId: 'robot-vac', term: 60, quantity: 1 }],
       products: TEST_PRODUCTS,
@@ -173,25 +176,36 @@ describe('Phase 1: Business Math Engine & Near-Zero Thousand-Won Rule Verificati
       coverShortfallWithLivingSpend: true,
       policy: DEFAULT_POLICY_CONFIG,
     })
-    expect(sim60.phaseA.afterLifeCareEffective).toBe(1000)
-    expect(sim60.phaseA.effectiveMonthlyPay).toBe(0)
-    expect(sim60.phaseA.monthlySurplusCash).toBe(17000)
+    expect(sim60.phaseA.afterLifeCareEffective).toBe(19000)
+    expect(sim60.phaseA.effectiveMonthlyPay).toBe(1000)
+    expect(sim60.phaseA.monthlySurplusCash).toBe(0)
   })
 
-  it('Small-Fee Floor Exception: <= 12,000원 (60m) or <= 20,000원 (36m) uses minimum 1 unit (구독플러스 72) for 0원', () => {
+  it('Small-Fee Floor Protection: never collapses main card-free price to 0원 across all 147 catalog products', () => {
     const recSmall36 = recommendZeroCostLifeCare({
       cart: [{ productId: 'rice-cooker', term: 36, quantity: 1 }],
       products: TEST_PRODUCTS,
       policy: DEFAULT_POLICY_CONFIG,
     })
-    expect(recSmall36).toEqual({ q40: 1, q50: 0, q60: 0 })
+    expect(recSmall36).toEqual({ q40: 0, q50: 0, q60: 0 })
 
-    const recSmall60 = recommendZeroCostLifeCare({
-      cart: [{ productId: 'rice-cooker', term: 60, quantity: 1 }],
-      products: TEST_PRODUCTS,
-      policy: DEFAULT_POLICY_CONFIG,
-    })
-    expect(recSmall60).toEqual({ q40: 1, q50: 0, q60: 0 })
+    for (const product of INITIAL_PRODUCTS) {
+      const term = product.monthly60 !== null && product.monthly60 > 0 ? 60 : 36
+      const units = recommendZeroCostLifeCare({
+        cart: [{ productId: product.id, term, quantity: 1 }],
+        products: [product],
+        policy: DEFAULT_POLICY_CONFIG,
+      })
+      const sim = calculateBenefitSimulation({
+        cart: [{ productId: product.id, term, quantity: 1 }],
+        products: [product],
+        lifeCare: units,
+        cardEnabled: true,
+        coverShortfallWithLivingSpend: true,
+        policy: DEFAULT_POLICY_CONFIG,
+      })
+      expect(sim.phaseA.afterLifeCareEffective).toBeGreaterThanOrEqual(5000)
+    }
   })
 
   it('Hardens Formula Injection and blocks XSS / protocol-relative URLs', () => {

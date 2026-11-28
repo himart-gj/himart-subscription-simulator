@@ -209,24 +209,24 @@ export function InlineQuickConsultForm({
     const lifeCareText = hasSelectedModels
       ? lifeCareParts.length > 0
         ? `${lifeCareParts.join(' + ')} (총 ${simResult.totalLifeCareUnits}구좌 / 카드납부 월 ${formatKRW(simResult.lifeCareMonthlyDues)} / 매월 현금지원 ${formatKRW(simResult.lifeCareMonthlyCashback)})`
-        : '미선택 (0구좌)'
+        : '단품 기본 구독 (0구좌)'
       : '상담 후 고객 조건별 최적 혜택 비교 안내 희망'
 
     const cardStatusText = hasSelectedModels
       ? simResult.cardAutoMetByLifeCare
         ? `제휴카드 실적 30만원 자동 충족 (월 -${formatKRW(simResult.cardMonthlyCashback)} / ${simResult.cardDurationMonths}개월)`
-        : `제휴카드 월 -${formatKRW(simResult.cardMonthlyCashback)} 적용 기준 (${simResult.cardDurationMonths}개월)`
+        : `제휴카드 실적 추가 시 월 -${formatKRW(simResult.cardMonthlyCashback)} (${simResult.cardDurationMonths}개월)`
       : '제휴카드 유무별 비교 견적 요청'
 
     const phaseASummary = hasSelectedModels
       ? simResult.phaseA.monthlySurplusCash > 0
-        ? `${simResult.phaseA.label}: 기본혜택가 ${formatKRW(simResult.phaseA.afterLifeCareEffective)} / 최대혜택시 월 0원 + 매월 ${simResult.phaseA.monthlySurplusCash.toLocaleString('ko-KR')}원 캐시백`
-        : `${simResult.phaseA.label}: 기본혜택가 ${formatKRW(simResult.phaseA.afterLifeCareEffective)} / 최대혜택시 월 ${formatKRW(simResult.phaseA.effectiveMonthlyPay)}`
+        ? `${simResult.phaseA.label}: 카드실적없어도 월 ${formatKRW(simResult.phaseA.afterLifeCareEffective)} / 카드실적추가시 월 0원 + 매월 ${simResult.phaseA.monthlySurplusCash.toLocaleString('ko-KR')}원 캐시백`
+        : `${simResult.phaseA.label}: 카드실적없어도 월 ${formatKRW(simResult.phaseA.afterLifeCareEffective)} / 카드실적추가시 월 ${formatKRW(simResult.phaseA.effectiveMonthlyPay)}`
       : '상담 후 맞춤 산출 희망'
 
     const phaseBSummary =
       hasSelectedModels && simResult.phaseB
-        ? `${simResult.phaseB.label}: 기본혜택가 ${formatKRW(simResult.phaseB.afterLifeCareEffective)} / 최대혜택시 월 ${formatKRW(simResult.phaseB.effectiveMonthlyPay)}`
+        ? `${simResult.phaseB.label}: 카드실적없어도 월 ${formatKRW(simResult.phaseB.afterLifeCareEffective)} / 카드실적추가시 월 ${formatKRW(simResult.phaseB.effectiveMonthlyPay)}`
         : null
 
     const attrTag = attribution ? formatAttributionTag(attribution) : ''
@@ -318,7 +318,7 @@ export function InlineQuickConsultForm({
             id="quick-reserve-heading"
             className="text-base sm:text-lg font-bold tracking-tight text-on-ink"
           >
-            내 조건 최대 혜택 비교표 무료로 받아보기
+            내 조건 맞춤 혜택 비교표 무료로 받아보기
           </h3>
         </div>
         <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-on-ink/12 text-[11px] font-semibold text-on-ink whitespace-nowrap">
@@ -446,24 +446,45 @@ export function InlineQuickConsultForm({
                     </button>
                   </div>
 
-                  <div className="grid grid-cols-2 gap-2 pt-2.5 border-t border-rule">
-                    <div className="rounded-lg bg-surface px-3 py-2 border border-rule">
-                      <span className="block text-[11px] text-muted">일반 구독료 합계</span>
-                      <strong className="text-sm font-bold text-ink-2 line-through">
+                  <div className="rounded-xl bg-surface border border-ink px-3.5 py-3 space-y-2">
+                    <div className="flex items-center justify-between gap-2 text-xs text-muted">
+                      <span>일반 구독료 합계</span>
+                      <span
+                        className={
+                          simResult.phaseA.lifeCareCashback > 0
+                            ? 'font-semibold line-through whitespace-nowrap'
+                            : 'font-semibold whitespace-nowrap'
+                        }
+                      >
                         월 {simResult.phaseA.grossSubscription.toLocaleString('ko-KR')}원
+                      </span>
+                    </div>
+
+                    <div className="flex flex-wrap items-baseline justify-between gap-2">
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-xs sm:text-[13px] font-extrabold text-accent">
+                          카드실적 없어도
+                        </span>
+                        {simResult.totalLifeCareUnits > 0 && (
+                          <span className="text-[11px] font-bold text-positive">
+                            (프리드 {simResult.totalLifeCareUnits}구좌)
+                          </span>
+                        )}
+                      </div>
+                      <strong className="ml-auto text-lg sm:text-xl font-black text-ink tracking-tight whitespace-nowrap">
+                        월 {simResult.phaseA.afterLifeCareEffective.toLocaleString('ko-KR')}원
                       </strong>
                     </div>
-                    <div className="rounded-lg bg-accent-soft px-3 py-2 border border-accent-rule">
-                      <span className="block text-[11px] font-semibold text-accent">
-                        최대 혜택 적용 시
-                      </span>
-                      <strong className="text-base font-black text-accent">
+
+                    <div className="pt-2 border-t border-dashed border-rule flex items-center justify-between gap-2 text-[11px] text-muted">
+                      <span>제휴카드 실적 추가 시 (-{policy.cardMonthlyCashback.toLocaleString('ko-KR')}원)</span>
+                      <strong className="font-bold text-ink-2 whitespace-nowrap">
                         월 {simResult.phaseA.effectiveMonthlyPay.toLocaleString('ko-KR')}원
                       </strong>
                     </div>
                   </div>
                   <p className="text-[11px] text-ink-2 leading-snug break-keep">
-                    카드 미사용 기본가(월 {simResult.phaseA.afterLifeCareEffective.toLocaleString('ko-KR')}원)부터 당월 지점 특별가까지 한눈에 비교되도록 표로 보내드립니다.
+                    카드실적 없어도 적용되는 메인 체감가부터 제휴카드 추가 혜택·당월 지점 특별가까지 한눈에 비교되도록 표로 보내드립니다.
                   </p>
                 </div>
               ) : (

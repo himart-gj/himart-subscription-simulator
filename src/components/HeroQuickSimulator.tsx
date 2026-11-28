@@ -101,7 +101,7 @@ export function HeroQuickSimulator({
               </div>
 
               <h2 className="text-[21px] sm:text-[26px] font-bold text-ink tracking-[-0.03em] leading-[1.34] break-keep">
-                <span className="block">원하는 새 가전은 월 천원대로,</span>
+                <span className="block">카드실적 없어도 가벼운 월 체감가로,</span>
                 <span className="block">만기엔 납입금 100% 돌려받으세요</span>
               </h2>
 
@@ -216,7 +216,7 @@ export function HeroQuickSimulator({
                           {preset.badge}
                         </span>
                         <span className="text-[11px] text-muted tabular-nums">
-                          {termLabel} · 만기 100% 환급형
+                          {termLabel} · 프리드 {sim.totalLifeCareUnits}구좌
                         </span>
                       </div>
                       <div className="text-[14px] sm:text-[15px] font-bold text-ink leading-snug break-keep">
@@ -229,17 +229,15 @@ export function HeroQuickSimulator({
                         <span className="text-[11px] text-subtle line-through">
                           월 {formatKRW(sim.phaseA.grossSubscription)}
                         </span>
-                        <span className="text-[11px] font-bold text-ink-2">
-                          추천 혜택가
+                        <span className="text-[11px] font-extrabold text-accent">
+                          카드실적 없어도
                         </span>
                         <span className="text-[16px] sm:text-[17px] font-black text-ink tracking-tight">
                           월 {formatKRW(sim.phaseA.afterLifeCareEffective)}
                         </span>
                       </div>
-                      <span className="text-[11px] sm:text-xs font-bold text-positive">
-                        카드 사용 시 월 {formatKRW(sim.phaseA.effectiveMonthlyPay)}
-                        {sim.phaseA.monthlySurplusCash > 0 &&
-                          ` (+${sim.phaseA.monthlySurplusCash.toLocaleString('ko-KR')}원 캐시백)`}
+                      <span className="text-[10.5px] sm:text-[11px] font-medium text-muted">
+                        제휴카드 실적 추가 시 월 {formatKRW(sim.phaseA.effectiveMonthlyPay)}
                       </span>
                     </div>
                   </div>
@@ -277,11 +275,11 @@ export function HeroQuickSimulator({
             <div className="rounded-xl bg-field border border-ink p-4 sm:p-5 space-y-3.5 tabular-nums">
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <span className="text-xs font-bold text-ink">
-                  {autoOptimizeFreed ? '추천상품 자동맞춤 혜택가' : '선택 구좌 적용 혜택가'}
+                  {autoOptimizeFreed ? '추천상품 자동맞춤 메인 체감가' : '선택 구좌 적용 메인 체감가'}
                 </span>
                 {result.totalLifeCareUnits > 0 && (
                   <span className="px-2 py-0.5 rounded bg-positive-soft border border-positive-rule text-[11px] font-bold text-positive">
-                    만기 시 납입금 100% 환급형
+                    프리드 {result.totalLifeCareUnits}구좌 · 만기 100% 환급형
                   </span>
                 )}
               </div>
@@ -304,8 +302,8 @@ export function HeroQuickSimulator({
               </div>
 
               <div className="flex flex-wrap items-baseline justify-between gap-2">
-                <span className="text-xs sm:text-[13px] font-bold text-ink-2">
-                  카드 조건 없이도 기본 월 체감가
+                <span className="text-xs sm:text-[13px] font-extrabold text-accent">
+                  카드실적 없어도 월 체감가
                 </span>
                 <div className="ml-auto flex items-baseline gap-1 whitespace-nowrap">
                   <span className="text-sm font-bold text-ink">월</span>
@@ -385,8 +383,8 @@ export function HeroQuickSimulator({
             {/* STEP 2 BONUS: Affiliate Card */}
             <div className="rounded-xl bg-surface border border-rule-strong p-4 space-y-2.5 tabular-nums">
               <div className="flex items-center justify-between gap-2">
-                <span className="text-xs font-bold text-ink">
-                  + 제휴카드 추가 혜택 적용 시
+                <span className="text-xs font-bold text-ink-2">
+                  + 제휴카드 실적 추가 시
                 </span>
                 <span className="text-xs font-bold text-accent">
                   {result.cardBenefitActive
@@ -425,17 +423,17 @@ export function HeroQuickSimulator({
               )}
 
               {result.cardBenefitActive && (
-                <div className="pt-2.5 border-t border-rule space-y-1.5">
+                <div className="pt-2.5 border-t border-dashed border-rule space-y-1.5">
                   <div className="flex flex-wrap items-baseline justify-between gap-2">
-                    <span className="text-xs font-bold text-ink-2">
-                      제휴카드 추가 적용 시 최종 월 체감가
+                    <span className="text-xs font-medium text-muted">
+                      제휴카드 실적 추가 시 월 체감가
                     </span>
                     <div className="ml-auto flex flex-wrap items-center justify-end gap-2">
-                      <span className="text-lg sm:text-xl font-black text-accent whitespace-nowrap">
+                      <span className="text-sm sm:text-base font-extrabold text-ink-2 whitespace-nowrap">
                         월 <SpringNumber value={isEmpty ? 0 : phaseA.effectiveMonthlyPay} suffix="원" />
                       </span>
                       {hasExtraCashback && !isEmpty && (
-                        <span className="inline-flex items-center px-2 py-0.5 rounded bg-positive-soft border border-positive-rule text-positive text-xs font-bold whitespace-nowrap">
+                        <span className="inline-flex items-center px-2 py-0.5 rounded bg-positive-soft border border-positive-rule text-positive text-[11px] font-bold whitespace-nowrap">
                           +매월 {phaseA.monthlySurplusCash.toLocaleString('ko-KR')}원 통장 입금
                         </span>
                       )}
@@ -444,7 +442,7 @@ export function HeroQuickSimulator({
 
                   {isMixed && result.phaseB && (
                     <div className="flex items-center justify-between gap-2 text-xs text-positive font-bold">
-                      <span>37~60개월차 최종 월 체감가 (36M 완납 후)</span>
+                      <span>37~60개월차 카드 실적 추가 시 (36M 완납 후)</span>
                       <span className="whitespace-nowrap">
                         {result.phaseB.monthlySurplusCash > 0
                           ? `월 0원 (+${result.phaseB.monthlySurplusCash.toLocaleString('ko-KR')}원/월)`
@@ -622,7 +620,7 @@ export function HeroQuickSimulator({
               </div>
             )}
 
-            {!isEmpty && (
+            {!isEmpty && result.totalLifeCareUnits > 0 && (
               <div className="rounded-lg bg-field border border-rule px-3.5 py-3 flex flex-wrap items-center justify-between gap-2">
                 <div className="space-y-0.5">
                   <div className="text-[11px] font-bold text-muted">

@@ -60,7 +60,7 @@ const QUICK_FAQS = [
     id: 'faq-price',
     question: '왜 혼자 계산하는 것보다 견적표를 받아보는 게 유리한가요?',
     answer:
-      '온라인 표시가는 기본 기준이며, 실제로는 제휴카드 사용 여부와 다품목 결합, 경기광주점 당월 특별 지원금에 따라 월 체감가가 크게 달라집니다. 고객님 조건에 꼭 맞는 가장 유리한 안만 추려 비교표로 보내드립니다.',
+      '화면에 표시된 메인 금액은 카드 실적 조건 없이 적용되는 기본 결합 체감가이며, 제휴카드 실적 추가나 다품목 결합, 경기광주점 당월 특별 지원금에 따라 월 부담금이 한 번 더 내려갑니다. 고객님 조건에 꼭 맞는 유리한 안만 추려 비교표로 보내드립니다.',
   },
   {
     id: 'faq-call',
@@ -189,11 +189,11 @@ export function MetaAdShowroomHero({
           </div>
 
           <h2 className="text-[24px] sm:text-[32px] font-extrabold text-ink tracking-[-0.03em] leading-[1.24] break-keep">
-            목돈 부담 없이 새 가전 구독, 내 조건 최대 혜택가는 월 얼마일까요?
+            목돈 부담 없이 새 가전 구독, 카드실적 없어도 월 체감가는 얼마일까요?
           </h2>
 
           <p className="text-sm sm:text-[15px] text-ink-2 leading-relaxed break-keep">
-            복잡한 카드 실적이나 결합 조건을 직접 계산하실 필요 없습니다. 관심 품목을 여러 개 담아 한 번에 비교하거나 바로 신청하시면 전담 매니저가 가장 유리한 월 부담금 비교표를 카톡·문자로 보내드립니다.
+            카드 사용실적 부담 없이 적용되는 프리드 결합 기본 체감가를 먼저 확인해 보세요. 관심 품목을 여러 개 담아 한 번에 비교하거나 바로 신청하시면 제휴카드 추가 혜택까지 비교표로 보내드립니다.
           </p>
         </div>
 
@@ -272,7 +272,7 @@ export function MetaAdShowroomHero({
               id="meta-best-heading"
               className="text-lg sm:text-xl font-bold text-ink tracking-tight"
             >
-              매장 인기 가전 최대 혜택 예시가
+              매장 인기 가전 맞춤 혜택 체감가
             </h3>
           </div>
           {selectedCart.length > 0 && (
@@ -382,21 +382,45 @@ export function MetaAdShowroomHero({
                     </button>
                   </div>
 
-                  {/* Clean 2-Line Price Comparison */}
-                  <div className="mt-auto pt-2 border-t border-rule space-y-0.5 tabular-nums">
-                    <div className="flex items-center justify-between gap-1 text-[10.5px] sm:text-[11px] text-muted">
-                      <span className="whitespace-nowrap">일반 구독료</span>
-                      <span className="line-through whitespace-nowrap">
-                        월 {sim.phaseA.grossSubscription.toLocaleString('ko-KR')}원
-                      </span>
-                    </div>
-                    <div className="flex flex-wrap items-baseline justify-between gap-1">
-                      <span className="text-[11px] font-bold text-accent whitespace-nowrap">
-                        최대 혜택가
-                      </span>
-                      <strong className="text-[15px] sm:text-lg font-black text-ink whitespace-nowrap">
-                        월 {sim.phaseA.effectiveMonthlyPay.toLocaleString('ko-KR')}원
+                  {/* Main Price (카드실적 없어도) + Small Secondary Card-Spend Price (카드 실적 추가 시) */}
+                  <div className="mt-auto pt-2.5 border-t border-rule space-y-1 tabular-nums">
+                    {sim.phaseA.lifeCareCashback > 0 ? (
+                      <div className="flex items-center justify-between gap-1 text-[10.5px] sm:text-[11px] text-muted">
+                        <span className="whitespace-nowrap">일반 구독료</span>
+                        <span className="line-through whitespace-nowrap">
+                          월 {sim.phaseA.grossSubscription.toLocaleString('ko-KR')}원
+                        </span>
+                      </div>
+                    ) : (
+                      <div className="flex items-center justify-between gap-1 text-[10.5px] sm:text-[11px] text-muted">
+                        <span className="whitespace-nowrap">{term}개월 무상케어 구독</span>
+                        <span className="whitespace-nowrap">단품 기본</span>
+                      </div>
+                    )}
+
+                    <div className="pt-0.5">
+                      <div className="flex items-center justify-between gap-1">
+                        <span className="text-[11px] sm:text-xs font-extrabold text-accent whitespace-nowrap">
+                          카드실적 없어도
+                        </span>
+                        {sim.totalLifeCareUnits > 0 && (
+                          <span className="text-[10px] sm:text-[11px] font-semibold text-positive whitespace-nowrap">
+                            프리드 {sim.totalLifeCareUnits}구좌
+                          </span>
+                        )}
+                      </div>
+                      <strong className="block text-right text-[17px] sm:text-[21px] font-black text-ink tracking-tight leading-tight whitespace-nowrap mt-0.5">
+                        월 {sim.phaseA.afterLifeCareEffective.toLocaleString('ko-KR')}원
                       </strong>
+                    </div>
+
+                    <div className="pt-1.5 border-t border-dashed border-rule flex items-center justify-between gap-1 text-[10.5px] sm:text-[11px] text-muted">
+                      <span className="whitespace-nowrap">
+                        <span className="hidden sm:inline">제휴</span>카드 실적 추가 시
+                      </span>
+                      <span className="font-bold text-ink-2 whitespace-nowrap">
+                        월 {sim.phaseA.effectiveMonthlyPay.toLocaleString('ko-KR')}원
+                      </span>
                     </div>
                   </div>
 

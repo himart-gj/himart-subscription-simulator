@@ -90,7 +90,6 @@ export function CustomBenefitResultModal({
   const hasLifeCareBenefit =
     result.totalLifeCareUnits > 0 && phaseA.lifeCareCashback > 0
   const hasCardBenefit = result.cardBenefitActive
-  const isTwoStep = hasLifeCareBenefit && hasCardBenefit
   const hasFinalSurplus = phaseA.monthlySurplusCash > 0
 
   const cardProgressPct = Math.min(
@@ -208,164 +207,112 @@ export function CustomBenefitResultModal({
                     </div>
 
                     {hasLifeCareBenefit && (
-                      <div className="space-y-2.5">
-                        <div className="flex items-center justify-between gap-2 text-xs sm:text-[13px]">
-                          <span className="font-bold text-accent">
-                            (−) 구독플러스(Hi구독 플러스) 월 현금지원
-                          </span>
-                          <span className="font-extrabold text-accent whitespace-nowrap shrink-0">
-                            월 -{phaseA.lifeCareCashback.toLocaleString('ko-KR')}원
-                          </span>
-                        </div>
-
-                        {isTwoStep && (
-                          <div className="rounded-xl bg-field border border-rule-strong p-3.5 space-y-2">
-                            <div className="flex flex-wrap items-baseline justify-between gap-2">
-                              <div>
-                                <div className="text-xs sm:text-[13px] font-bold text-ink">
-                                  카드 조건 없이도 기본 월 체감가
-                                </div>
-                                <div className="text-[11px] text-muted">
-                                  제휴카드 미사용 기준 기본 혜택가
-                                </div>
-                              </div>
-                              <div className="ml-auto text-right">
-                                <div className="flex items-baseline justify-end gap-1 whitespace-nowrap">
-                                  <span className="text-xs font-bold text-ink">월</span>
-                                  <SpringNumber
-                                    value={phaseA.afterLifeCareEffective}
-                                    suffix="원"
-                                    className="text-xl sm:text-2xl font-black tracking-tight text-ink"
-                                  />
-                                </div>
-                                {phaseA.afterLifeCareSurplus > 0 && (
-                                  <div className="text-[11px] font-bold text-positive mt-0.5">
-                                    +매월 {phaseA.afterLifeCareSurplus.toLocaleString('ko-KR')}원 계좌 입금
-                                  </div>
-                                )}
-                              </div>
-                            </div>
-
-                            {isMixed && phaseB && (
-                              <div className="pt-2 border-t border-rule grid grid-cols-2 gap-2">
-                                <div className="rounded-lg bg-surface border border-rule px-2.5 py-1.5">
-                                  <div className="text-[10px] font-semibold text-muted">
-                                    1~36개월차 기본 체감
-                                  </div>
-                                  <div className="text-xs font-bold text-ink mt-0.5 whitespace-nowrap">
-                                    {phaseA.afterLifeCareSurplus > 0
-                                      ? `월 0원 (+${phaseA.afterLifeCareSurplus.toLocaleString('ko-KR')}원)`
-                                      : `월 ${phaseA.afterLifeCareEffective.toLocaleString('ko-KR')}원`}
-                                  </div>
-                                </div>
-                                <div className="rounded-lg bg-surface border border-rule px-2.5 py-1.5">
-                                  <div className="text-[10px] font-semibold text-muted">
-                                    37~60개월차 기본 체감
-                                  </div>
-                                  <div className="text-xs font-bold text-ink mt-0.5 whitespace-nowrap">
-                                    {phaseB.afterLifeCareSurplus > 0
-                                      ? `월 0원 (+${phaseB.afterLifeCareSurplus.toLocaleString('ko-KR')}원)`
-                                      : `월 ${phaseB.afterLifeCareEffective.toLocaleString('ko-KR')}원`}
-                                  </div>
-                                </div>
-                              </div>
-                            )}
-                          </div>
-                        )}
-                      </div>
-                    )}
-
-                    {hasCardBenefit && (
-                      <div className="flex items-center justify-between gap-2 text-xs sm:text-[13px] pt-0.5">
-                        <span className="font-bold text-ink">
-                          {isTwoStep
-                            ? '(+) Hi-Class 롯데카드 추가 혜택 적용 시'
-                            : '(−) Hi-Class 롯데카드 월 캐시백'}
+                      <div className="flex items-center justify-between gap-2 text-xs sm:text-[13px]">
+                        <span className="font-bold text-accent">
+                          (−) 구독플러스(Hi구독 플러스 · {result.totalLifeCareUnits}구좌) 월 현금지원
                         </span>
                         <span className="font-extrabold text-accent whitespace-nowrap shrink-0">
-                          월 -{policy.cardMonthlyCashback.toLocaleString('ko-KR')}원
+                          월 -{phaseA.lifeCareCashback.toLocaleString('ko-KR')}원
                         </span>
                       </div>
                     )}
 
+                    {/* HERO MAIN PRICE: 카드실적 없어도 메인 체감가 */}
                     <div className="rounded-xl bg-field border-2 border-ink p-4 space-y-2.5">
                       <div className="flex flex-wrap items-baseline justify-between gap-2">
                         <div className="space-y-0.5">
                           <div className="text-xs sm:text-sm font-extrabold text-accent">
-                            {isTwoStep
-                              ? '제휴카드 추가 적용 시 최종 월 체감가'
-                              : hasLifeCareBenefit
-                                ? '카드 조건 없이 최종 월 체감가'
-                                : hasCardBenefit
-                                  ? '제휴카드 적용 최종 월 체감가'
-                                  : '월 구독료 합계'}
+                            카드실적 없어도 월 체감가
                           </div>
                           <div className="text-[11px] text-muted">
-                            {isMixed
-                              ? '1~36개월차 기준 · 아래 구간별 변화 확인'
+                            {hasLifeCareBenefit
+                              ? `프리드 ${result.totalLifeCareUnits}구좌 결합 기준 · 제휴카드 미사용`
                               : `${termPeriodText} 약정 · 방문케어 포함`}
                           </div>
                         </div>
 
                         <div className="ml-auto flex items-baseline gap-1 whitespace-nowrap">
-                          <span className="text-sm font-bold text-accent">월</span>
+                          <span className="text-sm font-bold text-ink">월</span>
                           <SpringNumber
-                            value={phaseA.effectiveMonthlyPay}
+                            value={phaseA.afterLifeCareEffective}
                             suffix="원"
-                            className="text-[28px] sm:text-[34px] font-black tracking-tight text-accent leading-none"
+                            className="text-[28px] sm:text-[34px] font-black tracking-tight text-ink leading-none"
                           />
                         </div>
                       </div>
 
-                      {hasFinalSurplus && (
+                      {phaseA.afterLifeCareSurplus > 0 && (
                         <div className="text-right">
                           <span className="inline-flex items-center px-2.5 py-1 rounded-md bg-positive-soft border border-positive-rule text-positive text-xs font-extrabold">
-                            +매월 {phaseA.monthlySurplusCash.toLocaleString('ko-KR')}원 내 통장 입금
+                            +매월 {phaseA.afterLifeCareSurplus.toLocaleString('ko-KR')}원 계좌 입금
                           </span>
                         </div>
                       )}
 
-                      {!hasCardBenefit && (
-                        <p className="text-[11px] font-semibold text-ink-2">
-                          ※ 제휴카드 실적 충족 시 여기서 매월{' '}
-                          <strong className="font-bold text-accent">
-                            -{policy.cardMonthlyCashback.toLocaleString('ko-KR')}원
-                          </strong>{' '}
-                          추가 캐시백이 더해집니다.
-                        </p>
-                      )}
-
                       {isMixed && phaseB && (
-                        <div className="pt-2.5 border-t border-rule grid grid-cols-2 gap-2">
-                          <div className="rounded-lg bg-surface border border-rule px-3 py-2">
-                            <div className="text-[10.5px] font-bold text-ink-2">
-                              1~36개월차 구간
+                        <div className="pt-2 border-t border-rule grid grid-cols-2 gap-2">
+                          <div className="rounded-lg bg-surface border border-rule px-2.5 py-1.5">
+                            <div className="text-[10px] font-semibold text-muted">
+                              1~36개월차 무실적 체감
                             </div>
-                            <div className="text-sm font-black text-accent mt-0.5 whitespace-nowrap">
-                              월 {phaseA.effectiveMonthlyPay.toLocaleString('ko-KR')}원
+                            <div className="text-xs font-bold text-ink mt-0.5 whitespace-nowrap">
+                              {phaseA.afterLifeCareSurplus > 0
+                                ? `월 0원 (+${phaseA.afterLifeCareSurplus.toLocaleString('ko-KR')}원)`
+                                : `월 ${phaseA.afterLifeCareEffective.toLocaleString('ko-KR')}원`}
                             </div>
-                            {phaseA.monthlySurplusCash > 0 && (
-                              <div className="text-[10.5px] font-bold text-positive mt-0.5 whitespace-nowrap">
-                                +월 {phaseA.monthlySurplusCash.toLocaleString('ko-KR')}원 입금
-                              </div>
-                            )}
                           </div>
-
-                          <div className="rounded-lg bg-positive-soft border border-positive-rule px-3 py-2">
-                            <div className="text-[10.5px] font-bold text-positive">
-                              37~60개월차 (36M 완납 후)
+                          <div className="rounded-lg bg-surface border border-rule px-2.5 py-1.5">
+                            <div className="text-[10px] font-semibold text-muted">
+                              37~60개월차 무실적 체감
                             </div>
-                            <div className="text-sm font-black text-positive mt-0.5 whitespace-nowrap">
-                              월 {phaseB.effectiveMonthlyPay.toLocaleString('ko-KR')}원
+                            <div className="text-xs font-bold text-ink mt-0.5 whitespace-nowrap">
+                              {phaseB.afterLifeCareSurplus > 0
+                                ? `월 0원 (+${phaseB.afterLifeCareSurplus.toLocaleString('ko-KR')}원)`
+                                : `월 ${phaseB.afterLifeCareEffective.toLocaleString('ko-KR')}원`}
                             </div>
-                            {phaseB.monthlySurplusCash > 0 && (
-                              <div className="text-[10.5px] font-extrabold text-positive mt-0.5 whitespace-nowrap">
-                                +월 {phaseB.monthlySurplusCash.toLocaleString('ko-KR')}원 입금
-                              </div>
-                            )}
                           </div>
                         </div>
                       )}
+
+                      {/* SUBORDINATE SMALL ROW: 제휴카드 실적 추가 시 */}
+                      <div className="pt-2.5 border-t border-dashed border-rule-strong space-y-1.5">
+                        {hasCardBenefit ? (
+                          <div className="flex flex-wrap items-center justify-between gap-2 text-xs">
+                            <span className="font-medium text-muted">
+                              제휴카드 실적 추가 시 (Hi-Class -{policy.cardMonthlyCashback.toLocaleString('ko-KR')}원)
+                            </span>
+                            <div className="ml-auto flex flex-wrap items-center gap-1.5">
+                              <span className="text-sm font-extrabold text-ink-2 whitespace-nowrap">
+                                월 {phaseA.effectiveMonthlyPay.toLocaleString('ko-KR')}원
+                              </span>
+                              {hasFinalSurplus && (
+                                <span className="inline-flex items-center px-2 py-0.5 rounded bg-positive-soft border border-positive-rule text-positive text-[11px] font-bold whitespace-nowrap">
+                                  +매월 {phaseA.monthlySurplusCash.toLocaleString('ko-KR')}원 입금
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        ) : (
+                          <p className="text-[11px] text-muted">
+                            ※ 제휴카드 실적 추가 시 매월{' '}
+                            <strong className="font-bold text-ink-2">
+                              -{policy.cardMonthlyCashback.toLocaleString('ko-KR')}원
+                            </strong>{' '}
+                            추가 캐시백이 더해집니다.
+                          </p>
+                        )}
+
+                        {hasCardBenefit && isMixed && phaseB && (
+                          <div className="flex items-center justify-between gap-2 text-[11px] text-muted">
+                            <span>37~60개월차 카드 실적 추가 시</span>
+                            <span className="font-bold text-positive whitespace-nowrap">
+                              {phaseB.monthlySurplusCash > 0
+                                ? `월 0원 (+${phaseB.monthlySurplusCash.toLocaleString('ko-KR')}원/월)`
+                                : `월 ${phaseB.effectiveMonthlyPay.toLocaleString('ko-KR')}원`}
+                            </span>
+                          </div>
+                        )}
+                      </div>
                     </div>
                   </div>
                 </section>

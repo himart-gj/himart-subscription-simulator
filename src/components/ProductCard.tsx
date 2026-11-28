@@ -229,11 +229,13 @@ export function ProductCard({
 
               <div className="flex items-end justify-between gap-2">
                 <div>
-                  <span className="block text-xs font-bold text-ink">
-                    추천 혜택 체감가
+                  <span className="block text-xs font-extrabold text-accent">
+                    카드실적 없어도
                   </span>
                   <span className="block text-[10px] font-bold text-positive">
-                    만기 100% 환급형 ({singleSim.totalLifeCareUnits}구좌)
+                    {singleSim.totalLifeCareUnits > 0
+                      ? `프리드 ${singleSim.totalLifeCareUnits}구좌 · 만기 100% 환급형`
+                      : '단품 기본 케어 구독'}
                   </span>
                 </div>
                 <span className="text-[20px] font-black text-ink tracking-tight whitespace-nowrap leading-none">
@@ -242,15 +244,10 @@ export function ProductCard({
                 </span>
               </div>
 
-              <div className="pt-2 border-t border-rule flex items-center justify-between gap-2 text-xs">
-                <span className="font-semibold text-ink-2">카드 사용 시</span>
-                <span className="font-bold text-accent whitespace-nowrap">
+              <div className="pt-2 border-t border-dashed border-rule flex items-center justify-between gap-2 text-[11px]">
+                <span className="font-medium text-muted">제휴카드 실적 추가 시</span>
+                <span className="font-bold text-ink-2 whitespace-nowrap">
                   월 {singleSim.phaseA.effectiveMonthlyPay.toLocaleString('ko-KR')}원
-                  {singleSim.phaseA.monthlySurplusCash > 0 && (
-                    <span className="ml-1 text-[11px] font-bold text-positive">
-                      (+{singleSim.phaseA.monthlySurplusCash.toLocaleString('ko-KR')}원)
-                    </span>
-                  )}
                 </span>
               </div>
             </div>

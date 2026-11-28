@@ -19,6 +19,16 @@ describe('Meta Ad Reverse-Funnel UX & Split Multi-Add / Consult Actions', () => 
     expect(inlineFormSource).toContain('trackLeadConversion')
   })
 
+  it('displays card-free main price (카드실적 없어도) prominently and card-added price (카드 실적 추가 시) small underneath', () => {
+    expect(metaHeroSource).toContain('카드실적 없어도')
+    expect(metaHeroSource).toContain('sim.phaseA.afterLifeCareEffective')
+    expect(metaHeroSource).toContain('카드 실적 추가 시')
+    expect(metaHeroSource).toContain('sim.phaseA.effectiveMonthlyPay')
+
+    expect(inlineFormSource).toContain('카드실적 없어도')
+    expect(inlineFormSource).toContain('제휴카드 실적 추가 시')
+  })
+
   it('splits product card actions into non-scrolling 담기 toggle and 바로 상담 scroll button', () => {
     expect(metaHeroSource).toContain('<span>담기</span>')
     expect(metaHeroSource).toContain('<span>담김</span>')

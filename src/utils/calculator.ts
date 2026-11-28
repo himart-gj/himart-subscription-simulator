@@ -360,9 +360,12 @@ export function recommendZeroCostLifeCare(params: {
   const dues = params.policy.lifeCareUnitMonthlyDues
   const maxUnits = Math.max(1, params.policy.maxLifeCareUnits)
 
+  const cardHeadroom = Math.max(1000, params.policy.cardMonthlyCashback || 18000)
   const minUnitCashback = Math.min(cb.u40, cb.u50, cb.u60)
-  if (targetGross <= minUnitCashback) {
-    return { q40: 1, q50: 0, q60: 0 }
+  const minMainRemainderFloor = 5000
+
+  if (targetGross < minUnitCashback + minMainRemainderFloor) {
+    return { q40: 0, q50: 0, q60: 0 }
   }
 
   interface Candidate {
@@ -390,15 +393,15 @@ export function recommendZeroCostLifeCare(params: {
         let priority: number
         let scoreDistance: number
 
-        if (remainder >= 1000 && remainder < 10000) {
+        if (remainder >= cardHeadroom) {
           priority = 1
-          scoreDistance = remainder
-        } else if (remainder > 0 && remainder < 1000) {
+          scoreDistance = remainder - cardHeadroom
+        } else if (remainder >= minMainRemainderFloor) {
           priority = 2
-          scoreDistance = 1000 - remainder
+          scoreDistance = cardHeadroom - remainder
         } else {
           priority = 3
-          scoreDistance = remainder
+          scoreDistance = minMainRemainderFloor - remainder
         }
 
         const cand: Candidate = {

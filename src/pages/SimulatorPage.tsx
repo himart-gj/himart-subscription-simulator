@@ -1242,11 +1242,12 @@ export function SimulatorPage({
           <div className="hidden xl:flex fixed bottom-5 left-1/2 -translate-x-1/2 z-30 items-center gap-4 px-5 py-3 rounded-2xl bg-ink text-on-ink border border-rule-strong">
             <div className="text-xs tabular-nums">
               <strong className="font-extrabold">
-                담은 가전 {metaSelectedCart.length}대
+                담은 가전 {metaSelectedCart.length}대 · 카드실적 없어도 월{' '}
+                {metaCartSim.phaseA.afterLifeCareEffective.toLocaleString('ko-KR')}원
               </strong>
-              <span className="ml-2 text-on-ink/80">
-                최대 혜택 적용 시 월{' '}
-                {metaCartSim.phaseA.effectiveMonthlyPay.toLocaleString('ko-KR')}원
+              <span className="ml-2 text-[11px] text-on-ink/70">
+                (제휴카드 실적 추가 시 월{' '}
+                {metaCartSim.phaseA.effectiveMonthlyPay.toLocaleString('ko-KR')}원)
               </span>
             </div>
             <button
@@ -1295,16 +1296,15 @@ export function SimulatorPage({
                     ) : (
                       <>
                         <div className="text-[12px] sm:text-[13px] font-extrabold text-ink tabular-nums whitespace-nowrap">
-                          {customTotalQty}대 · 추천가 월{' '}
+                          {customTotalQty}대 · 카드실적 없어도 월{' '}
                           <SpringNumber
                             value={customCartResult.phaseA.afterLifeCareEffective}
                             suffix="원"
                           />
                         </div>
-                        <div className="text-[10px] sm:text-[11px] font-bold text-positive tabular-nums whitespace-nowrap">
-                          {customCartResult.phaseA.monthlySurplusCash > 0
-                            ? `카드 사용 시 0원 (+${customCartResult.phaseA.monthlySurplusCash.toLocaleString('ko-KR')}원)`
-                            : `카드 사용 시 월 ${customCartResult.phaseA.effectiveMonthlyPay.toLocaleString('ko-KR')}원`}
+                        <div className="text-[10px] sm:text-[11px] font-medium text-muted tabular-nums whitespace-nowrap">
+                          제휴카드 실적 추가 시 월{' '}
+                          {customCartResult.phaseA.effectiveMonthlyPay.toLocaleString('ko-KR')}원
                         </div>
                       </>
                     )}
@@ -1328,13 +1328,15 @@ export function SimulatorPage({
             ) : adShowroomOpen ? (
               <>
                 <div className="min-w-0 flex-1">
-                  <div className="text-xs font-bold text-ink truncate tabular-nums">
+                  <div className="text-xs font-extrabold text-ink truncate tabular-nums">
                     {metaSelectedCart.length > 0
-                      ? `담은 가전 ${metaSelectedCart.length}대 · 최대 혜택 월 ${metaCartSim.phaseA.effectiveMonthlyPay.toLocaleString('ko-KR')}원`
+                      ? `담은 ${metaSelectedCart.length}대 · 카드실적 없어도 월 ${metaCartSim.phaseA.afterLifeCareEffective.toLocaleString('ko-KR')}원`
                       : '담기로 여러 개 고르거나 바로 신청하세요'}
                   </div>
-                  <div className="text-[10px] text-positive font-semibold truncate">
-                    카톡·문자로 내 맞춤 최대 혜택표 무료 발송
+                  <div className="text-[10.5px] text-muted font-medium truncate tabular-nums">
+                    {metaSelectedCart.length > 0
+                      ? `제휴카드 실적 추가 시 월 ${metaCartSim.phaseA.effectiveMonthlyPay.toLocaleString('ko-KR')}원`
+                      : '카톡·문자로 무실적 기본가·카드 추가 혜택 비교표 발송'}
                   </div>
                 </div>
                 <button
@@ -1366,16 +1368,15 @@ export function SimulatorPage({
                     ) : (
                       <>
                         <div className="text-[12px] sm:text-[13px] font-extrabold text-ink tabular-nums whitespace-nowrap">
-                          추천 혜택가 월{' '}
+                          카드실적 없어도 월{' '}
                           <SpringNumber
                             value={heroResult.phaseA.afterLifeCareEffective}
                             suffix="원"
                           />
                         </div>
-                        <div className="text-[10px] sm:text-[11px] font-bold text-positive tabular-nums whitespace-nowrap">
-                          {heroResult.phaseA.monthlySurplusCash > 0
-                            ? `카드 사용 시 0원 (+${heroResult.phaseA.monthlySurplusCash.toLocaleString('ko-KR')}원)`
-                            : `카드 사용 시 월 ${heroResult.phaseA.effectiveMonthlyPay.toLocaleString('ko-KR')}원`}
+                        <div className="text-[10px] sm:text-[11px] font-medium text-muted tabular-nums whitespace-nowrap">
+                          제휴카드 실적 추가 시 월{' '}
+                          {heroResult.phaseA.effectiveMonthlyPay.toLocaleString('ko-KR')}원
                         </div>
                       </>
                     )}
